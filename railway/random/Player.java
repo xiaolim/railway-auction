@@ -5,84 +5,49 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
-// To get game history.
-import matchup.sim.utils.*;
+// To access data classes.
+import railway.sim.utils.*;
 
-public class Player implements matchup.sim.Player {
-    private List<Integer> skills;
-    private List<List<Integer>> distribution;
-
-    private List<Integer> availableRows;
-
+public class Player implements railway.sim.Player {
     // Random seed of 42.
     private int seed = 42;
     private Random rand;
 
+    private double budget;
+
     public Player() {
         rand = new Random(seed);
-        skills = new ArrayList<Integer>();
-        distribution = new ArrayList<List<Integer>>();
-        availableRows = new ArrayList<Integer>();
-
-        for (int i=0; i<3; ++i) availableRows.add(i);
     }
     
-    public void init(String opponent) {
-    }
-    public List<Integer> getSkills() {
-
-        //skills.clear();
-        skills = new ArrayList<Integer>();
-        for (int i=0; i<7; ++i) {
-            int x = rand.nextInt(11) + 1;
-            skills.add(x);
-            skills.add(12 - x);
-        }
-
-        skills.add(6);
-        Collections.shuffle(skills, rand);
-
-        return skills;
+    public void init(
+        String name,
+        double budget,
+        List<Coordinates> geo,
+        List<List<Integer>> infra,
+        int[][] transit,
+        List<String> townLookup) {
+        
+        this.name = name;
+        this.budget = budget;
     }
 
-    public List<List<Integer>> getDistribution(List<Integer> opponentSkills, boolean isHome) {
-        List<Integer> index = new ArrayList<Integer>();
-        for (int i=0; i<15; ++i) index.add(i);
+    public Bid getBid(List<BidInfo> allBids) {
+        List<BidInfo> availableBids = new ArrayList<>();
 
-        distribution = new ArrayList<List<Integer>>();
-
-        Collections.shuffle(index, rand);
-        int n = 0;
-        for (int i=0; i<3; ++i) {
-            List<Integer> row = new ArrayList<Integer>();
-            for (int j=0; j<5; ++j) {
-                row.add(skills.get(index.get(n)));
-                ++n;
+        for (BidInfo bi : allBids) {
+            if (bi.owner == null) {
+                availableBids.add(bi);
             }
-
-            distribution.add(row);
         }
 
-        return distribution;
+        BidInfo randomBid = availableBids.get(rand.nextInt(availableBids.size()));
+
+        Bid bid = new Bid();
+        bid.amount = randomBid.amount;
+        bid.id1 = randomBid.id; 
     }
-
-    public List<Integer> playRound(List<Integer> opponentRound) {
-        int n = rand.nextInt(availableRows.size());
-
-        List<Integer> round = new ArrayList<Integer>(distribution.get(availableRows.get(n)));
-        availableRows.remove(n);
-
-        Collections.shuffle(round, rand);
-
-        return round;
-    }
-
-    public void clear() {
-        availableRows.clear();
-        for (int i=0; i<3; ++i) availableRows.add(i);
-
-        // Get history of games.
-        // List<Game> games = History.getHistory();
-        // System.out.println(games.size());
+    
+    public void updateBudget(int linkId1, int linkId2, double amount) {
+        budget -= amount;
     }
 }

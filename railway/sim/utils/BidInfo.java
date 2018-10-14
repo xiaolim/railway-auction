@@ -1,4 +1,4 @@
-package railway.sim;
+package railway.sim.utils;
 
 public class BidInfo {
     // The id of the link.
@@ -14,5 +14,5 @@ public class BidInfo {
     public double amount;
 
     // Indicates the player that owns this link.
-    public String player;
+    public String owner;
 }

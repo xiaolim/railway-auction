@@ -1,4 +1,5 @@
 compile:
+	javac railway/sim/utils/*.java
 	javac railway/sim/*.java
 
 clean:

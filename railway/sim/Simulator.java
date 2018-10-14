@@ -11,10 +11,13 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.List;
+import java.util.Scanner;
 import java.util.Set;
 // import java.util.stream.Collectors;
 
@@ -22,13 +25,13 @@ import javax.tools.JavaCompiler;
 import javax.tools.StandardJavaFileManager;
 import javax.tools.ToolProvider;
 
-// I know. I know. But native Java does not have a better option :(
-import javafx.util.Pair;
+import railway.sim.utils.*;
 
-// Perhaps use an already available structure?
-class Coordinates {
-    public int x;
-    public int y;
+class LinkInfo {
+    public int town1;
+    public int town2;
+
+    public double distance;
 }
 
 public class Simulator {
@@ -45,13 +48,16 @@ public class Simulator {
     private static String infra_f = "infrastructure";
     private static String dir = "railway/sim/input/";
 
-    private static Map<String, Pair<Integer, Integer>> geo;
-    private static List<List<Integer>> infra;
+    private static List<Coordinates> geo = new ArrayList<>();
+    private static List<List<Integer>> infra = new ArrayList<>();
     private static int[][] transit;
-    private static List<String> townLookup;
+    private static Map<String, Integer> townRevLookup = new HashMap<>();
+    private static List<String> townLookup = new ArrayList<>();
+    private static List<LinkInfo> links = new ArrayList<>();
 
-    private static List<String> playersNames;
+    private static List<String> playerNames;
     private static List<PlayerWrapper> players;
+    private static List<PlayerWrapper> origPlayers;
 
     private static List<BidInfo> allBids;
 
@@ -67,6 +73,8 @@ public class Simulator {
             System.out.println("Unable to load players. " + ex.getMessage());
             System.exit(0);
         }
+
+        origPlayers = new ArrayList<>(players);
 
         HTTPServer server = null;
         if (gui) {
@@ -87,27 +95,61 @@ public class Simulator {
 
         initBids();
         double budget = getBudget();
+        List<PlayerWrapper> updates = new ArrayList<>(players);
         for (PlayerWrapper pw : players) {
-            pw.init(budget);
+            try {
+                pw.init(budget, geo, infra, transit, townLookup);
+            }
+            catch(Exception ex) {
+                System.out.println("Exception in initializing player " +
+                    pw.getName() + " " + ex.getMessage());
+                updates.remove(pw);
+            }
+        }
+
+        // Update the list of players to remove those that threw exceptions.
+        players = updates;
+
+        if (gui) {
+            gui(server, state(-1, geo, infra, budget, origPlayers));
         }
 
         boolean isComplete = false;
-
         try {
             while (!isComplete) {
+                Collections.shuffle(players);
+                updates = new ArrayList<>(players);
+
                 int nullBids = 0;
+                Bid maxBid = new Bid();
+                PlayerWrapper maxBidPlayer = null;
                 for (PlayerWrapper pw : players) {
-                    Bid bid = pw.getBid(allBids);
-                    if (bid != null) {
-                        updateBids(bid);
+                    Bid bid = null;
+
+                    try {
+                        bid = pw.getBid(allBids);
                     }
-                    else {
+                    catch (Exception ex) {
+                        System.out.println("Exception in getting bid for player " +
+                            pw.getName() + " " + ex.getMessage());
+                        updates.remove(pw);
+                    }
+
+                    if (bid == null) {
                         ++nullBids;
+                    }
+                    else if (isMaxBid(bid, maxBid)) {
+                        maxBid = bid;
+                        maxBidPlayer = pw;
                     }
                 }
 
                 if (nullBids == players.size()) {
                     isComplete = true;
+                }
+                else {
+                    updateBids(maxBid, maxBidPlayer.getName(), allBids);
+                    maxBidPlayer.updateBudget(maxBid.id1, maxBid.id2, maxBid.amount);
                 }
 
                 if (gui) {
@@ -124,8 +166,54 @@ public class Simulator {
         System.exit(0);
     }
 
-    public static void printStats() {
+    public static void printStats() {                                                                  
         System.out.println("\n******** Results ********");
+    }
+
+    private static void updateBids(Bid bid, String player, List<BidInfo> allBids) {
+        BidInfo bi = allBids.get(bid.id1);
+        double amount = bid.amount;
+
+        if (bid.id2 != -1) {
+            BidInfo bi2 = allBids.get(bid.id2);
+            bi2.amount = amount/2;
+            bi2.owner = player;
+            amount /= 2;
+        }
+
+        bi.amount = amount;
+        bi.owner = player;
+    }
+
+    private static boolean isMaxBid(Bid bid, Bid maxBid) {
+        // Can optimize further.
+        if (maxBid == null) {
+            return true;
+        }
+
+        return bid.amount/getDistance(bid) > maxBid.amount/getDistance(maxBid);
+    }
+
+    private static double getDistance(Bid bid) {
+        double dist = getDistance(bid.id1);
+
+        if (bid.id2 != -1) {
+            dist += getDistance(bid.id2);
+        }
+
+        return dist;
+    }
+
+    private static double getDistance(int linkId) {
+        LinkInfo li = links.get(linkId);
+        return getDistance(li.town1, li.town2);
+    }
+
+    private static double getDistance(int t1, int t2) {
+        return Math.pow(
+            Math.pow(geo.get(t1).x - geo.get(t2).x, 2) + 
+                Math.pow(geo.get(t1).y - geo.get(t2).y, 2), 
+            0.5);
     }
 
     private static void initBids() {
@@ -141,14 +229,16 @@ public class Simulator {
                 bi.town1 = townLookup.get(t1);
                 bi.town2 = townLookup.get(t2);
 
-                double dist = Math.pow(
-                    Math.pow(geo.get(t1).getKey() - geo.get(t2).getKey(), 2) + 
-                        Math.pow(geo.get(t1).getValue() - geo.get(t2).getValue(), 2), 
-                    0.5);
+                LinkInfo li = new LinkInfo();
+                li.town1 = t1;
+                li.town2 = t2;
+                li.distance = getDistance(t1, t2);
+                links.add(li);
 
-                bi.amount = transit[t1][t2] * dist * 10;
+                bi.amount = transit[t1][t2] * li.distance * 10;
 
-                List<BidInfo> dups = getDuplicateLinks(townLookup.get(t1), townLookup.get(t2));
+                List<BidInfo> dups =
+                    getDuplicateLinks(bi.town1, bi.town2);
                 if (dups != null && dups.size() > 0) {
                     int c_size = dups.size();
                     int new_size = c_size + 1;
@@ -165,7 +255,7 @@ public class Simulator {
         }
     }
 
-    private List<BidInfo> getDuplicateLinks(String t1, String t2) {
+    private static List<BidInfo> getDuplicateLinks(String t1, String t2) {
         List<BidInfo> dups = new ArrayList<>();
         for (BidInfo a : allBids) {
             if (a.town1.equals(t1) && a.town2.equals(t2)) {
@@ -191,43 +281,53 @@ public class Simulator {
 
     private static void loadInputFiles() {
         // Process geo.
-        String path = dir + geo_f;
-        File file = new File(path);
-        Scanner sc = new Scanner(file);
-        int index = 0;
-        while (sc.hasNextLine()) {
-            String line = sc.nextLine();
-            String[] res = line.split(",");
 
-            townLookup.put(index, res[0]);
-            geo.add(new Pair<>(res[1], res[2]));
-            infra.add(new ArrayList<String>());
-            index += 1;
+        try {
+            String path = dir + geo_f;
+            File file = new File(path);
+            Scanner sc = new Scanner(file);
+            int index = 0;
+
+            townLookup = new ArrayList<>();
+            while (sc.hasNextLine()) {
+                String line = sc.nextLine();
+                String[] res = line.split(",");
+
+                townRevLookup.put(res[0], index);
+                townLookup.add(res[0]);
+                geo.add(new Coordinates(Integer.parseInt(res[1]), Integer.parseInt(res[2])));
+                infra.add(new ArrayList<Integer>());
+                index += 1;
+            }
+
+            // Process infrastructure.
+            path = dir + infra_f;
+            file = new File(path);
+            sc = new Scanner(file);
+            while (sc.hasNextLine()) {
+                String line = sc.nextLine();
+                String[] res = line.split(",");
+                infra.get(townRevLookup.get(res[0])).add(townRevLookup.get(res[1]));
+                // infra.get(townRevLookup.get(res[1])).add(res[0]);
+            }
+
+            transit = new int[index][index];
+
+            // Process transit.
+            // How to store??
+            path = dir + transit_f;
+            file = new File(path);
+            sc = new Scanner(file);
+            while (sc.hasNextLine()) {
+                String line = sc.nextLine();
+                String[] res = line.split(",");
+                transit[townRevLookup.get(res[0])][townRevLookup.get(res[1])] = 
+                    Integer.parseInt(res[2]);
+                // transit[townRevLookup.get(res[1])][townRevLookup.get(res[0])] = 
+                //    Integer.parseInt(res[2]);
+            }
         }
-
-        // Process infrastructure.
-        path = dir + infra_f;
-        file = new File(path);
-        sc = new Scanner(file);
-        while (sc.hasNextLine()) {
-            String line = sc.nextLine();
-            String[] res = line.split(",");
-            infra.get(townLookup.get(res[0])).add(res[1]);
-            // infra.get(townLookup.get(res[1])).add(res[0]);
-        }
-
-        transit = new int[index][index];
-
-        // Process transit.
-        // How to store??
-        path = dir + transit_f;
-        file = new File(path);
-        sc = new Scanner(file);
-        while (sc.hasNextLine()) {
-            String line = sc.nextLine();
-            String[] res = line.split(",");
-            transit[townLookup.get(res[0])][townLookup.get(res[1])] = Integer.parseInt(res[2]);
-            // transit[townLookup.get(res[1])][townLookup.get(res[0])] = Integer.parseInt(res[2]);
+        catch (Exception ex) {
         }
     }
 
@@ -259,7 +359,7 @@ public class Simulator {
         throw new UnsupportedOperationException();
     }
 
-    private static PlayerWrapper loadPlayerWrapper(String name, double timeout) throws Exception {
+    private static PlayerWrapper loadPlayerWrapper(String name, long timeout) throws Exception {
         Log.record("Loading player " + name);
         Player p = loadPlayer(name);
         if (p == null) {
@@ -271,8 +371,42 @@ public class Simulator {
     }
 
     // The state that is sent to the GUI. (JSON)
+    private static String state(
+        double fps,
+        List<Coordinates> geo,
+        List<List<Integer>> infra,
+        double budget,
+        List<PlayerWrapper> players) {
+
+        // Here we are again.
+        String json = "{\"refresh\":\"" + (1000.0/fps) + "\",\"budget\":\"" + budget +
+            "\",\"geo\":\"";
+
+        for (int i=0; i<townLookup.size(); ++i) {
+            json += townLookup.get(i) + "," + geo.get(i).x + "," + geo.get(i).y + ";";
+        }
+
+        // Remove the ";" at the end.
+        json = json.substring(0, json.length() - 1);
+        json += "\",\"infra\":\"";
+
+        for (int i=0; i<townLookup.size(); ++i) {
+            for (int j=0; j<infra.get(i).size(); ++j) {
+                json += townLookup.get(i) + "," + townLookup.get(infra.get(i).get(j)) + ";";
+            }
+        }
+
+        json = json.substring(0, json.length() - 1);
+        json += "\",\"players\":\"" + String.join(",", playerNames) + "\"}";
+
+        System.out.println(json);
+
+        return json;
+    }
+
+        // The state that is sent to the GUI. (JSON)
     private static String state(double fps) {
-        throw new UnsupportedOperationException();
+        return null;
     }
 
     private static void gui(HTTPServer server, String content) {
@@ -356,7 +490,8 @@ public class Simulator {
 
         if (playerNames.size() == 0) {
             // Set all groups by default.
-            playerNames = new ArrayList(["g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8"]);
+            playerNames = new ArrayList<>(
+                Arrays.asList(new String[] {"g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8"}));
         }
 
         Log.record("Players: " + playerNames.toString());
