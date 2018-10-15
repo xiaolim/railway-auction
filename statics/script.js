@@ -1,172 +1,161 @@
-// ctx: drawing board.
-// skill: list of skills of players.
-// type: home/away
-// name: group #
-// text_pos: -1/+1 - text is above/below.
-// x_start: x starting position of the drawing.
-// y_start: y starting position of the drawing.
-function drawPlayers(ctx, x_start, y_start, skills, type, name, score, text_pos, fill, isWin) {
-    var x_off = 10;
-    var y_off = 20;
+var colors = ["red", "green", "blue", "brown", "purple", "orange", "yellow", "pink"];
 
-    ctx.font = '20px Arial';
+function resetColor(ctx) {
     ctx.fillStyle = 'black';
+    ctx.strokeStyle = 'black';
+}
 
-    for (var i=0; i<skills.length; ++i) {
-        ctx.beginPath();
-        ctx.arc(x_start + 5 + x_off, y_start-7, 5, 0*Math.PI, 2*Math.PI);
+function drawLine(ctx, x_start, y_start, x_end, y_end, color) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.moveTo(x_start, y_start);
+    ctx.lineTo(x_end, y_end);
+    ctx.stroke();
+    resetColor(ctx);
+}
 
-        if (fill[i]) {
-            ctx.fill();
+function drawTownName(ctx, name, x, y) {
+    ctx.beginPath();
+    ctx.arc(x, y, 1, 0*Math.PI, 2*Math.PI);
+    ctx.fillText(name, x+3, y+20);
+    ctx.stroke();
+}
+
+function drawPlayers(ctx, players) {
+    var x = 500;
+    var y = 20;
+
+    ctx.beginPath();
+
+    for (var i=0; i<players.length; ++i) {
+        ctx.fillStyle = player_colors[players[i]];
+        ctx.fillText(players[i] + ":", x, y);
+        y += 20;
+    }
+
+    resetColor(ctx);
+    ctx.stroke();
+}
+
+function drawInfo(ctx, players, info) {
+    var x = 500;
+    var y = 20;
+
+    ctx.beginPath();
+
+    for (var i=0; i<players.length; ++i) {
+        ctx.fillStyle = player_colors[players[i]];
+        
+        if (info[players[i]] != undefined) {
+            ctx.fillText(players[i] + ": " + info[players[i]], x, y);
+        } else {
+            ctx.fillText(players[i] + ": ", x, y);
         }
 
-        ctx.stroke();
-        ctx.fillText(skills[i], x_start + x_off - 2, y_start + text_pos*y_off);
-    
-        x_off += 40;
+        y += 40;
     }
 
-    if (isWin) {
-        ctx.font = 'bold 20px Arial';
-    }
-
-    ctx.fillText(type + '(' + name + '): ' + score, x_start + x_off, y_start);
+    resetColor(ctx);
     ctx.stroke();
 }
 
-function drawLine(ctx, x_start, y_start, x_end) {
-    ctx.beginPath();
-    ctx.moveTo(x_start, y_start);
-    ctx.lineTo(x_end, y_start);
-    ctx.stroke();
-}
+var player_pos = [];
+var player_colors = [];
+var players = [];
+var towns = [];
+var links = [];
 
-var y_pos = 40;
+var x_start;
+var y_start;
 
 function process(data) {
     var result = JSON.parse(data)
-
     var refresh = parseFloat(result.refresh);
-    var grp_a = result.grp_a;
-    var grp_b = result.grp_b;
-
-    var isHome = (result.is_home === 'true');
-
-    // Skill set of 5 players.
-    var grp_a_round = result.grp_a_round.split(",");
-    var grp_b_round = result.grp_b_round.split(",");
-
-    // Skill set of all players
-    var grp_a_skills = result.grp_a_skills;
-    var grp_b_skills = result.grp_b_skills;
-
-    // Skill distribution per round.
-    var grp_a_dist1 = result.grp_a_dist1.split(';');
-    var grp_b_dist1 = result.grp_b_dist1.split(';');
-
-    if (!!result.grp_a_dist2) {
-        // Skill distribution per round.
-        var grp_a_dist2 = result.grp_a_dist2.split(';');
-        var grp_b_dist2 = result.grp_b_dist2.split(';');
-
-        console.log(grp_a_dist2);
-    }
-
-    // Scores.
-    var grp_a_score = Number(result.grp_a_score);
-    var grp_b_score = Number(result.grp_b_score);
-
-    var fill_a = [false, false, false, false, false];
-    var fill_b = [false, false, false, false, false];
-    for (var i=0; i<5; ++i) {
-        if (grp_a_round[i] - grp_b_round[i] > 2) {
-            fill_a[i] = true;
-        }
-        else if (grp_b_round[i] - grp_a_round[i] > 2) {
-            fill_b[i] = true;
-        }
-    }
 
     canvas = document.getElementById('canvas');
     ctx = canvas.getContext('2d');
+    ctx.font = '20px Arial';
+    ctx.lineWidth = 2;
 
-    drawPlayers(ctx, 20, y_pos, grp_a_round, isHome? 'Home' : 'Away', 
-        grp_a, grp_a_score, -1, fill_a, grp_a_score > grp_b_score);
-    drawPlayers(ctx, 20, y_pos+40, grp_b_round, !isHome? 'Home' : 'Away',
-        grp_b, grp_b_score, 1, fill_b, grp_b_score > grp_a_score);
-    drawLine(ctx, 20, y_pos+80, 420);
+    if (result.geo !== undefined) {
+        var budget = result.budget;
+        players = result.players.split(',');   
+        var info = [];
 
-    if (document.getElementById('grp-a-skills').innerHTML == "") {
-        // Populate the info tables.
-        document.getElementsByName('grp-a-name').forEach(function(elem) {
-            elem.innerHTML = grp_a;
-
-            console.log(elem.class);
-
-            if (elem.className == "distrib1") {
-                elem.innerHTML += " (H)";
-            }
-            else if (elem.className == "distrib2") {
-                elem.innerHTML += " (A)";
-            }
-        });
-        document.getElementsByName('grp-b-name').forEach(function(elem) {
-            elem.innerHTML = grp_b;
-
-            if (elem.className == "distrib2") {
-                elem.innerHTML += " (H)";
-            }
-            else if (elem.className == "distrib1") {
-                elem.innerHTML += " (A)";
-            }
-        });
-
-        document.getElementById('grp-a-skills').innerHTML = grp_a_skills;
-        document.getElementById('grp-b-skills').innerHTML = grp_b_skills;
-
-        var tab = document.getElementById('distrib1');
-
-        for (var i=0; i<3; ++i) {
-            var tr = document.createElement('tr');
-            
-            var td = document.createElement('td');
-            td.innerHTML = grp_a_dist1[i];
-            tr.appendChild(td);
-
-            var td = document.createElement('td');
-            td.innerHTML = grp_b_dist1[i];
-            tr.appendChild(td);
-
-            tab.appendChild(tr);
+        for (var i=0; i<players.length; ++i) {
+            player_colors[players[i]] = colors[i];
+            info[players[i]] = budget;
         }
 
-        tab.style.display = "inline-block";
-    }
+        player_colors["None"] = "black";
 
-    var tab = document.getElementById('distrib2');
+        drawInfo(ctx, players, info);
 
-    if (tab.style.display == "none" && typeof grp_a_dist2 != "undefined") {
+        var geo = result.geo.split(';')
+        var infra = result.infra.split(';')
 
-        var tab = document.getElementById('distrib2');
+        x_start = 10;
+        var y_max = 0;
+        for (var i=0; i<geo.length; ++i) {
+            var elems = geo[i].split(',');
 
-        for (var i=0; i<3; ++i) {
-            var tr = document.createElement('tr');
-            
-            var td = document.createElement('td');
-            td.innerHTML = grp_a_dist2[i];
-            tr.appendChild(td);
+            // x,y in cartesian.
+            towns[elems[0]] = {
+                x : x_start + Number(elems[1]),
+                y : Number(elems[2])
+            };
 
-            var td = document.createElement('td');
-            td.innerHTML = grp_b_dist2[i];
-            tr.appendChild(td);
-
-            tab.appendChild(tr);
+            if (Number(elems[2]) > y_max) {
+                y_max = Number(elems[2]);
+            }
         }
 
-        tab.style.display = "inline-block";
+        // Reorganize the space on the grid.
+        y_start = y_max + 50;
+
+        for (var key in towns) {
+            towns[key].y = y_start - towns[key].y;
+            drawTownName(ctx, key, towns[key].x, towns[key].y);
+        }
+
+        for (var i=0; i<infra.length; ++i) {
+            var elems = infra[i].split(',');
+
+            links.push(elems[0] + '_' + elems[1]);
+
+            var townA = towns[elems[0]];
+            var townB = towns[elems[1]];
+
+            drawLine(ctx, townA.x, townA.y, townB.x, townB.y, 'black');
+        }
+
+        return refresh;
     }
 
-    y_pos += 140;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    var budget = result.budget.split(";");
+    var info = [];
+    for (var i=0; i<budget.length; ++i) {
+        var elems = budget[i].split(",");
+        info[elems[0]] = elems[1];
+    }
+
+    drawInfo(ctx, players, info);
+
+    for (var key in towns) {
+        drawTownName(ctx, key, towns[key].x, towns[key].y);
+    }
+
+    var owners = result.owners.split(";");
+    for (var i=0; i<owners.length; ++i) {
+        var elems = owners[i].split(",");
+
+        var townA = towns[elems[0]];
+        var townB = towns[elems[1]];
+
+        drawLine(ctx, townA.x, townA.y, townB.x, townB.y, player_colors[elems[2]]);
+    }
 
     return refresh;
 }

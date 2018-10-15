@@ -28,6 +28,7 @@ public class PlayerWrapper {
         this.player = player;
         this.name = name;
         this.timeout = timeout;
+        this.timer = new Timer();
     }
 
     public void init(
@@ -86,12 +87,17 @@ public class PlayerWrapper {
         return bid;
     }
 
-    public void updateBudget(int id1, int id2, double amount) {
-        this.player.updateBudget(id1, id2, amount);
+    public void updateBudget(double amount) {
+        this.budget -= amount;
+        this.player.updateBudget(amount);
     }
 
     public String getName() {
         return name;
+    }
+
+    public double getBudget() {
+        return budget;
     }
 
     private String getLinkString(Bid bid, List<BidInfo> allBids) {
@@ -117,27 +123,78 @@ public class PlayerWrapper {
 
     private boolean isValid(Bid bid, List<BidInfo> allBids) {
         boolean id1_correct = false, id2_correct = false;
+        double amount = 0.;
+
+        String t1a = "", t1b = "";
+        String t2a = "", t2b = "";
+
+        if (bid.id1 == bid.id2) {
+            return false;
+        }
 
         for (BidInfo bi : allBids) { 
             if (bi.id == bid.id1) {
                 if (bi.owner == null) {
                     id1_correct = true;
+                    amount += bi.amount;
+                    t1a = bi.town1;
+                    t1b = bi.town2;
                 }
-
-                // The bid is for an owned link.
-                return false;
+                else {
+                    // The bid is for an owned link.
+                    return false;
+                }
             }
             else if (bi.id == bid.id2) {
                 if (bi.owner == null) {
                     id2_correct = true;
+                    amount += bi.amount;
+                    t2a = bi.town1;
+                    t2b = bi.town2;
                 }
-
-                // The bid is for an owned link.
-                return false;
+                else {
+                    // The bid is for an owned link.
+                    return false;
+                }
             }
-
         }
 
-        return id1_correct && (bid.id2 == -1 || id2_correct);
+        if (!(id1_correct && (bid.id2 == -1 || id2_correct))) {
+            return false;
+        }
+
+        for (BidInfo bi : allBids) {
+            // Check if player is bidding for a link between two towns when they already
+            //  own one of the links.
+            if (bi.id != bid.id1 && bi.town1.equals(t1a) && bi.town2.equals(t1b) && 
+                bi.owner.equals(this.getName())) {
+                    return false;
+            }
+
+            if (bi.id != bid.id2 && bi.town1.equals(t2a) && bi.town2.equals(t2b) && 
+                bi.owner.equals(this.getName())) {
+                    return false;
+            }
+        }
+
+        // Check if player is bidding less that the minimum amount.
+        if (bid.amount < amount) {
+            return false;
+        }
+
+        // Check if player is bidding for multiple links between the same towns.
+        if (t1a.equals(t2a) && t1b.equals(t2b)) {
+            return false;
+        }
+
+        // Check if there is atleast one town in common when the player is requesting
+        //  for a pair of nodes.
+        if (bid.id2 != -1) {
+            if (!t1a.equals(t2a) && !t1a.equals(t2b) && !t1b.equals(t2a) && !t1b.equals(t2b)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

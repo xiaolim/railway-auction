@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 // import java.util.stream.Collectors;
@@ -39,7 +40,7 @@ public class Simulator {
     private static final String statics_root = "statics";
 
     private static boolean gui = false;
-    private static long timeout = 1;
+    private static long timeout = 1000;
     private static double fps = 1;
 
     // Files - hardcoded.
@@ -59,10 +60,13 @@ public class Simulator {
     private static List<PlayerWrapper> players;
     private static List<PlayerWrapper> origPlayers;
 
-    private static List<BidInfo> allBids;
+    private static List<BidInfo> allBids = new ArrayList<>();
+
+    private static Random rand = new Random();
 
     public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
         parseArgs(args);
+        loadInputFiles();
 
         players = new ArrayList<>();
         try {
@@ -111,17 +115,20 @@ public class Simulator {
         players = updates;
 
         if (gui) {
-            gui(server, state(-1, geo, infra, budget, origPlayers));
+            gui(server, state(fps, geo, infra, budget, origPlayers));
         }
 
         boolean isComplete = false;
+        int round = 1;
         try {
             while (!isComplete) {
+                System.out.println("\nRound " + round++);
+
                 Collections.shuffle(players);
                 updates = new ArrayList<>(players);
 
                 int nullBids = 0;
-                Bid maxBid = new Bid();
+                Bid maxBid = null;
                 PlayerWrapper maxBidPlayer = null;
                 for (PlayerWrapper pw : players) {
                     Bid bid = null;
@@ -131,7 +138,7 @@ public class Simulator {
                     }
                     catch (Exception ex) {
                         System.out.println("Exception in getting bid for player " +
-                            pw.getName() + " " + ex.getMessage());
+                            pw.getName() + " " + ex.toString());
                         updates.remove(pw);
                     }
 
@@ -149,15 +156,22 @@ public class Simulator {
                 }
                 else {
                     updateBids(maxBid, maxBidPlayer.getName(), allBids);
-                    maxBidPlayer.updateBudget(maxBid.id1, maxBid.id2, maxBid.amount);
+                    maxBidPlayer.updateBudget(maxBid.amount);
+
+                    System.out.println("Max bid: " + maxBidPlayer.getName());
+                }
+
+                if (allLinksTaken(allBids)) {
+                    isComplete = true;
                 }
 
                 if (gui) {
-                    gui(server, state(isComplete ? -1 : fps));
+                    gui(server, state(isComplete ? -1 : fps, allBids, origPlayers));
                 }
             }
         } catch (Exception ex) {
-            System.out.println("Exception! " + ex.getMessage());
+            System.out.println("Exception! ");
+            ex.printStackTrace();
             System.exit(0);
         }
 
@@ -168,6 +182,16 @@ public class Simulator {
 
     public static void printStats() {                                                                  
         System.out.println("\n******** Results ********");
+    }
+
+    private static boolean allLinksTaken(List<BidInfo> allBids) {
+        for (BidInfo bi : allBids) {
+            if (bi.owner == null) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static void updateBids(Bid bid, String player, List<BidInfo> allBids) {
@@ -251,6 +275,7 @@ public class Simulator {
                 }
 
                 allBids.add(bi);
+                id += 1;
             }
         }
     }
@@ -276,7 +301,7 @@ public class Simulator {
 
         totalAmount *= 2;
 
-        return totalAmount/g;
+        return (int)totalAmount/g;
     }
 
     private static void loadInputFiles() {
@@ -328,6 +353,7 @@ public class Simulator {
             }
         }
         catch (Exception ex) {
+            System.out.println("Exception! " + ex.getMessage());
         }
     }
 
@@ -360,8 +386,10 @@ public class Simulator {
     }
 
     private static PlayerWrapper loadPlayerWrapper(String name, long timeout) throws Exception {
+        String p_name = name.split("-")[0];
+
         Log.record("Loading player " + name);
-        Player p = loadPlayer(name);
+        Player p = loadPlayer(p_name);
         if (p == null) {
             Log.record("Cannot load player " + name);
             System.exit(1);
@@ -399,14 +427,42 @@ public class Simulator {
         json = json.substring(0, json.length() - 1);
         json += "\",\"players\":\"" + String.join(",", playerNames) + "\"}";
 
-        System.out.println(json);
+        // System.out.println(json);
 
         return json;
     }
 
-        // The state that is sent to the GUI. (JSON)
-    private static String state(double fps) {
-        return null;
+    // The state that is sent to the GUI. (JSON)
+    private static String state(
+        double fps,
+        List<BidInfo> allBids,
+        List<PlayerWrapper> players) {
+
+        String json = "{\"refresh\":\"" + (1000.0/fps) + "\",\"owners\":\"";
+
+        for (BidInfo bi : allBids) {
+            if (bi.owner != null) {
+                json += bi.town1 + "," + bi.town2 + "," + bi.owner + ";";
+            }
+            else {
+                json += bi.town1 + "," + bi.town2 + ",None;";
+            }
+        }
+
+        json = json.substring(0, json.length() - 1);
+        json += "\",\"budget\":\"";
+
+        for (PlayerWrapper pw : players) {
+            json += pw.getName() + "," + pw.getBudget() + ";";
+        }
+
+        // Remove the ";" at the end.
+        json = json.substring(0, json.length() - 1);
+        json += "\"}";
+
+        // System.out.println(json);
+
+        return json;
     }
 
     private static void gui(HTTPServer server, String content) {
@@ -457,7 +513,12 @@ public class Simulator {
                     if (args[i].equals("-p") || args[i].equals("--players")) {
                         while (i + 1 < args.length && args[i + 1].charAt(0) != '-') {
                             ++i;
-                            playerNames.add(args[i]);
+                            if (playerNames.contains(args[i])) {
+                                playerNames.add(args[i] + "-" + rand.nextInt(100));
+                            }
+                            else {
+                                playerNames.add(args[i]);
+                            }
                         }
                     } else if (args[i].equals("-g") || args[i].equals("--gui")) {
                         gui = true;
@@ -471,7 +532,7 @@ public class Simulator {
                             throw new IllegalArgumentException("Missing timeout value.");
                         }
 
-                        timeout = Integer.parseInt(args[i]);
+                        timeout = Integer.parseInt(args[i]) * 1000;
                     } else if (args[i].equals("--fps")) {
                         if (++i == args.length) {
                             throw new IllegalArgumentException("Missing frames per second.");

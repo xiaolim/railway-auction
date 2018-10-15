@@ -16,7 +16,7 @@ public class Player implements railway.sim.Player {
     private double budget;
 
     public Player() {
-        rand = new Random(seed);
+        rand = new Random();
     }
     
     public void init(
@@ -26,8 +26,7 @@ public class Player implements railway.sim.Player {
         List<List<Integer>> infra,
         int[][] transit,
         List<String> townLookup) {
-        
-        this.name = name;
+
         this.budget = budget;
     }
 
@@ -40,14 +39,25 @@ public class Player implements railway.sim.Player {
             }
         }
 
+        if (availableBids.size() == 0) {
+            return null;
+        }
+
         BidInfo randomBid = availableBids.get(rand.nextInt(availableBids.size()));
+
+        // Don't bid if the random bid turns out to be beyond our budget.
+        if (budget - randomBid.amount <= 0.) {
+            return null;
+        }
 
         Bid bid = new Bid();
         bid.amount = randomBid.amount;
         bid.id1 = randomBid.id; 
+
+        return bid;
     }
     
-    public void updateBudget(int linkId1, int linkId2, double amount) {
+    public void updateBudget(double amount) {
         budget -= amount;
     }
 }

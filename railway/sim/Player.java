@@ -22,6 +22,6 @@ public interface Player {
     // Returns null if they don't want to place a bid.
     public Bid getBid(List<BidInfo> allBids);
 
-    // Indicates to the player that they have won that link/pair of links.
-    public void updateBudget(int linkId1, int linkId2, double amount);
+    // Indicates to the player that they have won the previous bid of link/pair of links.
+    public void updateBudget(double amount);
 }
