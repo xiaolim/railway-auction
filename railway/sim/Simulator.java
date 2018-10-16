@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.List;
-import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 // import java.util.stream.Collectors;
@@ -62,7 +61,7 @@ public class Simulator {
 
     private static List<BidInfo> allBids = new ArrayList<>();
 
-    private static Random rand = new Random();
+    private static int uniq = 1;
 
     public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
         parseArgs(args);
@@ -514,7 +513,7 @@ public class Simulator {
                         while (i + 1 < args.length && args[i + 1].charAt(0) != '-') {
                             ++i;
                             if (playerNames.contains(args[i])) {
-                                playerNames.add(args[i] + "-" + rand.nextInt(100));
+                                playerNames.add(args[i] + "-" + uniq++);
                             }
                             else {
                                 playerNames.add(args[i]);

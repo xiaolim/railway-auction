@@ -1,13 +1,18 @@
-var colors = ["red", "green", "blue", "brown", "purple", "orange", "yellow", "pink"];
+var colors = ["red", "green", "blue", "brown", "purple", "orange", "gold", "pink"];
 
 function resetColor(ctx) {
     ctx.fillStyle = 'black';
     ctx.strokeStyle = 'black';
+    ctx.setLineDash([]);
 }
 
 function drawLine(ctx, x_start, y_start, x_end, y_end, color) {
     ctx.beginPath();
     ctx.strokeStyle = color;
+    if (color == 'black') {
+        ctx.setLineDash([3, 5]);
+    }
+
     ctx.moveTo(x_start, y_start);
     ctx.lineTo(x_end, y_end);
     ctx.stroke();
