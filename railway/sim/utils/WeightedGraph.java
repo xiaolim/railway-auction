@@ -4,14 +4,18 @@ import java.util.Arrays;
 
 public class WeightedGraph {
 
-    private int[][]  edges;  // adjacency matrix
+    private double[][] edges;  // adjacency matrix
     private String[] labels;
 
     private int counter = 0;
 
     public WeightedGraph(int n) {
-        edges  = new int[n][n];
+        edges  = new double[n][n];
         labels = new String[n];
+
+        for (double[] row : edges) {
+            Arrays.fill(row, -1);
+        }
     }
 
     public int size() {
@@ -31,12 +35,12 @@ public class WeightedGraph {
         return Arrays.asList(labels).indexOf(label);
     }
 
-    public void addEdge(int source, int target, int w) {
-        addUndirectedEdge(source, target, w);
-        addUndirectedEdge(target, source, w);
+    public void addEdge(int source, int target, double w) {
+        addDirectedEdge(source, target, w);
+        addDirectedEdge(target, source, w);
     }
 
-    public void addUndirectedEdge(int source, int target, int w) {
+    public void addDirectedEdge(int source, int target, double w) {
         edges[source][target] = w;
     }
 
@@ -45,23 +49,23 @@ public class WeightedGraph {
     }
     
     public void removeEdge(int source, int target) {
-        edges[source][target] = 0;
+        edges[source][target] = -1;
     }
     
-    public int getWeight(int source, int target) {
+    public double getWeight(int source, int target) {
         return edges[source][target];
     }
 
     public int[] neighbors(int vertex) {
         int count = 0;
         for (int i=0; i<edges[vertex].length; i++) {
-            if (edges[vertex][i]>0) count++;
+            if (edges[vertex][i]>=0) count++;
         }
 
         final int[] answer = new int[count];
         count = 0;
         for (int i=0; i<edges[vertex].length; i++) {
-            if (edges[vertex][i]>0) answer[count++]=i;
+            if (edges[vertex][i]>=0) answer[count++]=i;
         }
 
         return answer;
@@ -87,17 +91,22 @@ public class WeightedGraph {
         t.setLabel("D");
         t.setLabel("E");
         t.setLabel("F");
+
         t.addEdge(0, 1, 100);
         t.addEdge(0, 3, 50);
         t.addEdge(1, 2, 100);
         t.addEdge(2, 4, 50);
         t.addEdge(2, 5, 100);
         t.addEdge(3, 4, 200);
+
         t.print();
 
-        final int[] pred = Dijkstra.dijkstra(t, 0);
-        for (int n=0; n<6; n++) {
-            Dijkstra.printPath(t, pred, 0, n);
+        int s = 0;
+        final int[][] pred = Dijkstra.dijkstra(t, s);
+        for (int n=s; n<6; n++) {
+            System.out.println(t.getLabel(s) + " to " + t.getLabel(n));
+            Dijkstra.printPath(t, pred, n);
+            System.out.println();
         }
     }
 }

@@ -175,7 +175,8 @@ public class Simulator {
             System.exit(0);
         }
 
-        // customerCost = getCustomerCost();
+        double[][] revenue = getRevenue();
+        printPrev(revenue);
 
         printStats();
 
@@ -184,6 +185,51 @@ public class Simulator {
 
     public static void printStats() {                                                                  
         System.out.println("\n******** Results ********");
+    }
+
+    public static void printRev(double[][] rev) {
+        for (int i=0; i<rev.length; ++i) {
+            for (int j=0; j<rev[i].length; ++j) {
+                System.out.print(rev[i][j] + " ");
+            }
+
+            System.out.println();
+        }
+    }
+
+    private static double[][] getRevenue() {
+        final int n = geo.size();
+        WeightedGraph g = new WeightedGraph(n);
+
+        for (int i=0; i<n; ++i) {
+            g.setLabel(townLookup.get(i));
+        }
+
+        for (int i=0; i<infra.size(); ++i) {
+            for (int j=0; j<infra.get(i).size(); ++j) {
+                g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
+            }
+        }
+
+        //g.print();
+
+        double[][] revenue = new double[n][n];
+
+        for (int i=0; i<n; ++i) {
+            int[][] prev = Dijkstra.dijkstra(g, i);
+            for (int j=i+1; j<n; ++j) {
+                List<List<Integer>> allPaths = Dijkstra.getPaths(g, prev, j);
+
+                double cost = 0;
+                for (int k=0; k<allPaths.get(0).size()-1; ++k) {
+                    cost += getDistance(allPaths.get(0).get(k), allPaths.get(0).get(k+1));
+                }
+
+                revenue[i][j] = cost * transit[i][j] * 10;
+            }
+        }
+
+        return revenue;
     }
 
     private static boolean allLinksTaken(List<BidInfo> allBids) {
