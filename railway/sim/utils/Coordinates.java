@@ -1,6 +1,8 @@
 package railway.sim.utils;
 
-public class Coordinates {
+import java.io.Serializable;
+
+public class Coordinates implements Serializable {
     public int x;
     public int y;
 

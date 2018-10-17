@@ -1,13 +1,13 @@
 package railway.sim;
 
 import java.awt.Desktop;
-// import java.io.ByteArrayInputStream;
-// import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-// import java.io.ObjectInputStream;
-// import java.io.ObjectOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -101,7 +101,8 @@ public class Simulator {
         List<PlayerWrapper> updates = new ArrayList<>(players);
         for (PlayerWrapper pw : players) {
             try {
-                pw.init(budget, geo, infra, transit, townLookup);
+                pw.init(budget, deepClone(geo), deepClone(infra), 
+                    deepClone(transit), deepClone(townLookup));
             }
             catch(Exception ex) {
                 System.out.println("Exception in initializing player " +
@@ -133,7 +134,7 @@ public class Simulator {
                     Bid bid = null;
 
                     try {
-                        bid = pw.getBid(allBids);
+                        bid = pw.getBid(deepClone(allBids));
                     }
                     catch (Exception ex) {
                         System.out.println("Exception in getting bid for player " +
@@ -173,6 +174,8 @@ public class Simulator {
             ex.printStackTrace();
             System.exit(0);
         }
+
+        // customerCost = getCustomerCost();
 
         printStats();
 
@@ -365,20 +368,20 @@ public class Simulator {
         return newLol;
     }
 
-    // private static Game deepClone(Object object) {
-    //     try {
-    //         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-    //         ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
-    //         objectOutputStream.writeObject(object);
-    //         ByteArrayInputStream bais = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-    //         ObjectInputStream objectInputStream = new ObjectInputStream(bais);
-    //         return (Game) objectInputStream.readObject();
-    //     }
-    //     catch (Exception e) {
-    //         e.printStackTrace();
-    //         return null;
-    //     }
-    // }
+    private static <T extends Object> T deepClone(T object) {
+        try {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
+            objectOutputStream.writeObject(object);
+            ByteArrayInputStream bais = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
+            ObjectInputStream objectInputStream = new ObjectInputStream(bais);
+            return (T) objectInputStream.readObject();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
     private static int[] getScores() {
         throw new UnsupportedOperationException();

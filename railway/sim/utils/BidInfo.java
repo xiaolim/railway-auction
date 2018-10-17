@@ -1,6 +1,8 @@
 package railway.sim.utils;
 
-public class BidInfo {
+import java.io.Serializable;
+
+public class BidInfo implements Serializable {
     // The id of the link.
     public int id;
 
