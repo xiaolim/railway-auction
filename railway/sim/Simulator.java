@@ -59,6 +59,8 @@ public class Simulator {
     private static List<PlayerWrapper> players;
     private static List<PlayerWrapper> origPlayers;
 
+    private static double budget = 0.;
+
     private static List<BidInfo> allBids = new ArrayList<>();
 
     private static int uniq = 1;
@@ -97,7 +99,7 @@ public class Simulator {
         }
 
         initBids();
-        double budget = getBudget();
+        budget = getBudget();
         List<PlayerWrapper> updates = new ArrayList<>(players);
         for (PlayerWrapper pw : players) {
             try {
@@ -166,7 +168,7 @@ public class Simulator {
                 }
 
                 if (gui) {
-                    gui(server, state(isComplete ? -1 : fps, allBids, origPlayers));
+                    gui(server, state(fps, allBids, origPlayers));
                 }
             }
         } catch (Exception ex) {
@@ -176,15 +178,24 @@ public class Simulator {
         }
 
         double[][] revenue = getRevenue();
-        printPrev(revenue);
+        Map<String, Double> playerProfits = getProfitsPerPlayer(revenue);
 
-        printStats();
+        printStats(playerProfits);
+
+        if (gui) {
+            gui(server, state(-1, allBids, origPlayers, playerProfits));
+        }
 
         System.exit(0);
     }
 
-    public static void printStats() {                                                                  
+    public static void printStats(Map<String, Double> playerProfits) {                                                                  
         System.out.println("\n******** Results ********");
+        System.out.println("Group Profit");
+
+        for (Map.Entry<String, Double> entry : playerProfits.entrySet()) {
+            System.out.println(entry.getKey() + " " + entry.getValue());
+        }
     }
 
     public static void printRev(double[][] rev) {
@@ -199,6 +210,8 @@ public class Simulator {
 
     private static double[][] getRevenue() {
         final int n = geo.size();
+
+        // Create the graph.
         WeightedGraph g = new WeightedGraph(n);
 
         for (int i=0; i<n; ++i) {
@@ -213,6 +226,7 @@ public class Simulator {
 
         //g.print();
 
+        // Compute the revenue between any two nodes.
         double[][] revenue = new double[n][n];
 
         for (int i=0; i<n; ++i) {
@@ -230,6 +244,111 @@ public class Simulator {
         }
 
         return revenue;
+    }
+
+    private static Map<String, Double> getProfitsPerPlayer(double[][] revenue) {
+        // The graph now has nodes replicated for each player and a start and end node.
+        final int n = geo.size() * (playerNames.size() + 2);
+
+        Map<String, Double> playerRev = new HashMap<>();
+        for (int i=0; i<origPlayers.size(); ++i) {
+            playerRev.put(origPlayers.get(i).getName(), 0.);
+        }
+
+        WeightedGraph g = new WeightedGraph(n);
+        for (int i=0; i<geo.size(); ++i) {
+            g.setLabel(townLookup.get(i) + "-s");
+            g.setLabel(townLookup.get(i) + "-e");
+
+            for (int j=0; j<origPlayers.size(); ++j) {
+                g.setLabel(townLookup.get(i) + "-" + origPlayers.get(j).getName());
+            }
+        }
+
+        for (BidInfo bi : allBids) {
+            g.addEdge(bi.town1 + "-" + bi.owner,
+                bi.town2 + "-" + bi.owner,
+                getDistance(bi.town1, bi.town2));
+
+            g.addDirectedEdge(bi.town1 + "-s",
+                bi.town1 + "-" + bi.owner,
+                0);
+            g.addDirectedEdge(bi.town2 + "-s",
+                bi.town2 + "-" + bi.owner,
+                0);
+            g.addDirectedEdge(bi.town1 + "-" + bi.owner,
+                bi.town1 + "-e",
+                0);
+            g.addDirectedEdge(bi.town2 + "-" + bi.owner,
+                bi.town2 + "-e",
+                0);
+        }
+
+        for (int i=0; i<geo.size(); ++i) {
+            for (int j=0; j<origPlayers.size(); ++j) {
+                for (int k=j+1; k<origPlayers.size(); ++k) {
+                    g.addEdge(townLookup.get(i) + "-" + origPlayers.get(j).getName(),
+                        townLookup.get(i) + "-" + origPlayers.get(k).getName(),
+                        200);
+                }
+            }
+        }
+
+        // g.print();
+
+        for (int i=0; i<geo.size(); ++i) {
+            int[][] prev = Dijkstra.dijkstra(g, g.getVertex(townLookup.get(i) + "-s"));
+            for (int j=i+1; j<geo.size(); ++j) {
+                List<List<Integer>> allPaths = 
+                    Dijkstra.getPaths(g, prev, g.getVertex(townLookup.get(j) + "-e"));
+
+                // Cost per path.
+                double cost = revenue[i][j] / allPaths.size();
+
+                for (int p=0; p<allPaths.size(); ++p) {
+                    double trueDist = 0.0;
+                    Map<String, Double> playerDist = new HashMap<>();
+
+                    for (PlayerWrapper pw : origPlayers) {
+                        playerDist.put(pw.getName(), 0.);
+                    }
+
+                    for (int k=0; k<allPaths.get(p).size()-1; ++k) {
+                        String a = g.getLabel(allPaths.get(p).get(k));
+                        String b = g.getLabel(allPaths.get(p).get(k+1));
+
+                        if (a.split("-")[1].equals(b.split("-")[1])) {
+                            trueDist +=
+                                getDistance(a.split("-")[0], b.split("-")[0]);
+
+                            playerDist.put(
+                                a.split("-")[1],
+                                playerDist.get(a.split("-")[1]) +
+                                    getDistance(a.split("-")[0], b.split("-")[0]));
+                        }
+                    }
+
+                    for (Map.Entry<String, Double> entry : playerDist.entrySet()) {
+                        playerRev.put(
+                            entry.getKey(),
+                            playerRev.get(entry.getKey()) + entry.getValue()/trueDist * cost);
+                    }
+                }
+            }
+        }
+
+        Map<String, Double> playerProfits = new HashMap<>();
+        for (PlayerWrapper pw : origPlayers) {
+            playerProfits.put(pw.getName(), budget - pw.getBudget());
+        }
+
+        for (Map.Entry<String, Double> entry : playerRev.entrySet()) {
+            playerProfits.put(
+                entry.getKey(),
+                entry.getValue() - playerProfits.get(entry.getKey()));
+        }
+
+        return playerProfits;
     }
 
     private static boolean allLinksTaken(List<BidInfo> allBids) {
@@ -274,6 +393,10 @@ public class Simulator {
         }
 
         return dist;
+    }
+
+    private static double getDistance(String t1, String t2) {
+        return getDistance(townRevLookup.get(t1), townRevLookup.get(t2));
     }
 
     private static double getDistance(int linkId) {
@@ -354,7 +477,6 @@ public class Simulator {
 
     private static void loadInputFiles() {
         // Process geo.
-
         try {
             String path = dir + geo_f;
             File file = new File(path);
@@ -434,7 +556,7 @@ public class Simulator {
     }
 
     private static PlayerWrapper loadPlayerWrapper(String name, long timeout) throws Exception {
-        String p_name = name.split("-")[0];
+        String p_name = name.split("_")[0];
 
         Log.record("Loading player " + name);
         Player p = loadPlayer(p_name);
@@ -513,6 +635,40 @@ public class Simulator {
         return json;
     }
 
+    // The state that is sent to the GUI. (JSON)
+    private static String state(
+        double fps,
+        List<BidInfo> allBids,
+        List<PlayerWrapper> players,
+        Map<String, Double> playerProfits) {
+
+        String json = "{\"refresh\":\"" + (1000.0/fps) + "\",\"owners\":\"";
+
+        for (BidInfo bi : allBids) {
+            if (bi.owner != null) {
+                json += bi.town1 + "," + bi.town2 + "," + bi.owner + ";";
+            }
+            else {
+                json += bi.town1 + "," + bi.town2 + ",None;";
+            }
+        }
+
+        json = json.substring(0, json.length() - 1);
+        json += "\",\"budget\":\"";
+
+        for (Map.Entry<String, Double> entry : playerProfits.entrySet()) {
+            json += entry.getKey() + "," + entry.getValue() + ";";
+        }
+
+        // Remove the ";" at the end.
+        json = json.substring(0, json.length() - 1);
+        json += "\"}";
+
+        System.out.println(json);
+
+        return json;
+    }
+
     private static void gui(HTTPServer server, String content) {
         if (server == null) return;
         String path = null;
@@ -562,7 +718,7 @@ public class Simulator {
                         while (i + 1 < args.length && args[i + 1].charAt(0) != '-') {
                             ++i;
                             if (playerNames.contains(args[i])) {
-                                playerNames.add(args[i] + "-" + uniq++);
+                                playerNames.add(args[i] + "_" + uniq++);
                             }
                             else {
                                 playerNames.add(args[i]);

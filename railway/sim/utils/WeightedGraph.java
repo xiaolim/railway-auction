@@ -14,7 +14,7 @@ public class WeightedGraph {
         labels = new String[n];
 
         for (double[] row : edges) {
-            Arrays.fill(row, -1);
+            Arrays.fill(row, -1.);
         }
     }
 
@@ -40,12 +40,21 @@ public class WeightedGraph {
         addDirectedEdge(target, source, w);
     }
 
+    public void addEdge(String source, String target, double w) {
+        addDirectedEdge(source, target, w);
+        addDirectedEdge(target, source, w);
+    }
+
     public void addDirectedEdge(int source, int target, double w) {
         edges[source][target] = w;
     }
 
+    public void addDirectedEdge(String source, String target, double w) {
+        edges[getVertex(source)][getVertex(target)] = w;
+    }
+
     public boolean isEdge(int source, int target) {
-        return edges[source][target] > 0; 
+        return edges[source][target] >= 0; 
     }
     
     public void removeEdge(int source, int target) {
@@ -59,13 +68,13 @@ public class WeightedGraph {
     public int[] neighbors(int vertex) {
         int count = 0;
         for (int i=0; i<edges[vertex].length; i++) {
-            if (edges[vertex][i]>=0) count++;
+            if (edges[vertex][i]>=0.) count++;
         }
 
         final int[] answer = new int[count];
         count = 0;
         for (int i=0; i<edges[vertex].length; i++) {
-            if (edges[vertex][i]>=0) answer[count++]=i;
+            if (edges[vertex][i]>=0.) answer[count++]=i;
         }
 
         return answer;
@@ -75,7 +84,7 @@ public class WeightedGraph {
         for (int j=0; j<edges.length; j++) {
             System.out.print(labels[j]+": ");
             for (int i=0; i<edges[j].length; i++) {
-                if (edges[j][i]>0)
+                if (edges[j][i]>=0)
                     System.out.print(labels[i]+":"+edges[j][i]+" ");
             }
 

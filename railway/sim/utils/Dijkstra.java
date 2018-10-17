@@ -23,6 +23,12 @@ public class Dijkstra {
 
         for (int i=0; i<dist.length; i++) {
             final int next = minVertex(dist, visited);
+            // System.out.println("Next: " + next + " i: " + G.getLabel(i));
+            
+            if (next == -1) {
+                continue;
+            }
+
             visited[next] = true;
 
             // The shortest path to next is dist[next] and via pred[next].
