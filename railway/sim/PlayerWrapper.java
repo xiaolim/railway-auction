@@ -79,9 +79,10 @@ public class PlayerWrapper {
                 "out of their budget.");
         }
 
-        if (!isValid(bid, currentBids, allBids)) {
+        String validMsg = isValid(bid, currentBids, allBids);
+        if (!validMsg.equals("")) {
             throw new IllegalArgumentException("The player " + this.name + " has selected " +
-                "an invalid link.");
+                "an invalid link. " + validMsg);
         }
 
         bid.bidder = this.name;
@@ -125,23 +126,25 @@ public class PlayerWrapper {
         return linkString;
     }
 
-    private boolean isValid(Bid bid, List<Bid> currentBids, List<BidInfo> allBids) {
+    private String isValid(Bid bid, List<Bid> currentBids, List<BidInfo> allBids) {
         boolean id1_correct = false, id2_correct = false;
         double amount = 0.;
 
         String t1a = "", t1b = "";
         String t2a = "", t2b = "";
 
+
+
         // The player is bidding for the same link twice in their link pair.
         if (bid.id1 == bid.id2) {
-            return false;
+            return "You are bidding for the same link twice as your link pair.";
         }
 
         for (Bid b : currentBids) {
             if (b.id1 == bid.id1 && b.id2 == bid.id2) {
                 if (b.amount + 10000 > bid.amount) {
                     // The player has not increased the bid by 10000.
-                    return false;
+                    return "You have not increased the bid by at least 10000.";
                 }
             }
         }
@@ -155,8 +158,7 @@ public class PlayerWrapper {
                     t1b = bi.town2;
                 }
                 else {
-                    // The bid is for an owned link.
-                    return false;
+                    return "You are bidding for an owned link.";
                 }
             }
             else if (bi.id == bid.id2) {
@@ -167,48 +169,49 @@ public class PlayerWrapper {
                     t2b = bi.town2;
                 }
                 else {
-                    // The bid is for an owned link.
-                    return false;
+                    return "You are bidding for an owned link.";
                 }
             }
         }
 
         if (!(id1_correct && (bid.id2 == -1 || id2_correct))) {
-            return false;
+            return "You are bidding for an invalid id link.";
         }
 
         // Check if player is bidding less that the minimum amount.
         if (bid.amount < amount) {
-            return false;
+            return "You are bidding less than the minimum amount.";
         }
 
         for (BidInfo bi : allBids) {
             // Check if player is bidding for a link between two towns when they already
             //  own one of the links.
             if (bi.id != bid.id1 && bi.town1.equals(t1a) && bi.town2.equals(t1b) &&
-                bi.owner.equals(this.getName())) {
-                    return false;
+                bi.owner != null && bi.owner.equals(this.getName())) {
+                return "You already own a link between these towns.";
             }
 
             if (bi.id != bid.id2 && bi.town1.equals(t2a) && bi.town2.equals(t2b) &&
-                bi.owner.equals(this.getName())) {
-                    return false;
+                bi.owner != null && bi.owner.equals(this.getName())) {
+                return "You already own links between these towns.";
             }
         }
 
         // Check if player is bidding for multiple links between the same towns.
         if (t1a.equals(t2a) && t1b.equals(t2b)) {
-            return false;
+            System.out.println(7);
+            return "You are bidding for two links between the same two towns.";
         }
 
         // Check if there is atleast one town in common when the player is requesting
         //  for a pair of nodes.
         if (bid.id2 != -1) {
             if (!t1a.equals(t2a) && !t1a.equals(t2b) && !t1b.equals(t2a) && !t1b.equals(t2b)) {
-                return false;
+                System.out.println(8);
+                return "You are bidding for a disjoint pair of links.";
             }
         }
 
-        return true;
+        return "";
     }
 }

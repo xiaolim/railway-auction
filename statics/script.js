@@ -7,7 +7,9 @@ function resetColor(ctx) {
     ctx.setLineDash([]);
 }
 
-function drawLine(ctx, x_start, y_start, x_end, y_end, color) {
+var multi_link = [];
+
+function drawLine(ctx, x_start, y_start, x_end, y_end, color, split) {
     ctx.beginPath();
     ctx.strokeStyle = color;
     if (color == 'black') {
@@ -15,7 +17,16 @@ function drawLine(ctx, x_start, y_start, x_end, y_end, color) {
     }
 
     ctx.moveTo(x_start, y_start);
-    ctx.lineTo(x_end, y_end);
+
+    if (split == true) {
+        x_mid = (x_start + x_end)/2 + 8;
+        y_mid = (y_start + y_end)/2 + 8;
+        ctx.lineTo(x_mid, y_mid);
+        ctx.lineTo(x_end, y_end);
+    } else {
+        ctx.lineTo(x_end, y_end);
+    }
+
     ctx.stroke();
     resetColor(ctx);
 }
@@ -28,7 +39,7 @@ function drawTownName(ctx, name, x, y) {
 }
 
 function drawPlayers(ctx, players) {
-    var x = 500;
+    var x = x_max + 20;
     var y = 20;
 
     ctx.beginPath();
@@ -44,7 +55,7 @@ function drawPlayers(ctx, players) {
 }
 
 function drawInfo(ctx, players, info) {
-    var x = 500;
+    var x = x_max + 20;
     var y = 20;
 
     ctx.beginPath();
@@ -69,10 +80,10 @@ var player_pos = [];
 var player_colors = [];
 var players = [];
 var towns = [];
-var links = [];
 
 var x_start;
 var y_start;
+var x_max = 0;
 
 function process(data) {
     var result = JSON.parse(data)
@@ -95,12 +106,10 @@ function process(data) {
 
         player_colors["None"] = "black";
 
-        drawInfo(ctx, players, info);
-
         var geo = result.geo.split(';')
         var infra = result.infra.split(';')
 
-        x_start = 10;
+        x_start = 5;
         var y_max = 0;
         for (var i=0; i<geo.length; ++i) {
             var elems = geo[i].split(',');
@@ -111,28 +120,38 @@ function process(data) {
                 y : Number(elems[2])
             };
 
+            if (Number(elems[1]) + x_start > x_max) {
+                x_max = Number(elems[1]) + x_start;
+            }
             if (Number(elems[2]) > y_max) {
                 y_max = Number(elems[2]);
             }
         }
 
         // Reorganize the space on the grid.
-        y_start = y_max + 50;
-
+        y_start = y_max + 10;
         for (var key in towns) {
             towns[key].y = y_start - towns[key].y;
             drawTownName(ctx, key, towns[key].x, towns[key].y);
         }
 
+        drawInfo(ctx, players, info);
+
+        var links = [];
         for (var i=0; i<infra.length; ++i) {
             var elems = infra[i].split(',');
 
-            links.push(elems[0] + '_' + elems[1]);
+            var split = false;
+            if (links.includes(elems[0] + '_' + elems[1])) {
+                split = true;
+            } else {
+                links.push(elems[0] + '_' + elems[1]);
+            }
 
             var townA = towns[elems[0]];
             var townB = towns[elems[1]];
 
-            drawLine(ctx, townA.x, townA.y, townB.x, townB.y, 'black');
+            drawLine(ctx, townA.x, townA.y, townB.x, townB.y, 'black', split);
         }
 
         return refresh;
@@ -154,13 +173,21 @@ function process(data) {
     }
 
     var owners = result.owners.split(";");
+    var owned_links = []
     for (var i=0; i<owners.length; ++i) {
         var elems = owners[i].split(",");
+
+        var split = false;
+        if (owned_links.includes(elems[0] + "_" + elems[1])) {
+            split = true;
+        } else {
+            owned_links.push(elems[0] + "_" + elems[1]);
+        }
 
         var townA = towns[elems[0]];
         var townB = towns[elems[1]];
 
-        drawLine(ctx, townA.x, townA.y, townB.x, townB.y, player_colors[elems[2]]);
+        drawLine(ctx, townA.x, townA.y, townB.x, townB.y, player_colors[elems[2]], split);
     }
 
     return refresh;
@@ -211,7 +238,4 @@ function ajax(version, retries, timeout) {
 
 ajax(1, 10, 100);
 
-// process('{"refresh":0, "grp_a":"g1", "grp_b":"g2", "grp_a_round":"1,2,3,4,5", "grp_b_round":"4,5,6,7,8",' +
-//    '"grp_a_skills":"4,3,2,5,6,7,3", "grp_b_skills":"2,3,5,7,5,4,3", "grp_a_dist":"1,2;4,3;6,7", "grp_b_dist":"3,4;5,1;8,7", ' +
-//    '"grp_a_score":"3", "grp_b_score":"0"}');
 

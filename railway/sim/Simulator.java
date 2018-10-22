@@ -142,29 +142,28 @@ public class Simulator {
                         Bid bid = pw.getBid(deepClone(currentBids), deepClone(allBids));
                         if (bid == null) {
                             updates.remove(pw);
-                            if (i >= updates.size()) {
-                                // Reset i.
-                                i = 0;
-                            }
                         }
                         else {
                             currentBids.add(0, bid);
-                            i = (i+1) % updates.size();
+                            i++;
                         }
                     }
                     catch (Exception ex) {
                         // This should be an exception only from getBid function.
-                        System.out.println("Getting an exception with player: " + 
-                            pw.getName());
-                        ex.printStackTrace();
+                        System.out.println("Uh-oh! " + ex.getMessage());
                         updates.remove(pw);
+                    }
+
+                    if (i >= updates.size()) {
+                        // Reset i.
+                        i = 0;
                     }
                 }
 
                 if (currentBids.size() == 0) {
                     // This shouldn't happen!!!!!
                     // If we have holes in the graph then Dijkstra's algorithm will
-                    // fail to run in the future.
+                    //  fail to run in the future.
                     // I ain't fixing that. So people, please bid!
                     System.out.println("Nobody bid for anything :( ");
                     System.exit(0);
@@ -284,7 +283,7 @@ public class Simulator {
         for (BidInfo bi : allBids) {
             g.addEdge(bi.town1 + "-" + bi.owner,
                 bi.town2 + "-" + bi.owner,
-                getDistance(bi.town1, bi.town2));
+                getDistance(bi.id));
 
             g.addDirectedEdge(bi.town1 + "-s",
                 bi.town1 + "-" + bi.owner,
@@ -425,8 +424,7 @@ public class Simulator {
     }
 
     private static double getDistance(int linkId) {
-        LinkInfo li = links.get(linkId);
-        return getDistance(li.town1, li.town2);
+        return links.get(linkId).distance;
     }
 
     private static double getDistance(int t1, int t2) {
