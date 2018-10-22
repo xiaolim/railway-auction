@@ -37,25 +37,25 @@ public class PlayerWrapper {
         List<List<Integer>> infra,
         int[][] transit,
         List<String> townLookup) throws Exception {
-        
+
         Log.record("Initializing player " + this.name);
-        
+
         this.budget = budget;
         this.player.init(this.name, budget, geo, infra, transit, townLookup);
     }
 
-    public Bid getBid(List<BidInfo> allBids) throws Exception {
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) throws Exception {
         Log.record("Getting bid for player " + this.name);
 
         Bid bid;
 
         try {
             if (!timer.isAlive()) timer.start();
-            
+
             timer.call_start(new Callable<Bid>() {
                 @Override
                 public Bid call() throws Exception {
-                    return player.getBid(allBids);
+                    return player.getBid(currentBids, allBids);
                 }
             });
 
@@ -79,17 +79,21 @@ public class PlayerWrapper {
                 "out of their budget.");
         }
 
-        if (!isValid(bid, allBids)) {
+        if (!isValid(bid, currentBids, allBids)) {
             throw new IllegalArgumentException("The player " + this.name + " has selected " +
                 "an invalid link.");
         }
 
+        bid.bidder = this.name;
         return bid;
     }
 
-    public void updateBudget(double amount) {
-        this.budget -= amount;
-        this.player.updateBudget(amount);
+    public void updateBudget(Bid bid) {
+        if (bid != null) {
+            this.budget -= bid.amount;
+        }
+
+        this.player.updateBudget(bid);
     }
 
     public String getName() {
@@ -121,18 +125,28 @@ public class PlayerWrapper {
         return linkString;
     }
 
-    private boolean isValid(Bid bid, List<BidInfo> allBids) {
+    private boolean isValid(Bid bid, List<Bid> currentBids, List<BidInfo> allBids) {
         boolean id1_correct = false, id2_correct = false;
         double amount = 0.;
 
         String t1a = "", t1b = "";
         String t2a = "", t2b = "";
 
+        // The player is bidding for the same link twice in their link pair.
         if (bid.id1 == bid.id2) {
             return false;
         }
 
-        for (BidInfo bi : allBids) { 
+        for (Bid b : currentBids) {
+            if (b.id1 == bid.id1 && b.id2 == bid.id2) {
+                if (b.amount + 10000 > bid.amount) {
+                    // The player has not increased the bid by 10000.
+                    return false;
+                }
+            }
+        }
+
+        for (BidInfo bi : allBids) {
             if (bi.id == bid.id1) {
                 if (bi.owner == null) {
                     id1_correct = true;
@@ -163,23 +177,23 @@ public class PlayerWrapper {
             return false;
         }
 
-        for (BidInfo bi : allBids) {
-            // Check if player is bidding for a link between two towns when they already
-            //  own one of the links.
-            if (bi.id != bid.id1 && bi.town1.equals(t1a) && bi.town2.equals(t1b) && 
-                bi.owner.equals(this.getName())) {
-                    return false;
-            }
-
-            if (bi.id != bid.id2 && bi.town1.equals(t2a) && bi.town2.equals(t2b) && 
-                bi.owner.equals(this.getName())) {
-                    return false;
-            }
-        }
-
         // Check if player is bidding less that the minimum amount.
         if (bid.amount < amount) {
             return false;
+        }
+
+        for (BidInfo bi : allBids) {
+            // Check if player is bidding for a link between two towns when they already
+            //  own one of the links.
+            if (bi.id != bid.id1 && bi.town1.equals(t1a) && bi.town2.equals(t1b) &&
+                bi.owner.equals(this.getName())) {
+                    return false;
+            }
+
+            if (bi.id != bid.id2 && bi.town1.equals(t2a) && bi.town2.equals(t2b) &&
+                bi.owner.equals(this.getName())) {
+                    return false;
+            }
         }
 
         // Check if player is bidding for multiple links between the same towns.

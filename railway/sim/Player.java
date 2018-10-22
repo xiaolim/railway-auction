@@ -20,8 +20,13 @@ public interface Player {
 
     // The bid placed for a round.
     // Returns null if they don't want to place a bid.
-    public Bid getBid(List<BidInfo> allBids);
+    // currentBids: bids being placed in this round in reverse order -
+    //   most recent bid is first.
+    // allBids: shows those bids available and bids owned by other players
+    //   i.e. the results of previous rounds.
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids);
 
-    // Indicates to the player that they have won the previous bid of link/pair of links.
-    public void updateBudget(double amount);
+    // Indicates to the player whether they have won the previous bid of link/pair of links.
+    // A null bid indicates that they did not win their bid.
+    public void updateBudget(Bid bid);
 }

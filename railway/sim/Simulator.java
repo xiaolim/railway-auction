@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.List;
+import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
 // import java.util.stream.Collectors;
@@ -63,6 +64,8 @@ public class Simulator {
 
     private static List<BidInfo> allBids = new ArrayList<>();
 
+    private static Random rand = new Random();
+
     private static int uniq = 1;
 
     public static void main(String[] args) throws ClassNotFoundException, InstantiationException, IllegalAccessException, IOException {
@@ -103,7 +106,7 @@ public class Simulator {
         List<PlayerWrapper> updates = new ArrayList<>(players);
         for (PlayerWrapper pw : players) {
             try {
-                pw.init(budget, deepClone(geo), deepClone(infra), 
+                pw.init(budget, deepClone(geo), deepClone(infra),
                     deepClone(transit), deepClone(townLookup));
             }
             catch(Exception ex) {
@@ -123,49 +126,59 @@ public class Simulator {
         boolean isComplete = false;
         int round = 1;
         try {
-            while (!isComplete) {
+            while (!allLinksTaken(allBids)) {
                 System.out.println("\nRound " + round++);
 
                 Collections.shuffle(players);
                 updates = new ArrayList<>(players);
 
-                int nullBids = 0;
-                Bid maxBid = null;
-                PlayerWrapper maxBidPlayer = null;
-                for (PlayerWrapper pw : players) {
-                    Bid bid = null;
+                List<Bid> currentBids = new ArrayList<>();
 
+                int i=0;
+
+                while (updates.size() > 0) {
+                    PlayerWrapper pw = updates.get(i);
                     try {
-                        bid = pw.getBid(deepClone(allBids));
+                        Bid bid = pw.getBid(deepClone(currentBids), deepClone(allBids));
+                        if (bid == null) {
+                            updates.remove(pw);
+                        }
+                        else {
+                            currentBids.add(0, bid);
+                            i = (i+1) % updates.size();
+                        }
                     }
                     catch (Exception ex) {
-                        System.out.println("Exception in getting bid for player " +
-                            pw.getName() + " " + ex.toString());
+                        // This should be an exception only from getBid function.
+                        System.out.println(ex.toString());
                         updates.remove(pw);
                     }
-
-                    if (bid == null) {
-                        ++nullBids;
-                    }
-                    else if (isMaxBid(bid, maxBid)) {
-                        maxBid = bid;
-                        maxBidPlayer = pw;
-                    }
                 }
 
-                if (nullBids == players.size()) {
-                    isComplete = true;
+                Bid maxBid;
+
+                if (currentBids.size() == 0) {
+                    // This shouldn't happen!!!!!
+                    // If we have holes in the graph then Dijkstra's algorithm will
+                    // fail to run in the future.
+                    // I ain't fixing that. So people, please bid!
+                    System.out.println("Nobody bid for anything :( ");
+                    maxBid = new Bid();
                 }
                 else {
-                    updateBids(maxBid, maxBidPlayer.getName(), allBids);
-                    maxBidPlayer.updateBudget(maxBid.amount);
-
-                    System.out.println("Max bid: " + maxBidPlayer.getName());
+                    maxBid = getMaxBid(currentBids, allBids);
+                    updateBids(maxBid, allBids);
                 }
 
-                if (allLinksTaken(allBids)) {
-                    isComplete = true;
-                }
+                System.out.println("Max bidder: " + maxBid.bidder);
+                    for (PlayerWrapper pw : players) {
+                        if (pw.getName().equals(maxBid.bidder)) {
+                            pw.updateBudget(maxBid);
+                        }
+                        else {
+                            pw.updateBudget(null);
+                        }
+                    }
 
                 if (gui) {
                     gui(server, state(fps, allBids, origPlayers));
@@ -189,7 +202,7 @@ public class Simulator {
         System.exit(0);
     }
 
-    public static void printStats(Map<String, Double> playerProfits) {                                                                  
+    public static void printStats(Map<String, Double> playerProfits) {
         System.out.println("\n******** Results ********");
         System.out.println("Group Profit");
 
@@ -299,7 +312,7 @@ public class Simulator {
         for (int i=0; i<geo.size(); ++i) {
             int[][] prev = Dijkstra.dijkstra(g, g.getVertex(townLookup.get(i) + "-s"));
             for (int j=i+1; j<geo.size(); ++j) {
-                List<List<Integer>> allPaths = 
+                List<List<Integer>> allPaths =
                     Dijkstra.getPaths(g, prev, g.getVertex(townLookup.get(j) + "-e"));
 
                 // Cost per path.
@@ -361,28 +374,37 @@ public class Simulator {
         return true;
     }
 
-    private static void updateBids(Bid bid, String player, List<BidInfo> allBids) {
+    private static Bid getMaxBid(List<Bid> currentBids, List<BidInfo> allBids) {
+        List<Bid> maxBids = new ArrayList<>();
+        maxBids.add(currentBids.get(0));
+        for (int i=1; i<currentBids.size(); ++i) {
+            Bid b = currentBids.get(i);
+            if (b.amount/getDistance(b) > maxBids.get(0).amount/getDistance(maxBids.get(0))) {
+                maxBids.clear();
+                maxBids.add(b);
+            }
+            else if (b.amount/getDistance(b) ==
+                maxBids.get(0).amount/getDistance(maxBids.get(0))) {
+                maxBids.add(b);
+            }
+        }
+
+        return maxBids.get(rand.nextInt(maxBids.size()));
+    }
+
+    private static void updateBids(Bid bid, List<BidInfo> allBids) {
         BidInfo bi = allBids.get(bid.id1);
         double amount = bid.amount;
 
         if (bid.id2 != -1) {
             BidInfo bi2 = allBids.get(bid.id2);
             bi2.amount = amount/2;
-            bi2.owner = player;
+            bi2.owner = bid.bidder;
             amount /= 2;
         }
 
         bi.amount = amount;
-        bi.owner = player;
-    }
-
-    private static boolean isMaxBid(Bid bid, Bid maxBid) {
-        // Can optimize further.
-        if (maxBid == null) {
-            return true;
-        }
-
-        return bid.amount/getDistance(bid) > maxBid.amount/getDistance(maxBid);
+        bi.owner = bid.bidder;
     }
 
     private static double getDistance(Bid bid) {
@@ -406,8 +428,8 @@ public class Simulator {
 
     private static double getDistance(int t1, int t2) {
         return Math.pow(
-            Math.pow(geo.get(t1).x - geo.get(t2).x, 2) + 
-                Math.pow(geo.get(t1).y - geo.get(t2).y, 2), 
+            Math.pow(geo.get(t1).x - geo.get(t2).x, 2) +
+                Math.pow(geo.get(t1).y - geo.get(t2).y, 2),
             0.5);
     }
 
@@ -516,9 +538,9 @@ public class Simulator {
             while (sc.hasNextLine()) {
                 String line = sc.nextLine();
                 String[] res = line.split(",");
-                transit[townRevLookup.get(res[0])][townRevLookup.get(res[1])] = 
+                transit[townRevLookup.get(res[0])][townRevLookup.get(res[1])] =
                     Integer.parseInt(res[2]);
-                // transit[townRevLookup.get(res[1])][townRevLookup.get(res[0])] = 
+                // transit[townRevLookup.get(res[1])][townRevLookup.get(res[0])] =
                 //    Integer.parseInt(res[2]);
             }
         }
@@ -737,7 +759,14 @@ public class Simulator {
                         }
 
                         timeout = Integer.parseInt(args[i]) * 1000;
-                    } else if (args[i].equals("--fps")) {
+                    } else if (args[i].equals("-s") || args[i].equals("--seed")) {
+                        if (++i == args.length) {
+                            throw new IllegalArgumentException("Missing seed value.");
+                        }
+
+                        rand = new Random(Integer.parseInt(args[i]));
+                    }
+                    else if (args[i].equals("--fps")) {
                         if (++i == args.length) {
                             throw new IllegalArgumentException("Missing frames per second.");
                         }

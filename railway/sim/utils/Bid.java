@@ -1,6 +1,8 @@
 package railway.sim.utils;
 
-public class Bid {
+import java.io.Serializable;
+
+public class Bid implements Serializable {
     // The ids of links that are being bid.
     public int id1;
 
@@ -9,6 +11,9 @@ public class Bid {
 
     // The amount that the link was bid for.
     public double amount;
+
+    // The player that bid for this.
+    public String bidder;
 
     public Bid() {
         id1 = -1;
