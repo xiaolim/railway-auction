@@ -1,8 +1,9 @@
-var colors = ["red", "green", "blue", "brown", "purple", "orange", "gold", "pink"];
-
+var colors = ["grey", "green", "blue", "#800000", "#00eeee", "#E66100", "gold", "#ff00ff"];
+            // grey,   green,  d-blue,  maroon,     aqua,     orange,    gold,   fuchsia
 function resetColor(ctx) {
     ctx.fillStyle = 'black';
     ctx.strokeStyle = 'black';
+    ctx.lineWidth = 3;
     ctx.setLineDash([]);
 }
 

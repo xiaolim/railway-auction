@@ -142,6 +142,10 @@ public class Simulator {
                         Bid bid = pw.getBid(deepClone(currentBids), deepClone(allBids));
                         if (bid == null) {
                             updates.remove(pw);
+                            if (i >= updates.size()) {
+                                // Reset i.
+                                i = 0;
+                            }
                         }
                         else {
                             currentBids.add(0, bid);
@@ -150,12 +154,12 @@ public class Simulator {
                     }
                     catch (Exception ex) {
                         // This should be an exception only from getBid function.
-                        System.out.println(ex.toString());
+                        System.out.println("Getting an exception with player: " + 
+                            pw.getName());
+                        ex.printStackTrace();
                         updates.remove(pw);
                     }
                 }
-
-                Bid maxBid;
 
                 if (currentBids.size() == 0) {
                     // This shouldn't happen!!!!!
@@ -163,12 +167,11 @@ public class Simulator {
                     // fail to run in the future.
                     // I ain't fixing that. So people, please bid!
                     System.out.println("Nobody bid for anything :( ");
-                    maxBid = new Bid();
+                    System.exit(0);
                 }
-                else {
-                    maxBid = getMaxBid(currentBids, allBids);
-                    updateBids(maxBid, allBids);
-                }
+
+                Bid maxBid = getMaxBid(currentBids, allBids);
+                updateBids(maxBid, allBids);
 
                 System.out.println("Max bidder: " + maxBid.bidder);
                     for (PlayerWrapper pw : players) {
