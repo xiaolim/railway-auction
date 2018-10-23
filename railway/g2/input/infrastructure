@@ -1,0 +1,100 @@
+Vancouver,Calgary
+Vancouver,Seattle
+Calgary,Winnipeg
+Calgary,Seattle
+Calgary,Helena
+Winnipeg,Helena
+Winnipeg,Duluth
+Winnipeg,Sault St. Marie
+Sault St. Marie,Duluth
+Sault St. Marie,Toronto
+Sault St. Marie,Montreal
+Montreal,Toronto
+Montreal,New York
+Montreal,Boston
+Boston,Montreal
+Boston,New York
+New York,Boston
+New York,Pittsburgh
+New York,Washington
+Washington,New York
+Washington,Pittsburgh
+Washington,Raleigh
+Raleigh,Washington
+Raleigh,Pittsburgh
+Raleigh,Nashville
+Raleigh,Atlanta
+Raleigh,Charleston
+Charleston,Atlanta
+Charleston,Miami
+Miami,Atlanta
+Miami,New Orleans
+New Orleans,Atlanta,
+New Orleans,Little Rock
+New Orleans,Houston
+Houston,Dallas
+Houston,El Paso
+El Paso,Dallas
+El Paso,Oklahoma City
+El Paso,Santa Fe
+El Paso,Phoenix
+El Paso,Los Angeles
+Los Angeles,Phoenix
+Los Angeles,Las Vegas
+Los Angeles,San Francisco
+San Francisco,Los Angeles
+San Francisco,Salt Lake City
+San Francisco,Portland
+Portland,San Francisco
+Portland,Salt Lake City
+Portland,Seattle
+Seattle,Portland
+Seattle,Helena
+Seattle,Vancouver
+Helena,Salt Lake City
+Helena,Denver
+Helena,Omaha
+Helena,Duluth
+Duluth,Omaha
+Duluth,Chicago
+Duluth,Toronto
+Chicago,Omaha
+Chicago,Saint Louis
+Chicago,Pittsburgh
+Chicago,Toronto
+Pittsburgh,Chicago
+Pittsburgh,Saint Louis
+Pittsburgh,Nashville
+Pittsburgh,New York
+Pittsburgh,Toronto
+Nashville,Saint Louis
+Nashville,Little Rock
+Nashville,Atlanta
+Atlanta,Raleigh
+Atlanta,New Orleans
+Little Rock,Saint Louis
+Little Rock,Oklahoma City
+Little Rock,Dallas
+Oklahoma City,Denver
+Oklahoma City,Santa Fe
+Oklahoma City,Dallas
+Oklahoma City,Kansas City
+Dallas,Oklahoma City
+Dallas,Houston
+Santa Fe,Phoenix
+Santa Fe,Denver
+Phoenix,Denver
+Las Vegas,Salt Lake City
+Salt Lake City,San Francisco
+Salt Lake City,Denver
+Denver,Salt Lake City
+Denver,Kansas City
+Omaha,Denver
+Omaha,Kansas City
+Omaha,Duluth
+Saint Louis,Kansas City
+Saint Louis,Chicago
+Kansas City,Denver
+Kansas City,Oklahoma City
+Kansas City,Saint Louis
+Kansas City,Omaha
