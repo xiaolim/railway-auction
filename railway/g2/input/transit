@@ -1,0 +1,127 @@
+Vancouver,Calgary,50
+Vancouver,Seattle,80
+Calgary,Winnipeg,20
+Calgary,Seattle,30
+Calgary,Helena,10
+Winnipeg,Helena,30
+Winnipeg,Duluth,40
+Winnipeg,Sault St. Marie,25
+Sault St. Marie,Duluth,45
+Sault St. Marie,Toronto,80
+Sault St. Marie,Montreal,10
+Montreal,Toronto,25
+Montreal,New York,40
+Montreal,Boston,35
+Boston,Montreal,15
+Boston,New York,150
+New York,Boston,100
+New York,Pittsburgh,75
+New York,Washington,200
+Washington,New York,50
+Washington,Pittsburgh,20
+Washington,Raleigh,50
+Raleigh,Washington,200
+Raleigh,Pittsburgh,75
+Raleigh,Nashville,30
+Raleigh,Atlanta,80
+Raleigh,Charleston,100
+Charleston,Atlanta,20
+Charleston,Miami,35
+Miami,Atlanta,250
+Miami,New Orleans,10
+New Orleans,Atlanta,60
+New Orleans,Little Rock,10
+New Orleans,Houston,5
+Houston,Dallas,80
+Houston,El Paso,10
+El Paso,Dallas,5
+El Paso,Oklahoma City,10
+El Paso,Santa Fe,15
+El Paso,Phoenix,20
+El Paso,Los Angeles,20
+Los Angeles,Phoenix,40
+Los Angeles,Las Vegas,350
+Los Angeles,San Francisco,400
+San Francisco,Los Angeles,300
+San Francisco,Salt Lake City,200
+San Francisco,Portland,60
+Portland,San Francisco,20
+Portland,Salt Lake City,20
+Portland,Seattle,20
+Seattle,Portland,10
+Seattle,Helena,80
+Seattle,Vancouver,100
+Helena,Salt Lake City,20
+Helena,Denver,30
+Helena,Omaha,20
+Helena,Duluth,15
+Duluth,Omaha,150
+Duluth,Chicago,200
+Duluth,Toronto,175
+Chicago,Omaha,30
+Chicago,Saint Louis,100
+Chicago,Pittsburgh,200
+Chicago,Toronto,35
+Pittsburgh,Chicago,10
+Pittsburgh,Saint Louis,100
+Pittsburgh,Nashville,40
+Pittsburgh,New York,60
+Pittsburgh,Toronto,50
+Nashville,Saint Louis,150
+Nashville,Little Rock,220
+Nashville,Atlanta,5
+Atlanta,Raleigh,10
+Atlanta,New Orleans,15
+Little Rock,Saint Louis,20
+Little Rock,Oklahoma City,25
+Little Rock,Dallas,30
+Oklahoma City,Denver,75
+Oklahoma City,Santa Fe,25
+Oklahoma City,Dallas,75
+Oklahoma City,Kansas City,25
+Dallas,Oklahoma City,60
+Dallas,Houston,80
+Santa Fe,Phoenix,10
+Santa Fe,Denver,5
+Phoenix,Denver,20
+Las Vegas,Salt Lake City,40
+Salt Lake City,San Francisco,25
+Salt Lake City,Denver,35
+Denver,Salt Lake City,20
+Denver,Kansas City,15
+Omaha,Denver,20
+Omaha,Kansas City,30
+Omaha,Duluth,60
+Saint Louis,Kansas City,70
+Saint Louis,Chicago,80
+Kansas City,Denver,100
+Kansas City,Oklahoma City,65
+Kansas City,Saint Louis,75
+Kansas City,Omaha,100
+Calgary,Denver,200
+Helena,San Fransisco,250
+Denver,Phoenix,225
+El Paso,Miami,250
+Los Angeles,Seattle,300
+Seattle,Los Angeles,100
+San Fransisco,Chicago,50
+Nashville,Toronto,80
+Little Rock,Omaha,30
+Toronto,Phoenix,20
+Toronto,Atlanta,10
+Vancouver,San Fransisco,40
+Dallas,Chicago,80
+Duluth,Oklahoma City,20
+Oklahoma City,Pittsburgh,20
+New York,Toronto,250
+Boston,Washington,200
+New York,Miami,150
+Chicago,New York,80
+New York,San Fransisco,300
+San Fransisco,New York,200
+New York,Los Angeles,150
+Las Vegas,New York,100
+San Fransisco,Las Vegas,220
+Toronto,Nashville,40
+Miami,El Paso,20
+San Fransisco,Helena,50
