@@ -1,4 +1,4 @@
-package railway.random;
+package railway.g3;
 
 import java.util.ArrayList;
 import java.util.Collections;
