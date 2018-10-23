@@ -72,18 +72,6 @@ public class Simulator {
         parseArgs(args);
         loadInputFiles();
 
-        players = new ArrayList<>();
-        try {
-            for (String name : playerNames) {
-                players.add(loadPlayerWrapper(name, timeout));
-            }
-        } catch (Exception ex) {
-            System.out.println("Unable to load players. " + ex.getMessage());
-            System.exit(0);
-        }
-
-        origPlayers = new ArrayList<>(players);
-
         HTTPServer server = null;
         if (gui) {
             server = new HTTPServer();
@@ -100,6 +88,26 @@ public class Simulator {
                 }
             }
         }
+
+        if (playerNames.size() == 0) {
+            if (gui) {
+                gui(server, state(-1, geo, infra, 0));
+            }
+
+            System.exit(0);
+        }
+
+        players = new ArrayList<>();
+        try {
+            for (String name : playerNames) {
+                players.add(loadPlayerWrapper(name, timeout));
+            }
+        } catch (Exception ex) {
+            System.out.println("Unable to load players. " + ex.getMessage());
+            System.exit(0);
+        }
+
+        origPlayers = new ArrayList<>(players);
 
         initBids();
         budget = getBudget();
@@ -120,7 +128,7 @@ public class Simulator {
         players = updates;
 
         if (gui) {
-            gui(server, state(fps, geo, infra, budget, origPlayers));
+            gui(server, state(fps, geo, infra, budget));
         }
 
         boolean isComplete = false;
@@ -596,8 +604,7 @@ public class Simulator {
         double fps,
         List<Coordinates> geo,
         List<List<Integer>> infra,
-        double budget,
-        List<PlayerWrapper> players) {
+        double budget) {
 
         // Here we are again.
         String json = "{\"refresh\":\"" + (1000.0/fps) + "\",\"budget\":\"" + budget +
@@ -760,7 +767,14 @@ public class Simulator {
                         }
 
                         timeout = Integer.parseInt(args[i]) * 1000;
-                    } else if (args[i].equals("-s") || args[i].equals("--seed")) {
+                    } else if (args[i].equals("-m") || args[i].equals("--map")) {
+                        if (++i == args.length) {
+                            throw new IllegalArgumentException("Missing map path.");
+                        }
+
+                        dir = "railway/" + args[i] + "/input/";
+                    }
+                    else if (args[i].equals("-s") || args[i].equals("--seed")) {
                         if (++i == args.length) {
                             throw new IllegalArgumentException("Missing seed value.");
                         }
@@ -781,12 +795,6 @@ public class Simulator {
                 default:
                     throw new IllegalArgumentException("Unknown argument '" + args[i] + "'");
             }
-        }
-
-        if (playerNames.size() == 0) {
-            // Set all groups by default.
-            playerNames = new ArrayList<>(
-                Arrays.asList(new String[] {"g1", "g2", "g3", "g4", "g5", "g6", "g7", "g8"}));
         }
 
         Log.record("Players: " + playerNames.toString());

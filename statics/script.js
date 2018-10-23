@@ -96,7 +96,11 @@ function process(data) {
 
     if (result.geo !== undefined) {
         var budget = result.budget;
-        players = result.players.split(',');   
+
+        if (result.players != "") { 
+            players = result.players.split(',');
+        }
+        
         var info = [];
 
         for (var i=0; i<players.length; ++i) {
