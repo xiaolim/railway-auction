@@ -1,100 +1,100 @@
-Vancouver,Calgary
-Vancouver,Seattle
-Calgary,Winnipeg
-Calgary,Seattle
-Calgary,Helena
-Winnipeg,Helena
-Winnipeg,Duluth
-Winnipeg,Sault St. Marie
-Sault St. Marie,Duluth
-Sault St. Marie,Toronto
-Sault St. Marie,Montreal
-Montreal,Toronto
-Montreal,New York
-Montreal,Boston
-Boston,Montreal
-Boston,New York
-New York,Boston
-New York,Pittsburgh
-New York,Washington
-Washington,New York
-Washington,Pittsburgh
-Washington,Raleigh
-Raleigh,Washington
-Raleigh,Pittsburgh
-Raleigh,Nashville
-Raleigh,Atlanta
-Raleigh,Charleston
-Charleston,Atlanta
-Charleston,Miami
-Miami,Atlanta
-Miami,New Orleans
-New Orleans,Atlanta,
-New Orleans,Little Rock
-New Orleans,Houston
-Houston,Dallas
-Houston,El Paso
-El Paso,Dallas
-El Paso,Oklahoma City
-El Paso,Santa Fe
-El Paso,Phoenix
-El Paso,Los Angeles
-Los Angeles,Phoenix
-Los Angeles,Las Vegas
-Los Angeles,San Francisco
-San Francisco,Los Angeles
-San Francisco,Salt Lake City
-San Francisco,Portland
-Portland,San Francisco
-Portland,Salt Lake City
-Portland,Seattle
-Seattle,Portland
-Seattle,Helena
-Seattle,Vancouver
-Helena,Salt Lake City
-Helena,Denver
-Helena,Omaha
-Helena,Duluth
-Duluth,Omaha
-Duluth,Chicago
-Duluth,Toronto
-Chicago,Omaha
-Chicago,Saint Louis
-Chicago,Pittsburgh
-Chicago,Toronto
-Pittsburgh,Chicago
-Pittsburgh,Saint Louis
-Pittsburgh,Nashville
-Pittsburgh,New York
-Pittsburgh,Toronto
-Nashville,Saint Louis
-Nashville,Little Rock
-Nashville,Atlanta
-Atlanta,Raleigh
-Atlanta,New Orleans
-Little Rock,Saint Louis
-Little Rock,Oklahoma City
-Little Rock,Dallas
-Oklahoma City,Denver
-Oklahoma City,Santa Fe
-Oklahoma City,Dallas
-Oklahoma City,Kansas City
-Dallas,Oklahoma City
-Dallas,Houston
-Santa Fe,Phoenix
-Santa Fe,Denver
-Phoenix,Denver
-Las Vegas,Salt Lake City
-Salt Lake City,San Francisco
-Salt Lake City,Denver
-Denver,Salt Lake City
-Denver,Kansas City
-Omaha,Denver
-Omaha,Kansas City
-Omaha,Duluth
-Saint Louis,Kansas City
-Saint Louis,Chicago
-Kansas City,Denver
-Kansas City,Oklahoma City
-Kansas City,Saint Louis
+VANCOUVER,CALGARY
+VANCOUVER,SEATTLE
+CALGARY,WINNIPEG
+CALGARY,SEATTLE
+CALGARY,HELENA
+WINNIPEG,HELENA
+WINNIPEG,DULUTH
+WINNIPEG,SAULT ST. MARIE
+SAULT ST. MARIE,DULUTH
+SAULT ST. MARIE,TORONTO
+SAULT ST. MARIE,MONTREAL
+MONTREAL,TORONTO
+MONTREAL,NEW YORK
+MONTREAL,BOSTON
+BOSTON,MONTREAL
+BOSTON,NEW YORK
+NEW YORK,BOSTON
+NEW YORK,PITTSBURGH
+NEW YORK,WASHINGTON
+WASHINGTON,NEW YORK
+WASHINGTON,PITTSBURGH
+WASHINGTON,RALEIGH
+RALEIGH,WASHINGTON
+RALEIGH,PITTSBURGH
+RALEIGH,NASHVILLE
+RALEIGH,ATLANTA
+RALEIGH,CHARLESTON
+CHARLESTON,ATLANTA
+CHARLESTON,MIAMI
+MIAMI,ATLANTA
+MIAMI,NEW ORLEANS
+NEW ORLEANS,ATLANTA,
+NEW ORLEANS,LITTLE ROCK
+NEW ORLEANS,HOUSTON
+HOUSTON,DALLAS
+HOUSTON,EL PASO
+EL PASO,DALLAS
+EL PASO,OKLAHOMA CITY
+EL PASO,SANTA FE
+EL PASO,PHOENIX
+EL PASO,LOS ANGELES
+LOS ANGELES,PHOENIX
+LOS ANGELES,LAS VEGAS
+LOS ANGELES,SAN FRANCISCO
+SAN FRANCISCO,LOS ANGELES
+SAN FRANCISCO,SALT LAKE CITY
+SAN FRANCISCO,PORTLAND
+PORTLAND,SAN FRANCISCO
+PORTLAND,SALT LAKE CITY
+PORTLAND,SEATTLE
+SEATTLE,PORTLAND
+SEATTLE,HELENA
+SEATTLE,VANCOUVER
+HELENA,SALT LAKE CITY
+HELENA,DENVER
+HELENA,OMAHA
+HELENA,DULUTH
+DULUTH,OMAHA
+DULUTH,CHICAGO
+DULUTH,TORONTO
+CHICAGO,OMAHA
+CHICAGO,SAINT LOUIS
+CHICAGO,PITTSBURGH
+CHICAGO,TORONTO
+PITTSBURGH,CHICAGO
+PITTSBURGH,SAINT LOUIS
+PITTSBURGH,NASHVILLE
+PITTSBURGH,NEW YORK
+PITTSBURGH,TORONTO
+NASHVILLE,SAINT LOUIS
+NASHVILLE,LITTLE ROCK
+NASHVILLE,ATLANTA
+ATLANTA,RALEIGH
+ATLANTA,NEW ORLEANS
+LITTLE ROCK,SAINT LOUIS
+LITTLE ROCK,OKLAHOMA CITY
+LITTLE ROCK,DALLAS
+OKLAHOMA CITY,DENVER
+OKLAHOMA CITY,SANTA FE
+OKLAHOMA CITY,DALLAS
+OKLAHOMA CITY,KANSAS CITY
+DALLAS,OKLAHOMA CITY
+DALLAS,HOUSTON
+SANTA FE,PHOENIX
+SANTA FE,DENVER
+PHOENIX,DENVER
+LAS VEGAS,SALT LAKE CITY
+SALT LAKE CITY,SAN FRANCISCO
+SALT LAKE CITY,DENVER
+DENVER,SALT LAKE CITY
+DENVER,KANSAS CITY
+OMAHA,DENVER
+OMAHA,KANSAS CITY
+OMAHA,DULUTH
+SAINT LOUIS,KANSAS CITY
+SAINT LOUIS,CHICAGO
+KANSAS CITY,DENVER
+KANSAS CITY,OKLAHOMA CITY
+KANSAS CITY,SAINT LOUIS
 Kansas City,Omaha
