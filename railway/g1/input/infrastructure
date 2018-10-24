@@ -1,4 +1,4 @@
-Toranomon, Asakusa
+Toranomon,Asakusa
 Kasumigaseki,Korakuen
 Iidabashi,Monzen-Nakacho
 Akihabara,Hibiya
@@ -24,16 +24,16 @@ Ikebukuro,Ichigaya
 Kita-Senju,Meiji-Jingumae
 Toyosu,Yurakucho
 Shimbashi,Akasaka-Mitsuke
-Aoyama-Itchome, Asakusa
+Aoyama-Itchome,Asakusa
 Shimbashi,Ueno
 Ikebukuro,Meiji-Jingumae
 Ginza,Hatchobori
 Kayabacho,Monzen-Nakacho
 Iidabashi,Kayabacho
-Ueno, Asakusa
+Ueno,Asakusa
 Ueno,Aoyama-Itchome
 Nihombashi,Kudanshita
-Shibuya, Asakusa
+Shibuya,Asakusa
 Ikebukuro,Yotsuya
 Akihabara,Ebisu
 Kudanshita,Kinshicho
@@ -61,7 +61,7 @@ Kita-Senju,Kokkai-Gijido-mae-Tameike-Sanno
 Ginza,Tokyo
 Shibuya,Toranomon
 Omotesando,Kudanshita
-Ginza, Asakusa
+Ginza,Asakusa
 Monzen-Nakacho,Kasai
 Akasaka-Mitsuke,Aoyama-Itchome
 Shimbashi,Omotesando
@@ -95,7 +95,7 @@ Otemachi,Kita-Senju
 Ikebukuro,Otemachi
 Akasaka-Mitsuke,Toranomon
 Otemachi,Meiji-Jingumae
-Kokkai-Gijido-mae-Tameike-Sanno, Asakusa
+Kokkai-Gijido-mae-Tameike-Sanno,Asakusa
 Yurakucho,Ichigaya
 Otemachi,Nishi-Nippori
 Toyocho,Monzen-Nakacho
@@ -110,7 +110,7 @@ Otemachi,Yotsuya
 Otemachi,Takadanobaba
 Ueno,Akihabara
 Shimbashi,Toranomon
-Nihombashi, Asakusa
+Nihombashi,Asakusa
 Otemachi,Toyocho
 Ikebukuro,Tokyo
 Kasumigaseki,Hibiya
@@ -137,7 +137,7 @@ Shibuya,Kokkai-Gijido-mae-Tameike-Sanno
 Ginza,Mitsukoshimae
 Shimbashi,Shibuya
 Ginza,Hibiya
-Akasaka-Mitsuke, Asakusa
+Akasaka-Mitsuke,Asakusa
 Iidabashi,Korakuen
 Tokyo,Kasumigaseki
 Iidabashi,Yotsuya
@@ -170,7 +170,7 @@ Kayabacho,Kinshicho
 Iidabashi,Akihabara
 Takadanobaba,Kayabacho
 Ueno,Nihombashi
-Mitsukoshimae, Asakusa
+Mitsukoshimae,Asakusa
 Shinjuku,Tokyo
 Shimbashi,Mitsukoshimae
 Otemachi,Korakuen
@@ -182,7 +182,7 @@ Ueno,Hibiya
 Shinjuku-Sanchome,Kokkai-Gijido-mae-Tameike-Sanno
 Otemachi,Akasaka-Mitsuke
 Ginza,Iidabashi
-Shimbashi, Asakusa
+Shimbashi,Asakusa
 Kita-Senju,Kasumigaseki
 Kita-Senju,Nishi-Nippori
 Mitsukoshimae,Toranomon
@@ -245,7 +245,7 @@ Takadanobaba,Kasai
 Ginza,Kasumigaseki
 Nishi-Nippori,Kasumigaseki
 Kokkai-Gijido-mae-Tameike-Sanno,Akasaka-Mitsuke
-Omotesando, Asakusa
+Omotesando,Asakusa
 Ikebukuro,Akasaka-Mitsuke
 Kayabacho,Hatchobori
 Omotesando,Nishi-Nippori
