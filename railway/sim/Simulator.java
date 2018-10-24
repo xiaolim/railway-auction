@@ -521,7 +521,7 @@ public class Simulator {
 
                 townRevLookup.put(res[0], index);
                 townLookup.add(res[0]);
-                geo.add(new Coordinates(Integer.parseInt(res[1]), Integer.parseInt(res[2])));
+                geo.add(new Coordinates(Double.parseDouble(res[1]), Double.parseDouble(res[2])));
                 infra.add(new ArrayList<Integer>());
                 index += 1;
             }
