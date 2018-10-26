@@ -19,6 +19,11 @@ public class Player implements railway.sim.Player {
 
     private List<BidInfo> availableBids = new ArrayList<>();
 
+    private List<List<Integer>> infra; 
+    private int[][] transit; 
+
+    //hashmap of all our connections- and then map connection 1 etc. to amount of traffic between 
+
     public Player() {
         rand = new Random();
     }
@@ -27,17 +32,27 @@ public class Player implements railway.sim.Player {
         String name,
         double budget,
         List<Coordinates> geo,
-        List<List<Integer>> infra,
-        int[][] transit,
+        List<List<Integer>> infra, //
+        int[][] transit, //
         List<String> townLookup) {
 
         this.budget = budget;
+        this.transit = transit; 
+        this.infra = infra; 
+    }
+
+
+    private void calculateHighestTraffic(){
+
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
+        System.out.println("This is our budget: " + budget); 
+        System.out.println("This is the infra: " + infra); 
+
         if (availableBids.size() != 0) {
             return null;
         }
