@@ -72,14 +72,14 @@ public class Player implements railway.sim.Player {
         int currentMax = 0; 
         int best = 0; 
         
-        System.out.println("Printing my hashmap"); 
+        //System.out.println("Printing my hashmap"); 
         for(BidInfo b : availableBids){
             int i = b.id; 
-            System.out.println("Key: " + i + " Value: " + bidIdTraffic.get(i)); 
+            //System.out.println("Key: " + i + " Value: " + bidIdTraffic.get(i)); 
             if(bidIdTraffic.get(i) > currentMax){
                 currentMax = bidIdTraffic.get(i); 
                 best = i; 
-                System.out.println("Found best: " + i + "," + currentMax); 
+                //System.out.println("Found best: " + i + "," + currentMax); 
             }
         }
         return best; 
@@ -110,21 +110,7 @@ public class Player implements railway.sim.Player {
         System.out.println();
     }
 
-
-    //bets percentage of budget = percent of traffic this link corresponds to
-    private double calculateBid(int id){
-        double bid = bidIdMinBid.get(id); 
-        int traffic = bidIdTraffic.get(id); 
-        float percent = ((float)traffic/(float)totalTraffic); 
-        System.out.println("Traffic: " + traffic + " totalTraffic: " + totalTraffic + " percent: " + percent); 
-        bid += (double)(budget * percent); 
-        return bid; 
-    }
-
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
-        // The random player bids only once in a round.
-        // This checks whether we are in the same round.
-        // Random player doesn't care about bids made by other players.
+    private void printAllInfo(List<Bid> currentBids, List<BidInfo> allBids){
         System.out.println("This is our budget: " + budget); 
         System.out.println("This is the infra: " + infra); 
         
@@ -144,12 +130,32 @@ public class Player implements railway.sim.Player {
             System.out.println("Bid id: " + b.id + " town 1: " + b.town1 + " town 2: " + b.town2 + " bidded amount: " 
                 + b.amount + " owner: " + b.owner); 
         }
+    }
 
 
+    //bets percentage of budget = percent of traffic this link corresponds to
+    private double calculateBid(int id){
+        double bid = bidIdMinBid.get(id); 
+        int traffic = bidIdTraffic.get(id); 
+        float percent = ((float)traffic/(float)totalTraffic); 
+        //System.out.println("Traffic: " + traffic + " totalTraffic: " + totalTraffic + " percent: " + percent); 
+        double fractionOfBudget = (double)(budget * percent);
+        bid += (.1 * fractionOfBudget); 
+        
+        System.out.println("Minimum bid: " + bidIdMinBid.get(id) + " our addition: " + (.1 * fractionOfBudget)); 
+        if(bid < budget){
+            return bid; 
+        }
+        else{
+            return bidIdMinBid.get(id); 
+        }
+    }
+
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
+    
         if (availableBids.size() != 0) {
             return null;
         }
-
 
         //adding all available bids and adding to hashmap of bid id to minimum bid
         for (BidInfo bi : allBids) {
@@ -163,10 +169,6 @@ public class Player implements railway.sim.Player {
             return null;
         }
 
-        // BidInfo randomBid = availableBids.get(rand.nextInt(availableBids.size()));
-        // double amount = randomBid.amount;
-
-
         int bidID = calculateHighestTraffic(); 
         double cashMoney = calculateBid(bidID); 
 
@@ -174,10 +176,7 @@ public class Player implements railway.sim.Player {
         bid.id1 = bidID; 
         bid.amount = cashMoney; 
 
-        // Don't bid if the random bid turns out to be beyond our budget.
-        // if (budget - amount < 0.) {
-        //     return null;
-        // }
+        System.out.println("Bid before checking other players: " + cashMoney + "  " + bid.amount); 
 
         // Check if another player has made a bid for this link.
         for (Bid b : currentBids) {
@@ -187,14 +186,13 @@ public class Player implements railway.sim.Player {
                 } else {
                     bid.amount = b.amount + 10000;
                 }
-
-                break;
             }
         }
 
-        // Bid bid = new Bid();
-        // bid.amount = amount;
-        // bid.id1 = randomBid.id;
+        System.out.println("Bid amount: " + bid.amount + " Current budget "+ budget); 
+        if(bid.amount > budget){
+            return null; 
+        }
 
         return bid;
     }
