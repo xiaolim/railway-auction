@@ -24,15 +24,16 @@ public class Player implements railway.sim.Player {
     }
 
     public void init(
-        String name,
-        double budget,
-        List<Coordinates> geo,
-        List<List<Integer>> infra,
-        int[][] transit,
-        List<String> townLookup) {
+            String name,
+            double budget,
+            List<Coordinates> geo,
+            List<List<Integer>> infra,
+            int[][] transit,
+            List<String> townLookup) {
 
         this.budget = budget;
     }
+
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
         // The random player bids only once in a round.
@@ -65,8 +66,7 @@ public class Player implements railway.sim.Player {
             if (b.id1 == randomBid.id || b.id2 == randomBid.id) {
                 if (budget - b.amount - 10000 < 0.) {
                     return null;
-                }
-                else {
+                } else {
                     amount = b.amount + 10000;
                 }
 
