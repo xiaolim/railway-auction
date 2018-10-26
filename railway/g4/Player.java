@@ -96,53 +96,55 @@ public class Player implements railway.sim.Player {
         return Math.pow(Math.pow(geo.get(a).x - geo.get(b).x, 2) + Math.pow(geo.get(a).y - geo.get(b).y, 2), 0.5);
     }
 
+    
+
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> availableBids) {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
         
-        for (BidInfo b:availableBids){
-            System.out.println(String.valueOf(b.id) + " " + b.town1 + " "+b.town2 + " "+String.valueOf(b.amount) + " "+b.owner);
+        // for (BidInfo b:availableBids){
+        //     System.out.println(String.valueOf(b.id) + " " + b.town1 + " "+b.town2 + " "+String.valueOf(b.amount) + " "+b.owner);
 
-        }
+        // }
 
-        for (Bid b: currentBids){
-            System.out.println(String.valueOf(b.id1) + " " + String.valueOf(b.id2) + " "+String.valueOf(b.amount) + " "+b.bidder);            
-        }
+        // for (Bid b: currentBids){
+        //     System.out.println(String.valueOf(b.id1) + " " + String.valueOf(b.id2) + " "+String.valueOf(b.amount) + " "+b.bidder);            
+        // }
         
-        System.out.println("0");
+        // System.out.println("0");
         
-        LinkedList<String> links = new LinkedList<>();
-
+        
         // *************************************************************************
-        // Uses availableBids to keep track of each player's budget and links bought
+        // Use availableBids to keep track of each player's budget and links bought
         // *************************************************************************
-        for (BidInfo b : availableBids) {
-            if (b.owner != null) {
-                String link = b.town1 + "-" + b.town2;
+        // for (BidInfo b : availableBids) {
+        //     if (b.owner != null) {
+        //         String link = b.town1 + "-" + b.town2;
 
-                // check if link is in allPlayerLinks. If not, put it in and update budget
-                if (allPlayerLinks.get(b.owner) == null) {
-                    Double oldBudget = allPlayerBudget.get(b.owner);
-                    Double newBudget = oldBudget - b.amount;
-                    allPlayerBudget.put(b.owner, newBudget);
-                    //put link in links
-                    links.add(link);
-                    allPlayerLinks.put(b.owner, links);
-                }
-                else {
-                    LinkedList<String> playerLinks = allPlayerLinks.get(b.owner);
-                    if (!playerLinks.contains(link)) {
-                        playerLinks.add(link);
-                        //update budget
-                        Double oldBudget = allPlayerBudget.get(b.owner);
-                        Double newBudget = oldBudget - b.amount;
-                        allPlayerBudget.put(b.owner, newBudget);
-                    }
-                }
-            }
-        }
+        //         // check if link is in allPlayerLinks. If not, put it in and update budget
+        //         if (allPlayerLinks.get(b.owner) == null) {
+        //             Double oldBudget = allPlayerBudget.get(b.owner);
+        //             Double newBudget = oldBudget - b.amount;
+        //             allPlayerBudget.put(b.owner, newBudget);
+        //             //put link in links
+        //             LinkedList<String> links = new LinkedList<>();
+        //             links.add(link);
+        //             allPlayerLinks.put(b.owner, links);
+        //         }
+        //         else {
+        //             LinkedList<String> playerLinks = allPlayerLinks.get(b.owner);
+        //             if (!playerLinks.contains(link)) {
+        //                 playerLinks.add(link);
+        //                 //update budget
+        //                 Double oldBudget = allPlayerBudget.get(b.owner);
+        //                 Double newBudget = oldBudget - b.amount;
+        //                 allPlayerBudget.put(b.owner, newBudget);
+        //             }
+        //         }
+        //     }
+        // }
 
         // System.out.println("taken links: ");
         // for (Map.Entry<String, LinkedList<String>> entry : allPlayerLinks.entrySet() ) {
