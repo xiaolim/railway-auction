@@ -16,7 +16,3 @@ gui:
 
 random:
 	java railway.sim.Simulator -p random random random --gui --fps 1
-java railway.sim.Simulator -p g4 random random
-
-
-/home/wolszhang/kaldi-trunk/egs/tedlium/s5_r2/exp/chain_cleaned/tdnn1g_sp_bi/log/train.219.1.log
