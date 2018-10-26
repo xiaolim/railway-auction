@@ -7,8 +7,20 @@ import railway.sim.utils.Coordinates;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Arrays; 
+import javafx.util.Pair;
+import java.util.HashMap; 
 
-// To access data classes.
+
+class Connection{
+    int row; 
+    int column; 
+
+    public Connection(int row, int column){
+        this.row = row; 
+        this.column = column; 
+    }
+}
 
 public class Player implements railway.sim.Player {
     // Random seed of 42.
@@ -23,6 +35,7 @@ public class Player implements railway.sim.Player {
     private int[][] transit; 
 
     //hashmap of all our connections- and then map connection 1 etc. to amount of traffic between 
+    private HashMap<Connection, Integer> connections = new HashMap<Connection, Integer>(); 
 
     public Player() {
         rand = new Random();
@@ -39,11 +52,33 @@ public class Player implements railway.sim.Player {
         this.budget = budget;
         this.transit = transit; 
         this.infra = infra; 
+
+        buildHashMap(); 
     }
 
 
     private void calculateHighestTraffic(){
 
+    }
+
+    private void buildHashMap(){
+        for(int l = 0; l < infra.size(); l++){
+            List<Integer> row = infra.get(l); 
+            for(int i = 0; i < row.size(); i++){
+                int there = row.get(i); 
+                Connection pair = new Connection(l,there); 
+                int traffic = transit[l][there]; 
+                connections.put(pair, traffic); 
+            }
+        }
+    }
+
+    private void printRow(int[] row) {
+        for (int i : row) {
+            System.out.print(i);
+            System.out.print("\t");
+        }
+        System.out.println();
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
@@ -52,6 +87,13 @@ public class Player implements railway.sim.Player {
         // Random player doesn't care about bids made by other players.
         System.out.println("This is our budget: " + budget); 
         System.out.println("This is the infra: " + infra); 
+        
+
+        System.out.println("This is the transit: "); 
+        for(int[] row : transit) {
+            printRow(row);
+        }
+
 
         if (availableBids.size() != 0) {
             return null;
