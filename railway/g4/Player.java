@@ -102,7 +102,7 @@ public class Player implements railway.sim.Player {
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
         
-        /*for (BidInfo b:availableBids){
+        for (BidInfo b:availableBids){
             System.out.println(String.valueOf(b.id) + " " + b.town1 + " "+b.town2 + " "+String.valueOf(b.amount) + " "+b.owner);
 
         }
@@ -111,11 +111,13 @@ public class Player implements railway.sim.Player {
             System.out.println(String.valueOf(b.id1) + " " + String.valueOf(b.id2) + " "+String.valueOf(b.amount) + " "+b.bidder);            
         }
         
+        System.out.println("0");
+        
         LinkedList<String> links = new LinkedList<>();
 
-        System.out.println("0");
-        /*
-        // System.out.println("all taken bids: ");
+        // *************************************************************************
+        // Uses availableBids to keep track of each player's budget and links bought
+        // *************************************************************************
         for (BidInfo b : availableBids) {
             if (b.owner != null) {
                 String link = b.town1 + "-" + b.town2;
@@ -142,23 +144,23 @@ public class Player implements railway.sim.Player {
             }
         }
 
-        System.out.println("taken links: ");
-        for (Map.Entry<String, LinkedList<String>> entry : allPlayerLinks.entrySet() ) {
-            String key = entry.getKey();
-            LinkedList<String> value = entry.getValue();
-            System.out.print(key + ": " + value);
-            System.out.println();
+        // System.out.println("taken links: ");
+        // for (Map.Entry<String, LinkedList<String>> entry : allPlayerLinks.entrySet() ) {
+        //     String key = entry.getKey();
+        //     LinkedList<String> value = entry.getValue();
+        //     System.out.print(key + ": " + value);
+        //     System.out.println();
             
-        }  
+        // }  
 
-        System.out.println("group budget: ");
-        for (Map.Entry<String, Double> entry : allPlayerBudget.entrySet() ) {
-            String key = entry.getKey();
-            Double value = entry.getValue();
-            System.out.print(key + ": ");
-            System.out.println(value);
-        }        
-        */
+        // System.out.println("group budget: ");
+        // for (Map.Entry<String, Double> entry : allPlayerBudget.entrySet() ) {
+        //     String key = entry.getKey();
+        //     Double value = entry.getValue();
+        //     System.out.print(key + ": ");
+        //     System.out.println(value);
+        // }        
+        
         List<BidInfo> avail_Bids = new ArrayList<BidInfo>();
         List<Integer> amounts = new ArrayList<Integer>();
 
