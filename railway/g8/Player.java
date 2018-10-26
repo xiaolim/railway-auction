@@ -37,6 +37,9 @@ public class Player implements railway.sim.Player {
     //hashmap of all our connections- and then map connection 1 etc. to amount of traffic between 
     private HashMap<Connection, Integer> connections = new HashMap<Connection, Integer>(); 
 
+    //okay new HashMap that just uses bid ID instead 
+    //private HashMap<Integer, Integer> 
+
     public Player() {
         rand = new Random();
     }
@@ -57,8 +60,16 @@ public class Player implements railway.sim.Player {
     }
 
 
-    private void calculateHighestTraffic(){
-
+    private Connection calculateHighestTraffic(){
+        int currentMax = 0; 
+        Connection best;  
+        for(Connection c : connections.keySet()){
+            if(connections.get(c) > currentMax){
+                currentMax = connections.get(c); 
+                best = c; 
+            }
+        }
+        return new Connection(1,1); 
     }
 
     private void buildHashMap(){
@@ -81,6 +92,13 @@ public class Player implements railway.sim.Player {
         System.out.println();
     }
 
+
+    private int calculateBid(Connection c){
+
+
+        return 100; 
+    }
+
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
@@ -94,6 +112,16 @@ public class Player implements railway.sim.Player {
             printRow(row);
         }
 
+        System.out.println("The current bids are"); 
+        for(Bid b : currentBids){
+            System.out.println(b.bidder + " bids $" + b.amount + "for: " + "link 1 ID: " + b.id1 + " Link 2 ID: " + b.id2 ); 
+        }
+
+        System.out.println("All bids info: "); 
+        for(BidInfo b : allBids){
+            System.out.println("Bid id: " + b.id + " town 1: " + b.town1 + " town 2: " + b.town2 + " bidded amount: " 
+                + b.amount + " owner: " + b.owner); 
+        }
 
         if (availableBids.size() != 0) {
             return null;
