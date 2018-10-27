@@ -7,18 +7,20 @@ import railway.sim.utils.Coordinates;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.Arrays; 
+import java.util.Arrays;
+
 import javafx.util.Pair;
-import java.util.HashMap; 
+
+import java.util.HashMap;
 
 
-class Connection{
-    int row; 
-    int column; 
+class Connection {
+    int row;
+    int column;
 
-    public Connection(int row, int column){
-        this.row = row; 
-        this.column = column; 
+    public Connection(int row, int column) {
+        this.row = row;
+        this.column = column;
     }
 }
 
@@ -31,19 +33,18 @@ public class Player implements railway.sim.Player {
 
     private List<BidInfo> availableBids = new ArrayList<>();
 
-    private List<List<Integer>> infra; 
-    private int[][] transit; 
+    private List<List<Integer>> infra;
+    private int[][] transit;
 
     //hashmap of all our connections- and then map connection 1 etc. to amount of traffic between 
-    private HashMap<Connection, Integer> connections = new HashMap<Connection, Integer>(); 
+    private HashMap<Connection, Integer> connections = new HashMap<Connection, Integer>();
 
     //okay new HashMap that just uses bid ID instead 
     //maps bid ID to amount of traffic on that link 
-    private HashMap<Integer, Integer> bidIdTraffic = new HashMap<Integer, Integer>(); 
-    private HashMap<Integer, Double> bidIdMinBid = new HashMap<Integer, Double>(); 
+    private HashMap<Integer, Integer> bidIdTraffic = new HashMap<Integer, Integer>();
+    private HashMap<Integer, Double> bidIdMinBid = new HashMap<Integer, Double>();
 
-    private int totalTraffic = 0; 
-
+    private int totalTraffic = 0;
 
 
     public Player() {
@@ -51,53 +52,52 @@ public class Player implements railway.sim.Player {
     }
 
     public void init(
-
-        String name,
-        double budget,
-        List<Coordinates> geo,
-        List<List<Integer>> infra, //
-        int[][] transit, //
-        List<String> townLookup) {
+            String name,
+            double budget,
+            List<Coordinates> geo,
+            List<List<Integer>> infra, //
+            int[][] transit, //
+            List<String> townLookup) {
 
         this.budget = budget;
-        this.transit = transit; 
-        this.infra = infra; 
+        this.transit = transit;
+        this.infra = infra;
 
-        buildHashMap(); 
+        buildHashMap();
     }
 
 
     //finds single link with highest traffic 
-    private int calculateHighestTraffic(){
-        int currentMax = 0; 
-        int best = 0; 
-        
+    private int calculateHighestTraffic() {
+        int currentMax = 0;
+        int best = 0;
+
         //System.out.println("Printing my hashmap"); 
-        for(BidInfo b : availableBids){
-            int i = b.id; 
+        for (BidInfo b : availableBids) {
+            int i = b.id;
             //System.out.println("Key: " + i + " Value: " + bidIdTraffic.get(i)); 
-            if(bidIdTraffic.get(i) > currentMax){
-                currentMax = bidIdTraffic.get(i); 
-                best = i; 
+            if (bidIdTraffic.get(i) > currentMax) {
+                currentMax = bidIdTraffic.get(i);
+                best = i;
                 //System.out.println("Found best: " + i + "," + currentMax); 
             }
         }
-        return best; 
+        return best;
     }
 
     //adds to both hashmaps, and updates total traffic 
-    private void buildHashMap(){
+    private void buildHashMap() {
         int bidID = 0;
-        for(int l = 0; l < infra.size(); l++){
-            List<Integer> row = infra.get(l); 
-            for(int i = 0; i < row.size(); i++){
-                int there = row.get(i); 
-                Connection pair = new Connection(l,there); 
-                int traffic = transit[l][there]; 
-                connections.put(pair, traffic); 
-                bidIdTraffic.put(bidID, traffic); 
-                totalTraffic += traffic; 
-                bidID++; 
+        for (int l = 0; l < infra.size(); l++) {
+            List<Integer> row = infra.get(l);
+            for (int i = 0; i < row.size(); i++) {
+                int there = row.get(i);
+                Connection pair = new Connection(l, there);
+                int traffic = transit[l][there];
+                connections.put(pair, traffic);
+                bidIdTraffic.put(bidID, traffic);
+                totalTraffic += traffic;
+                bidID++;
             }
         }
     }
@@ -110,49 +110,48 @@ public class Player implements railway.sim.Player {
         System.out.println();
     }
 
-    private void printAllInfo(List<Bid> currentBids, List<BidInfo> allBids){
-        System.out.println("This is our budget: " + budget); 
-        System.out.println("This is the infra: " + infra); 
-        
+    private void printAllInfo(List<Bid> currentBids, List<BidInfo> allBids) {
+        System.out.println("This is our budget: " + budget);
+        System.out.println("This is the infra: " + infra);
 
-        System.out.println("This is the transit: "); 
-        for(int[] row : transit) {
+
+        System.out.println("This is the transit: ");
+        for (int[] row : transit) {
             printRow(row);
         }
 
-        System.out.println("The current bids are"); 
-        for(Bid b : currentBids){
-            System.out.println(b.bidder + " bids $" + b.amount + "for: " + "link 1 ID: " + b.id1 + " Link 2 ID: " + b.id2 ); 
+        System.out.println("The current bids are");
+        for (Bid b : currentBids) {
+            System.out.println(b.bidder + " bids $" + b.amount + "for: " + "link 1 ID: " + b.id1 + " Link 2 ID: " + b.id2);
         }
 
-        System.out.println("All bids info: "); 
-        for(BidInfo b : allBids){
-            System.out.println("Bid id: " + b.id + " town 1: " + b.town1 + " town 2: " + b.town2 + " bidded amount: " 
-                + b.amount + " owner: " + b.owner); 
+        System.out.println("All bids info: ");
+        for (BidInfo b : allBids) {
+            System.out.println("Bid id: " + b.id + " town 1: " + b.town1 + " town 2: " + b.town2 + " bidded amount: "
+                    + b.amount + " owner: " + b.owner);
         }
     }
 
 
     //bets percentage of budget = percent of traffic this link corresponds to
-    private double calculateBid(int id){
-        double bid = bidIdMinBid.get(id); 
-        int traffic = bidIdTraffic.get(id); 
-        float percent = ((float)traffic/(float)totalTraffic); 
+    private double calculateBid(int id) {
+        double bid = bidIdMinBid.get(id);
+        int traffic = bidIdTraffic.get(id);
+        float percent = ((float) traffic / (float) totalTraffic);
         //System.out.println("Traffic: " + traffic + " totalTraffic: " + totalTraffic + " percent: " + percent); 
-        double fractionOfBudget = (double)(budget * percent);
-        bid += (.1 * fractionOfBudget); 
-        
-        System.out.println("Minimum bid: " + bidIdMinBid.get(id) + " our addition: " + (.1 * fractionOfBudget)); 
-        if(bid < budget){
-            return bid; 
-        }
-        else{
-            return bidIdMinBid.get(id); 
+        double fractionOfBudget = (double) (budget * percent);
+        bid += (.1 * fractionOfBudget);
+
+        System.out.println("Minimum bid: " + bidIdMinBid.get(id) + " our addition: " + (.1 * fractionOfBudget));
+        if (bid < budget) {
+            return bid;
+        } else {
+            return bidIdMinBid.get(id);
         }
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
-    
+
         if (availableBids.size() != 0) {
             return null;
         }
@@ -161,7 +160,7 @@ public class Player implements railway.sim.Player {
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
                 availableBids.add(bi);
-                bidIdMinBid.put(bi.id, bi.amount); 
+                bidIdMinBid.put(bi.id, bi.amount);
             }
         }
 
@@ -169,14 +168,14 @@ public class Player implements railway.sim.Player {
             return null;
         }
 
-        int bidID = calculateHighestTraffic(); 
-        double cashMoney = calculateBid(bidID); 
+        int bidID = calculateHighestTraffic();
+        double cashMoney = calculateBid(bidID);
 
-        Bid bid = new Bid(); 
-        bid.id1 = bidID; 
-        bid.amount = cashMoney; 
+        Bid bid = new Bid();
+        bid.id1 = bidID;
+        bid.amount = cashMoney;
 
-        System.out.println("Bid before checking other players: " + cashMoney + "  " + bid.amount); 
+        System.out.println("Bid before checking other players: " + cashMoney + "  " + bid.amount);
 
         // Check if another player has made a bid for this link.
         for (Bid b : currentBids) {
@@ -189,9 +188,9 @@ public class Player implements railway.sim.Player {
             }
         }
 
-        System.out.println("Bid amount: " + bid.amount + " Current budget "+ budget); 
-        if(bid.amount > budget){
-            return null; 
+        System.out.println("Bid amount: " + bid.amount + " Current budget " + budget);
+        if (bid.amount > budget) {
+            return null;
         }
 
         return bid;
