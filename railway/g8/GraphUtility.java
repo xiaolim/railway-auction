@@ -32,7 +32,7 @@ public class GraphUtility {
         adj = new double[townSize][townSize]; //init 2D adjacency matrix
         for (int i = 0; i < townSize; i++) { //init values, if no link return INF
             for (int j = 0; j < townSize; j++) {
-                if (infra.get(i).contains(j)) { //connected
+                if (infra.get(i).contains(j) || infra.get(j).contains(i)) { //connected
                     adj[i][j] = Euclidean(geo.get(i), geo.get(j));
                 } else { //set to infinity
                     adj[i][j] = Double.POSITIVE_INFINITY;
@@ -50,7 +50,9 @@ public class GraphUtility {
         for (int i = 0; i < townSize; i++) {
             for (int j = 0; j < townSize; j++) {
                 dist[i][j] = adj[i][j];
-                next[i][j] = -1;
+                if (infra.get(i).contains(j) || infra.get(j).contains(i)) { //connected
+                    next[i][j] = j;
+                } else next[i][j] = -1;
             }
         }
 

@@ -63,6 +63,16 @@ public class Player implements railway.sim.Player {
         this.transit = transit;
         this.infra = infra;
 
+        /***an example for debug**/
+//        GraphUtility gu = new GraphUtility(geo, infra, transit, townLookup);
+//        System.out.println("DEBUGGGGG ////////");
+//        System.out.println(townLookup.get(10));
+//        System.out.println(townLookup.get(23));
+//        for(Object i: gu.path[10][23]){
+//            System.out.print(townLookup.get((Integer) i));
+//            System.out.print(",");
+//        }
+
         buildHashMap();
     }
 
