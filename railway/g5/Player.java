@@ -33,8 +33,24 @@ public class Player implements railway.sim.Player {
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
-        // The random player bids only once in a round.
-        // This checks whether we are in the same round.
+        // Check if everyone else has dropped out
+
+        // Sort through the bids to find the current winning bid
+
+        // Find a rail we would like to buy past that price / distance
+
+        // Make winning bid
+
+
+        // Sort though currentBids to make find rails that aren't bet on yet
+
+        // Choose one and make a minimum bid
+
+
+        // If there are no rails we'd like to purchase at the highest price / distance
+        // Drop out
+
+
         // Random player doesn't care about bids made by other players.
         if (availableBids.size() != 0) {
             return null;
