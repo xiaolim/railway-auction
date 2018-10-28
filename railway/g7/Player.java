@@ -151,7 +151,7 @@ public class Player implements railway.sim.Player {
                 // }
             }
         }
-        Collections.sort(rankedRouteValue);
+        Collections.sort(rankedRouteValue, Collections.reverseOrder());
     }
 
     private List<List<Integer>> findBridges() {
