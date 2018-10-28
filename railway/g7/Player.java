@@ -14,6 +14,7 @@ public class Player implements railway.sim.Player {
     private Random rand;
 
     private double budget;
+    private String name;
     private List<Coordinates> geo;
     private List<List<Integer>> infra;
     private int[][] transit;
@@ -34,7 +35,7 @@ public class Player implements railway.sim.Player {
         List<List<Integer>> infra,
         int[][] transit,
         List<String> townLookup) {
-
+        this.name = name;
         this.budget = budget;
         this.geo = geo;
         this.infra = infra;
@@ -197,6 +198,16 @@ public class Player implements railway.sim.Player {
         return bridges;
     }
 
+    // return true if link is owned by someone else
+    public boolean checkOwnershipByTownID(int id1, int id2){
+        for (BidInfo bi : allBids) {
+            if (((bi.town1==id1 && bi.town2==id2)||(bi.town1==id2 && bi.town2==id1))&&bi.owner != null && bi.owner != this.name) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
@@ -204,18 +215,10 @@ public class Player implements railway.sim.Player {
         if (availableBids.size() != 0) {
             return null;
         }
-        List<BidInfo> ourBids = new ArrayList<>();
-        List<String> ourTown = new ArrayList<>();;
 
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
                 availableBids.add(bi);
-            }
-            // this is not working for some reason
-            // else if (bi.owner == name){
-            else if (false){
-                ourTown.add(bi.town1);
-                ourTown.add(bi.town2);
             }
         }
 
@@ -223,37 +226,18 @@ public class Player implements railway.sim.Player {
             return null;
         }
 
-
-        double max = 0;
-        double maxOwn = 0;
-        BidInfo longBid = null;
-        BidInfo ownBid = null;
-
-        // find link with highest transit
-        for (BidInfo bInfo : availableBids){
-            int townid1 = townLookup.indexOf(bInfo.town1);
-            int townid2 = townLookup.indexOf(bInfo.town2);
-            if ((ourTown.contains(bInfo.town1) || ourTown.contains(bInfo.town2)) 
-                && transit[townid1][townid2] > maxOwn){
-                maxOwn = transit[townid1][townid2];
-                ownBid = bInfo;
-            }
-            if (transit[townid1][townid2] > max){
-                max = transit[townid1][townid2];
-                longBid=bInfo;
+        RouteValue routeToBid;
+        for (int i=0; i< rankedRouteValue.size();i++){
+            routeToBid = rankedRouteValue.get(i);
+            if (!routeToBid.hasOtherOwner){
+                break;
             }
         }
-        BidInfo randomBid;
-        if (ownBid != null){
-            randomBid = ownBid;
-        }
-        else if (longBid != null){
-            randomBid = longBid;
-        }
-        else{
-            randomBid = availableBids.get(rand.nextInt(availableBids.size()));
-        }
-        double amount = randomBid.amount;
+        LinkValue
+
+
+
+        BidInfo randomBid= availableBids.get(rand.nextInt(availableBids.size()));
 
         // Don't bid if the random bid turns out to be beyond our budget.
         if (budget - amount < 0.) {
@@ -298,7 +282,7 @@ public class Player implements railway.sim.Player {
             town2 = id2;
             distance = graph.getWeight(id1,id2);
         }
-        
+
         @Override
         public int compareTo(LinkValue lv) {
             return (int) Math.signum(distance - lv.distance);
@@ -308,13 +292,14 @@ public class Player implements railway.sim.Player {
         List<List<Integer>> routes;
         double volPerKm;
         double distance;
-        List<LinkValue> linkValues= new ArrayList<LinkValue>();;
+        List<LinkValue> linkValues= new ArrayList<LinkValue>();
+        public boolean hasOtherOwner;
 
         public RouteValue (List<List<Integer>> r, double v, double d) {
             routes = copyListofList(r);
             volPerKm = v;
             distance = d;
-
+            hasOtherOwner = false;
             for (int i=0; i < routes.size()-1;i++){
                 linkValues.add(new LinkValue(routes[i],routes[i+1]));
             }
@@ -331,6 +316,19 @@ public class Player implements railway.sim.Player {
                 results.add(result);
             }
             return results;
+        }
+
+        // return true if link is owned by someone else
+        public boolean checkOwnership(){
+            for (int i=0; i < routes.size()-1;i++){
+                String id1 = townLookup.get(routes[i]);
+                String id2 = townLookup.get(routes[i+1]);
+                hasOtherOwner = checkOwnershipByTownID(id1, id2);
+                if (hasOtherOwner==true){
+                    return true;
+                }
+            }
+            return false;
         }
 
         public List<List<Integer>> getRoutes() {
