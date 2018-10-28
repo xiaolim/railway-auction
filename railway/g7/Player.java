@@ -19,6 +19,7 @@ public class Player implements railway.sim.Player {
     private int[][] transit;
     private List<String> townLookup;
     private WeightedGraph graph;
+    private List<RouteValue> rankedRouteValue;
 
     private List<BidInfo> availableBids = new ArrayList<>();
 
@@ -55,6 +56,7 @@ public class Player implements railway.sim.Player {
             }
             System.out.println();
         }
+        rankedRouteValue = new ArrayList<RouteValue>();
     }
 
     private void initializeGraph() {
@@ -83,33 +85,73 @@ public class Player implements railway.sim.Player {
         return Dijkstra.getPaths(graph, prev, target);
     }
 
-    private List<List<Integer>> getMostVolumePerKm() {
-        double max = 0;
+    // private List<List<Integer>> getMostVolumePerKm() {
+    //     double max = 0;
+    //     List<List<Integer>> maxLinks = new ArrayList<List<Integer>>();
+    //     for (int i = 0; i < transit.length; i++) {
+    //         for (int j = i + 1; j < transit[i].length; j++) {
+    //             List<List<Integer>> links = getLinks(i, j);
+    //             System.out.println("transit: s=" + i + ", t=" + j);
+    //             for (int m = 0; m < links.size(); m++) {
+    //                 for (int n = 0; n < links.get(m).size(); n++) {
+    //                     System.out.print(links.get(m).get(n) + " ");
+    //                 }
+    //             }
+    //             int distance = 0;
+    //             for (int x = 0; x < links.get(0).size() - 1; x++) {
+    //                 distance += graph.getWeight(links.get(0).get(x), links.get(0).get(x + 1));
+    //             }
+
+    //             double volumePerKm = (double)transit[i][j] / distance;
+    //             if (volumePerKm > max) {
+    //                 max = volumePerKm;
+    //                 maxLinks = links;
+    //             }
+    //         }
+    //     }
+
+    //     System.out.println("most volume per km: " + max);
+    //     return maxLinks;
+    // }
+
+    private RouteValue getRouteValue(int source, int target) {
+        List<List<Integer>> links = getLinks(source, target);
+        int distance = 0;
+        for (int i = 0; i < links.get(0).size() - 1; i++) {
+            distance += graph.getWeight(links.get(0).get(i), links.get(0).get(i + 1));
+        }
+        double volumePerKm = (double) transit[source][target] / distance;
+        return new RouteValue(links, volumePerKm, distance);
+    }
+
+    private void gatherAllVolumePerKm() {
+        // double max = 0;
         List<List<Integer>> maxLinks = new ArrayList<List<Integer>>();
         for (int i = 0; i < transit.length; i++) {
             for (int j = i + 1; j < transit[i].length; j++) {
-                List<List<Integer>> links = getLinks(i, j);
-                System.out.println("transit: s=" + i + ", t=" + j);
-                for (int m = 0; m < links.size(); m++) {
-                    for (int n = 0; n < links.get(m).size(); n++) {
-                        System.out.print(links.get(m).get(n) + " ");
-                    }
-                }
-                int distance = 0;
-                for (int x = 0; x < links.get(0).size() - 1; x++) {
-                    distance += graph.getWeight(links.get(0).get(x), links.get(0).get(x + 1));
-                }
+                rankedRouteValue.add(getRouteValue(i, j));
+                // List<List<Integer>> links = getLinks(i, j);
+                // System.out.println("transit: s=" + i + ", t=" + j);
+                // for (int m = 0; m < links.size(); m++) {
+                //     for (int n = 0; n < links.get(m).size(); n++) {
+                //         System.out.print(links.get(m).get(n) + " ");
+                //     }
+                // }
+                // int distance = 0;
+                // for (int x = 0; x < links.get(0).size() - 1; x++) {
+                //     distance += graph.getWeight(links.get(0).get(x), links.get(0).get(x + 1));
+                // }
 
-                double volumePerKm = (double)transit[i][j] / distance;
-                if (volumePerKm > max) {
-                    max = volumePerKm;
-                    maxLinks = links;
-                }
+                // double volumePerKm = (double)transit[i][j] / distance;
+                // RouteValue rv = new RouteValue(links, volume, distance);
+                // rankedRouteValue.add(rv);
+                // if (volumePerKm > max) {
+                //     max = volumePerKm;
+                //     maxLinks = links;
+                // }
             }
         }
-
-        System.out.println("most volume per km: " + max);
-        return maxLinks;
+        Collections.sort(rankedRouteValue);
     }
 
     private List<List<Integer>> findBridges() {
@@ -239,5 +281,46 @@ public class Player implements railway.sim.Player {
         }
 
         availableBids = new ArrayList<>();
+    }
+
+    private class RouteValue implements Comparable<RouteValue>{
+        List<List<Integer>> routes;
+        double volPerKm;
+        double distance;
+
+        public RouteValue (List<List<Integer>> r, double v, double d) {
+            routes = copyListofList(r);
+            volPerKm = v;
+            distance = d;
+        }
+
+        private List<List<Integer>> copyListofList(List<List<Integer>> list) {
+            results = new ArrayList<List<Integer>>();
+            for (int i = 0; i < list.size(); i++) {
+                result = new ArrayList<Integer>();
+                for (int j = 0; j < list.get(i).size(); j++) {
+                    result.add(list.get(i).get(j));
+                }
+                results.add(result);
+            }
+            return results;
+        }
+
+        public List<List<Integer>> getRoutes() {
+            return copyListofList(routes);
+        }
+
+        public double getVolumePerKm() {
+            return volPerKm;
+        }
+
+        public double getDistance() {
+            return distance;
+        }
+
+        @Override
+        public int compareTo(RouteValue rv) {
+            return (int) Math.signum(distance - rv.distance);
+        }
     }
 }
