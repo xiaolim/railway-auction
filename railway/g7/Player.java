@@ -14,9 +14,11 @@ public class Player implements railway.sim.Player {
     private Random rand;
 
     private double budget;
-    private String name;
+    private List<Coordinates> geo;
+    private List<List<Integer>> infra;
     private int[][] transit;
     private List<String> townLookup;
+    private WeightedGraph graph;
 
     private List<BidInfo> availableBids = new ArrayList<>();
 
@@ -33,9 +35,120 @@ public class Player implements railway.sim.Player {
         List<String> townLookup) {
 
         this.budget = budget;
+        this.geo = geo;
+        this.infra = infra;
         this.transit = transit;
         this.townLookup = townLookup;
-        this.name = name;
+        initializeGraph();
+        List<List<Integer>> links = getMostVolumePerKm();
+        for (int i = 0; i < links.size(); i++) {
+            System.out.println("The %s link is: ");
+            for (int j = 0; j < links.get(i).size(); j++) {
+                System.out.print(links.get(i).get(j) + " ");
+            }
+        }
+        List<List<Integer>> bridges = findBridges();
+        System.out.println("The bridges are:");
+        for (int i = 0; i < bridges.size(); i++) {
+            for (int j = 0; j < bridges.get(i).size(); j++) {
+                System.out.print(bridges.get(i).get(j) + " ");
+            }
+            System.out.println();
+        }
+    }
+
+    private void initializeGraph() {
+        graph = new WeightedGraph(townLookup.size());
+        for (int i = 0; i < townLookup.size(); i++) {
+            graph.setLabel(townLookup.get(i));
+        }
+
+        for (int i = 0; i < infra.size(); i++) {
+            for (int j = 0; j < infra.get(i).size(); j++) {
+                int source = i;
+                int target = infra.get(i).get(j);
+                // graph.addEdge(source, target, transit[source][target]);
+                double distance = calcEuclideanDistance(geo.get(source), geo.get(target));
+                graph.addEdge(source, target, distance);
+            }
+        }
+    }
+
+    private double calcEuclideanDistance(Coordinates a, Coordinates b) {
+        return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y));
+    }
+
+    private List<List<Integer>> getLinks(int source, int target) {
+        int[][] prev = Dijkstra.dijkstra(graph, source);
+        return Dijkstra.getPaths(graph, prev, target);
+    }
+
+    private List<List<Integer>> getMostVolumePerKm() {
+        double max = 0;
+        List<List<Integer>> maxLinks = new ArrayList<List<Integer>>();
+        for (int i = 0; i < transit.length; i++) {
+            for (int j = i + 1; j < transit[i].length; j++) {
+                List<List<Integer>> links = getLinks(i, j);
+                System.out.println("transit: s=" + i + ", t=" + j);
+                for (int m = 0; m < links.size(); m++) {
+                    for (int n = 0; n < links.get(m).size(); n++) {
+                        System.out.print(links.get(m).get(n) + " ");
+                    }
+                }
+                int distance = 0;
+                for (int x = 0; x < links.get(0).size() - 1; x++) {
+                    distance += graph.getWeight(links.get(0).get(x), links.get(0).get(x + 1));
+                }
+
+                double volumePerKm = (double)transit[i][j] / distance;
+                if (volumePerKm > max) {
+                    max = volumePerKm;
+                    maxLinks = links;
+                }
+            }
+        }
+
+        System.out.println("most volume per km: " + max);
+        return maxLinks;
+    }
+
+    private List<List<Integer>> findBridges() {
+        List<List<Integer>> bridges = new ArrayList<List<Integer>>();
+        for (int i = 0; i < infra.size(); i++) {
+            for (int j = 0; j < infra.get(i).size(); j++) {
+                int source = i;
+                int target = infra.get(i).get(j);
+                double weight = graph.getWeight(source, target);
+                graph.removeEdge(source, target);
+                boolean bridgeFound = false;
+                // System.out.println("source: " + source + ", target: " + target);
+                for (int s = 0; s < townLookup.size(); s++) {
+                    int[][] prev = Dijkstra.dijkstra(graph, s);
+                    for (int t = s + 1; t < prev.length; t++) {
+                        if (prev[t][0] == 0) {
+                            bridgeFound = true;
+                            // System.out.println("s: " + s + ", t: " + t);
+                            break;
+                        }
+                    }
+
+                    if (bridgeFound) {
+                        break;
+                    }
+                }
+
+                if (bridgeFound) {
+                    List<Integer> bridge = new ArrayList<Integer>();
+                    bridge.add(source);
+                    bridge.add(target);
+                    bridges.add(bridge);
+                }
+
+                graph.addEdge(source, target, weight);
+            }
+        }
+
+        return bridges;
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
