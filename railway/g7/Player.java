@@ -288,15 +288,37 @@ public class Player implements railway.sim.Player {
         availableBids = new ArrayList<>();
     }
 
+    private class LinkValue implements Comparable<LinkValue>{
+        int town1;
+        int town2;
+        double distance;
+
+        public LinkValue (int id1, int id2){
+            town1 = id1;
+            town2 = id2;
+            distance = graph.getWeight(id1,id2);
+        }
+        
+        @Override
+        public int compareTo(LinkValue lv) {
+            return (int) Math.signum(distance - lv.distance);
+    }
+
     private class RouteValue implements Comparable<RouteValue>{
         List<List<Integer>> routes;
         double volPerKm;
         double distance;
+        List<LinkValue> linkValues= new ArrayList<LinkValue>();;
 
         public RouteValue (List<List<Integer>> r, double v, double d) {
             routes = copyListofList(r);
             volPerKm = v;
             distance = d;
+
+            for (int i=0; i < routes.size()-1;i++){
+                linkValues.add(new LinkValue(routes[i],routes[i+1]));
+            }
+            Collections.sort(linkValues, Collections.reverseOrder());
         }
 
         private List<List<Integer>> copyListofList(List<List<Integer>> list) {
