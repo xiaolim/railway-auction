@@ -41,13 +41,13 @@ public class Player implements railway.sim.Player {
         this.transit = transit;
         this.townLookup = townLookup;
         initializeGraph();
-        List<List<Integer>> links = getMostVolumePerKm();
-        for (int i = 0; i < links.size(); i++) {
-            System.out.println("The %s link is: ");
-            for (int j = 0; j < links.get(i).size(); j++) {
-                System.out.print(links.get(i).get(j) + " ");
-            }
-        }
+        // List<List<Integer>> links = getMostVolumePerKm();
+        // for (int i = 0; i < links.size(); i++) {
+        //     System.out.println("The %s link is: ");
+        //     for (int j = 0; j < links.get(i).size(); j++) {
+        //         System.out.print(links.get(i).get(j) + " ");
+        //     }
+        // }
         List<List<Integer>> bridges = findBridges();
         System.out.println("The bridges are:");
         for (int i = 0; i < bridges.size(); i++) {
@@ -57,6 +57,10 @@ public class Player implements railway.sim.Player {
             System.out.println();
         }
         rankedRouteValue = new ArrayList<RouteValue>();
+        gatherAllVolumePerKm();
+        for (int i = 0; i < rankedRouteValue.size(); i++) {
+            System.out.println("route number: " + i + ", volume: " + rankedRouteValue.get(i).getVolumePerKm() + ", distance: " + rankedRouteValue.get(i).getDistance());
+        }
     }
 
     private void initializeGraph() {
@@ -208,7 +212,8 @@ public class Player implements railway.sim.Player {
                 availableBids.add(bi);
             }
             // this is not working for some reason
-            else if (bi.owner == name){
+            // else if (bi.owner == name){
+            else if (false){
                 ourTown.add(bi.town1);
                 ourTown.add(bi.town2);
             }
@@ -295,9 +300,9 @@ public class Player implements railway.sim.Player {
         }
 
         private List<List<Integer>> copyListofList(List<List<Integer>> list) {
-            results = new ArrayList<List<Integer>>();
+            List<List<Integer>> results = new ArrayList<List<Integer>>();
             for (int i = 0; i < list.size(); i++) {
-                result = new ArrayList<Integer>();
+                List<Integer> result = new ArrayList<Integer>();
                 for (int j = 0; j < list.get(i).size(); j++) {
                     result.add(list.get(i).get(j));
                 }
@@ -320,7 +325,12 @@ public class Player implements railway.sim.Player {
 
         @Override
         public int compareTo(RouteValue rv) {
-            return (int) Math.signum(distance - rv.distance);
+            if (volPerKm != rv.volPerKm) {
+                return (int) Math.signum(volPerKm - rv.volPerKm);
+            }
+            else {
+                return (int) Math.signum(distance - rv.distance);
+            }
         }
     }
 }
