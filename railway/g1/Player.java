@@ -3,6 +3,7 @@ package railway.g1;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -17,8 +18,7 @@ public class Player implements railway.sim.Player {
     private double[][] min_price; //minimum price to buy  link i,j
     private double[][] revenue; //revenue of link i,j
     private int[][] min_path; //record whether link i-j is a minimum path from i to j
-    private double budget;
-    private Map<String,Integer> map; // this map is used to query index of town
+    private Map<String, Integer> map; // this map is used to query index of town from townLookup
     private List<BidInfo> availableBids = new ArrayList<>();
     
     // The coordinates of stations, infrastructure and raw transit files are stored for future reference.
@@ -26,9 +26,14 @@ public class Player implements railway.sim.Player {
     List<List<Integer>> infra;
     int[][] transit;
     
+    
     // Keep track of player owned links. It maps a link infra.get(i).get(j), denoted by an integer 
     // pair [i, j], to the player who owns that link (null if it is not sold yet). 
     Map<Pair, String> playerOwnedLinks;
+    
+    private List<String> players = new ArrayList<String>();
+    private List<Double> budget = new ArrayList<Double>();
+    
     public class Pair {
     	int i1;
     	int i2;
@@ -38,7 +43,6 @@ public class Player implements railway.sim.Player {
     	}
     }
 
-
     private double getDistance(int t1, int t2) {
         return Math.pow(
                 Math.pow(geo.get(t1).x - geo.get(t2).x, 2) +
@@ -47,7 +51,7 @@ public class Player implements railway.sim.Player {
     }
 
     /**
-     * Thie function will generate a revenue matrix for the problem
+     * This function will generate a revenue matrix for the problem
      * It will use dijkstra method to find the shortest path for i th node to j th node
      * And store the result in revenue[i][j], also this will give us the minimum price to buy links
      * @return the revenur matrix
@@ -70,7 +74,7 @@ public class Player implements railway.sim.Player {
             int[][] prev = Dijkstra.dijkstra(g, i);
             for (int j=i+1; j<n; ++j) {
                 List<List<Integer>> allPaths = Dijkstra.getPaths(g, prev, j);
-                System.out.println("tag3"+ j +i + n);
+                //System.out.println("tag3"+ j +i + n);
                 double cost = 0;
                 for (int k=0; k<allPaths.get(0).size()-1; ++k) {
                     cost += getDistance(allPaths.get(0).get(k), allPaths.get(0).get(k+1));
@@ -82,7 +86,7 @@ public class Player implements railway.sim.Player {
                     //System.out.println("tag6");
                     min_path[allPaths.get(k).get(allPaths.get(0).size()-1)][allPaths.get(k).get(0)] = 1;            //record minimum path here
                 }
-                System.out.println("tag5");
+                //System.out.println("tag5");
                 revenue[i][j] = cost * transit[i][j] * 10;
                 min_price[i][j] = revenue[i][j]/allPaths.size();
             }
@@ -100,11 +104,12 @@ public class Player implements railway.sim.Player {
     	this.geo = geo;
     	this.infra = infra;
     	this.transit = transit;
-        this.budget = budget;
-        //System.out.println("tag1");
+        this.budget.add(budget);
+        this.players.add(name);
+        //System.out.println("Player name: " + name);
         this.revenue = getRevenue();
         //System.out.println("tag2");
-        map = new HashMap();
+        map = new HashMap<String, Integer>();
         //System.out.println("tag3");
         for(int i=0;i<townLookup.size();i++)
             map.put(townLookup.get(i),i);
@@ -113,7 +118,7 @@ public class Player implements railway.sim.Player {
     /**
      * Update ownerships and remaining budgets for all players.
      */
-    public void updateStatus() {
+    public void updateStatus(List<BidInfo> currentBids) {
     	// TODO
     }
     
@@ -145,11 +150,16 @@ public class Player implements railway.sim.Player {
     	// TODO Find a way such that we bid on a link that gives us 0 benefit externally (?)
     	// while giving other links that we owned higher traffics. I am not sure how to do this right now.
     	
+    	// Update status
+    	updateStatus(allBids);
+    	
     	// Random player code below
     	
     	// The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
+    	
+    	
         double amount = -1;
         int id = -1;
         double maxamount = amount;
@@ -164,7 +174,6 @@ public class Player implements railway.sim.Player {
             }
         }
         for (BidInfo bi : allBids) {
-
             if (bi.owner == null) {
                 if(ourlinks.size()==0){
                     if(min_path[map.get(bi.town1)][map.get(bi.town2)]!=1){
@@ -240,9 +249,8 @@ public class Player implements railway.sim.Player {
 
     public void updateBudget(Bid bid) {
     	// TODO
-    	updateStatus();
         if (bid != null) {
-            budget -= bid.amount;
+            budget.set(0, budget.get(0) - bid.amount);
         }
 
         availableBids = new ArrayList<>();
