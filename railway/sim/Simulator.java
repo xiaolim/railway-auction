@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Random;
 import java.util.Scanner;
@@ -377,7 +378,15 @@ public class Simulator {
                 entry.getValue() - playerProfits.get(entry.getKey()));
         }
 
-        return playerProfits;
+        // Sort players by profit.
+        List<Map.Entry<String, Double>> plist = new ArrayList<>(playerProfits.entrySet());
+        plist.sort(Collections.reverseOrder(Map.Entry.comparingByValue()));
+        Map<String, Double> sortedPlayers = new LinkedHashMap<>();
+        for (Map.Entry<String, Double> entry : plist) {
+            sortedPlayers.put(entry.getKey(), entry.getValue());
+        }
+
+        return sortedPlayers;
     }
 
     private static boolean allLinksTaken(List<BidInfo> allBids) {
