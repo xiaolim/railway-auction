@@ -311,9 +311,11 @@ public class Player implements railway.sim.Player {
         // Don't bid if the random bid turns out to be beyond our budget.
                 // get the first two bids
         System.out.println(linkValueToBid.town1);
-        double amount = linkValueToBid.distance * transit[linkValueToBid.town1][linkValueToBid.town2];
+        double amount = 0.2*linkValueToBid.distance * transit[linkValueToBid.town1][linkValueToBid.town2];
+        amount += linkToBid.amount;
         if (secondLinkToBid != null) {
-            amount += secondLinkValueToBid.distance * transit[secondLinkValueToBid.town1][secondLinkValueToBid.town2];
+            amount += 0.2*secondLinkValueToBid.distance * transit[secondLinkValueToBid.town1][secondLinkValueToBid.town2];
+            amount += secondLinkToBid.amount;
         }
 
         // taking into account the entire route 
