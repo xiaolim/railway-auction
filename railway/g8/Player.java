@@ -44,6 +44,11 @@ public class Player implements railway.sim.Player {
     private HashMap<Integer, Integer> bidIdTraffic = new HashMap<Integer, Integer>();
     private HashMap<Integer, Double> bidIdMinBid = new HashMap<Integer, Double>();
 
+
+    //Hahsmap for edgeweights
+    private HashMap<Integer, Integer> bidIdEdgeWeight = new HashMap<Integer, Integer>();
+
+
     private int totalTraffic = 0;
 
 
@@ -91,8 +96,11 @@ public class Player implements railway.sim.Player {
                 }
             }
         }
+
+        buildEdgeHashMap(edgeWeight); 
         buildHashMap();
     }
+
 
 
     //finds single link with highest traffic 
@@ -113,6 +121,36 @@ public class Player implements railway.sim.Player {
         return best;
     }
 
+    private int highestTrafficEdgeWeight(){
+        int currentMax = 0;
+        int best = 0;
+
+        //System.out.println("Printing my hashmap"); 
+        for (BidInfo b : availableBids) {
+            int i = b.id;
+            //System.out.println("Key: " + i + " Value: " + bidIdTraffic.get(i)); 
+            if (bidIdEdgeWeight.get(i) > currentMax) {
+                currentMax = bidIdEdgeWeight.get(i);
+                best = i;
+                //System.out.println("Found best: " + i + "," + currentMax); 
+            }
+        }
+        return best;
+    }
+
+    private void buildEdgeHashMap(int[][] edgeWeight) {
+        int bidID = 0;
+        for (int l = 0; l < infra.size(); l++) {
+            List<Integer> row = infra.get(l);
+            for (int i = 0; i < row.size(); i++) {
+                int there = row.get(i);
+                Connection pair = new Connection(l, there);
+                int traffic = edgeWeight[l][there];
+                bidIdEdgeWeight.put(bidID, traffic);
+                bidID++;
+            }
+        }
+    }
     //adds to both hashmaps, and updates total traffic 
     private void buildHashMap() {
         int bidID = 0;
@@ -196,14 +234,16 @@ public class Player implements railway.sim.Player {
             return null;
         }
 
-        int bidID = calculateHighestTraffic();
+
+        int bidID = highestTrafficEdgeWeight(); 
+        //int bidID = calculateHighestTraffic();
         double cashMoney = calculateBid(bidID);
 
         Bid bid = new Bid();
         bid.id1 = bidID;
         bid.amount = cashMoney;
 
-        //System.out.println("Bid before checking other players: " + cashMoney + "  " + bid.amount);
+        //System.out.println("Bid before checking other playerse: " + cashMoney + "  " + bid.amount);
 
         // Check if another player has made a bid for this link.
         for (Bid b : currentBids) {
