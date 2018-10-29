@@ -115,7 +115,7 @@ public class Simulator {
         for (PlayerWrapper pw : players) {
             try {
                 pw.init(budget, deepClone(geo), deepClone(infra),
-                    deepClone(transit), deepClone(townLookup));
+                    deepClone(transit), deepClone(townLookup), deepClone(allBids));
             }
             catch(Exception ex) {
                 System.out.println("Exception in initializing player " +
@@ -133,6 +133,7 @@ public class Simulator {
 
         boolean isComplete = false;
         int round = 1;
+        Bid maxBid = null;
         try {
             while (!allLinksTaken(allBids)) {
                 System.out.println("\nRound " + round++);
@@ -147,7 +148,8 @@ public class Simulator {
                 while (updates.size() > 0) {
                     PlayerWrapper pw = updates.get(i);
                     try {
-                        Bid bid = pw.getBid(deepClone(currentBids), deepClone(allBids));
+                        Bid bid = pw.getBid(
+                            deepClone(currentBids), deepClone(allBids), deepClone(maxBid));
                         if (bid == null) {
                             updates.remove(pw);
                         }
@@ -169,15 +171,19 @@ public class Simulator {
                 }
 
                 if (currentBids.size() == 0) {
-                    // This shouldn't happen!!!!!
+                    // This can happen if all players error out, not necessarily if
+                    //  nobody bids anything.
                     // If we have holes in the graph then Dijkstra's algorithm will
                     //  fail to run in the future.
-                    // I ain't fixing that. So people, please bid!
                     System.out.println("Nobody bid for anything :( ");
+                    if (gui) {
+                        gui(server, state(-1, allBids, origPlayers));
+                    }
+
                     System.exit(0);
                 }
 
-                Bid maxBid = getMaxBid(currentBids, allBids);
+                maxBid = getMaxBid(currentBids, allBids);
                 updateBids(maxBid, allBids);
 
                 System.out.println("Max bidder: " + maxBid.bidder);
@@ -533,7 +539,12 @@ public class Simulator {
             while (sc.hasNextLine()) {
                 String line = sc.nextLine();
                 String[] res = line.split(",");
-                infra.get(townRevLookup.get(res[0])).add(townRevLookup.get(res[1]));
+
+                if (townRevLookup.get(res[0]) > townRevLookup.get(res[1])) {
+                    infra.get(townRevLookup.get(res[1])).add(townRevLookup.get(res[0]));
+                } else {
+                    infra.get(townRevLookup.get(res[0])).add(townRevLookup.get(res[1]));
+                }
                 // infra.get(townRevLookup.get(res[1])).add(res[0]);
             }
 
@@ -547,8 +558,13 @@ public class Simulator {
             while (sc.hasNextLine()) {
                 String line = sc.nextLine();
                 String[] res = line.split(",");
-                transit[townRevLookup.get(res[0])][townRevLookup.get(res[1])] =
-                    Integer.parseInt(res[2]);
+                if (townRevLookup.get(res[0]) > townRevLookup.get(res[1])) {
+                    transit[townRevLookup.get(res[1])][townRevLookup.get(res[0])] =
+                        Integer.parseInt(res[2]);
+                } else {
+                    transit[townRevLookup.get(res[0])][townRevLookup.get(res[1])] =
+                        Integer.parseInt(res[2]);
+                }
                 // transit[townRevLookup.get(res[1])][townRevLookup.get(res[0])] =
                 //    Integer.parseInt(res[2]);
             }
@@ -568,6 +584,10 @@ public class Simulator {
     }
 
     private static <T extends Object> T deepClone(T object) {
+        if (object == null) {
+            return null;
+        }
+
         try {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             ObjectOutputStream objectOutputStream = new ObjectOutputStream(byteArrayOutputStream);
