@@ -21,6 +21,7 @@ public class Player implements railway.sim.Player {
     private List<String> townLookup;
     private WeightedGraph graph;
     private List<RouteValue> rankedRouteValue;
+    private List<BidInfo> allBids;
 
     private List<BidInfo> availableBids = new ArrayList<>();
 
@@ -50,17 +51,17 @@ public class Player implements railway.sim.Player {
         //     }
         // }
         List<List<Integer>> bridges = findBridges();
-        System.out.println("The bridges are:");
+        //System.out.println("The bridges are:");
         for (int i = 0; i < bridges.size(); i++) {
             for (int j = 0; j < bridges.get(i).size(); j++) {
-                System.out.print(bridges.get(i).get(j) + " ");
+                //System.out.print(bridges.get(i).get(j) + " ");
             }
-            System.out.println();
+            //System.out.println();
         }
         rankedRouteValue = new ArrayList<RouteValue>();
         gatherAllVolumePerKm();
         for (int i = 0; i < rankedRouteValue.size(); i++) {
-            System.out.println("route number: " + i + ", volume: " + rankedRouteValue.get(i).getVolumePerKm() + ", distance: " + rankedRouteValue.get(i).getDistance());
+            //System.out.println("route number: " + i + ", volume: " + rankedRouteValue.get(i).getVolumePerKm() + ", distance: " + rankedRouteValue.get(i).getDistance());
         }
     }
 
@@ -126,7 +127,7 @@ public class Player implements railway.sim.Player {
             distance += graph.getWeight(links.get(0).get(i), links.get(0).get(i + 1));
         }
         double volumePerKm = (double) transit[source][target] / distance;
-        return new RouteValue(links, volumePerKm, distance);
+        return this.new RouteValue(links, volumePerKm, distance);
     }
 
     private void gatherAllVolumePerKm() {
@@ -198,69 +199,116 @@ public class Player implements railway.sim.Player {
         return bridges;
     }
 
-    // return true if link is owned by someone else
-    public boolean checkOwnershipByTownID(int id1, int id2){
+    // return null if owned by other; return bidInfo if not
+    public BidInfo checkOwnershipByTownID(int id1, int id2){
+        String name1 = townLookup.get(id1);
+        String name2 = townLookup.get(id2);
         for (BidInfo bi : allBids) {
-            if (((bi.town1==id1 && bi.town2==id2)||(bi.town1==id2 && bi.town2==id1))&&bi.owner != null && bi.owner != this.name) {
-                return true;
+            if (((bi.town1.equals(name1) && bi.town2.equals(name2))||(bi.town1.equals(name2) && bi.town2.equals(name1)))) {
+                if (bi.owner!=null&& !bi.owner.equals(this.name)){
+                    return null;
+                }
+                else{
+                    return bi;
+                }
             }
         }
-        return false;
+        return null;
+    }
+
+    public int getBidID(int id1, int id2){
+        String name1 = townLookup.get(id1);
+        String name2 = townLookup.get(id2);
+        for (BidInfo bi : allBids){
+            if ((bi.town1.equals(name1) && bi.town2.equals(name2))||(bi.town1.equals(name2) && bi.town2.equals(name1))){
+                return bi.id;
+            }
+        }
+        return -1;
+    }
+
+    public LinkValue getLongestPair(RouteValue route){
+        List<LinkValue> doubleLinks= new ArrayList<LinkValue>();
+        for (int i=0; i< route.routes.get(0).size()-1;i++){
+            return null;
+        }
+        Collections.sort(doubleLinks, Collections.reverseOrder());
+        if (doubleLinks.size()>0){
+            return doubleLinks.get(0);
+        }
+        else{
+            return null;
+        }
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
-        if (availableBids.size() != 0) {
-            return null;
-        }
-
+        this.allBids = allBids;
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
                 availableBids.add(bi);
             }
         }
-
-        if (availableBids.size() == 0) {
+        //System.out.println(availableBids.size());
+        if (availableBids.size()==0){
             return null;
         }
 
-        RouteValue routeToBid;
+        RouteValue routeToBid=null;
+        BidInfo linkToBid =null;
+        List<BidInfo> bids=null;
         for (int i=0; i< rankedRouteValue.size();i++){
             routeToBid = rankedRouteValue.get(i);
-            if (!routeToBid.hasOtherOwner){
+            List<LinkValue> bidLinks=routeToBid.linkValues;
+            boolean ownedByOther =false;
+            bids = new ArrayList<BidInfo>();
+            for (int j=0; j<bidLinks.size();j++){
+                LinkValue currLink = bidLinks.get(j);
+                //System.out.println(currLink.town1 +"-"+ currLink.town2 +" "+currLink.distance);
+                BidInfo alink = checkOwnershipByTownID(currLink.town1, currLink.town2);
+                if (alink == null){
+                    ownedByOther=true;
+                    rankedRouteValue.remove(i);
+                    i--;
+                    break;
+                }
+                else{
+                    if(alink.owner==null || !alink.owner.equals(this.name)){
+                        bids.add(alink);
+                    }
+                }
+            }
+            if (!ownedByOther){
                 break;
             }
         }
-        LinkValue
+        if (bids.size()==0){
+            linkToBid = availableBids.get(rand.nextInt(availableBids.size()));
+        }
+        else{
+            linkToBid = bids.get(0);
+        }
 
+        if (bids.size()==1){
+            rankedRouteValue.remove(routeToBid);
+        }
 
-
-        BidInfo randomBid= availableBids.get(rand.nextInt(availableBids.size()));
-
+        //System.out.println(linkToBid.id);
         // Don't bid if the random bid turns out to be beyond our budget.
-        if (budget - amount < 0.) {
-            return null;
-        }
 
-        // Check if another player has made a bid for this link.
-        for (Bid b : currentBids) {
-            if (b.id1 == randomBid.id || b.id2 == randomBid.id) {
-                if (budget - b.amount - 10 < 0.) {
-                    return null;
-                }
-                else {
-                    amount = b.amount + 10;
-                }
-
-                break;
-            }
-        }
 
         Bid bid = new Bid();
-        bid.amount = amount;
-        bid.id1 = randomBid.id;
+        bid.amount = linkToBid.amount;
+        bid.id1 = linkToBid.id;
+
+        for (Bid bi: currentBids){
+            if(bi.id1==bid.id1){
+                return null;
+            }
+        }
+
         return bid;
     }
 
@@ -272,10 +320,23 @@ public class Player implements railway.sim.Player {
         availableBids = new ArrayList<>();
     }
 
+    public BidInfo getBidInfo(int id1, int id2, List<BidInfo> allBids){
+        String name1 = townLookup.get(id1);
+        String name2 = townLookup.get(id2);
+        for (BidInfo bi : allBids){
+            if ((bi.town1.equals(name1) && bi.town2.equals(name2))||(bi.town1.equals(name2) && bi.town2.equals(name1))){
+                return bi;
+            }
+        }
+        return null;
+    }
+
     private class LinkValue implements Comparable<LinkValue>{
         int town1;
         int town2;
+        int townMid; // used for bidding pair of links
         double distance;
+        int bidID=-1;
 
         public LinkValue (int id1, int id2){
             town1 = id1;
@@ -283,9 +344,17 @@ public class Player implements railway.sim.Player {
             distance = graph.getWeight(id1,id2);
         }
 
+        public LinkValue (int id1, int id2, int id3, double dist){
+            town1 = id1;
+            town2 = id2;
+            townMid = id3;
+            distance = dist;
+        }
+
         @Override
         public int compareTo(LinkValue lv) {
             return (int) Math.signum(distance - lv.distance);
+        }
     }
 
     private class RouteValue implements Comparable<RouteValue>{
@@ -293,15 +362,13 @@ public class Player implements railway.sim.Player {
         double volPerKm;
         double distance;
         List<LinkValue> linkValues= new ArrayList<LinkValue>();
-        public boolean hasOtherOwner;
 
-        public RouteValue (List<List<Integer>> r, double v, double d) {
+        public RouteValue (List<List<Integer>> r, double v, double d){
             routes = copyListofList(r);
             volPerKm = v;
             distance = d;
-            hasOtherOwner = false;
-            for (int i=0; i < routes.size()-1;i++){
-                linkValues.add(new LinkValue(routes[i],routes[i+1]));
+            for (int i=0; i < routes.get(0).size()-1;i++){
+                linkValues.add(Player.this.new LinkValue(routes.get(0).get(i),routes.get(0).get(i+1)));
             }
             Collections.sort(linkValues, Collections.reverseOrder());
         }
@@ -319,17 +386,6 @@ public class Player implements railway.sim.Player {
         }
 
         // return true if link is owned by someone else
-        public boolean checkOwnership(){
-            for (int i=0; i < routes.size()-1;i++){
-                String id1 = townLookup.get(routes[i]);
-                String id2 = townLookup.get(routes[i+1]);
-                hasOtherOwner = checkOwnershipByTownID(id1, id2);
-                if (hasOtherOwner==true){
-                    return true;
-                }
-            }
-            return false;
-        }
 
         public List<List<Integer>> getRoutes() {
             return copyListofList(routes);
