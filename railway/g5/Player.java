@@ -90,7 +90,7 @@ public class Player implements railway.sim.Player {
         // Check if everyone else has dropped out
         // And mark the current winning/leading bid
         // Also mark links that haven't been bid on
-        boolean uncontested = True;
+        boolean uncontested = true;
         Bid maxBid = null;
         double unitPrice = 0.0;
         List<Integer> availableLinks = new ArrayList<>();
@@ -107,10 +107,10 @@ public class Player implements railway.sim.Player {
 
           // Update links that haven't been bid on
           if(noBidLinks.contains(pastBid.id1)){
-            noBidLinks.remove(pastBid.id1)
+            noBidLinks.remove(pastBid.id1);
           }
           if(noBidLinks.contains(pastBid.id2)){
-            noBidLinks.remove(pastBid.id2)
+            noBidLinks.remove(pastBid.id2);
           }
 
           // Determine current winning bid
@@ -136,7 +136,7 @@ public class Player implements railway.sim.Player {
         for (String key : numBids.keySet()){
           int playerBids = numBids.get(key);
           if (playerBids > pastRounds - 2){
-            uncontested = False
+            uncontested = false;
           }
         }
 
@@ -151,12 +151,12 @@ public class Player implements railway.sim.Player {
         // If there are links without any bids
         if(noBidLinks.size() != 0){
           // Choose one and make a minimum bid
-          int linkId = noBidLinks.get(rand.nextInt(noBidLinks.size());
+          int linkId = noBidLinks.get(rand.nextInt(noBidLinks.size()));
           int minAmount = 10000; //Replace this
 
           Bid bid = new Bid();
           bid.id1 = linkId;
-          bid.amount = amount;
+          bid.amount = minAmount;
           return bid;
         }
 
