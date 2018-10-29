@@ -245,32 +245,33 @@ public class Player implements railway.sim.Player {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
-        this.allBids = allBids;
-        for (BidInfo bi : allBids) {
+        this.allBids = allBids; 
+        for (BidInfo bi : allBids) { 
             if (bi.owner == null) {
                 availableBids.add(bi);
             }
-        }
+        } 
         //System.out.println(availableBids.size());
         if (availableBids.size()==0){
             return null;
-        }
+        } 
 
-        RouteValue routeToBid=null;
-        BidInfo linkToBid =null;
-        List<BidInfo> bids=null;
+        RouteValue routeToBid=null; 
+        BidInfo linkToBid =null; 
+        BidInfo secondLinkToBid = null;
+        List<BidInfo> bids=null; 
         for (int i=0; i< rankedRouteValue.size();i++){
-            routeToBid = rankedRouteValue.get(i);
-            List<LinkValue> bidLinks=routeToBid.linkValues;
-            boolean ownedByOther =false;
-            bids = new ArrayList<BidInfo>();
-            for (int j=0; j<bidLinks.size();j++){
-                LinkValue currLink = bidLinks.get(j);
+            routeToBid = rankedRouteValue.get(i); 
+            List<LinkValue> bidLinks=routeToBid.linkValues; 
+            boolean ownedByOther =false; // start out as false
+            bids = new ArrayList<BidInfo>(); 
+            for (int j=0; j<bidLinks.size();j++){ // go through all in bidLinks 
+                LinkValue currLink = bidLinks.get(j); 
                 //System.out.println(currLink.town1 +"-"+ currLink.town2 +" "+currLink.distance);
                 BidInfo alink = checkOwnershipByTownID(currLink.town1, currLink.town2);
                 if (alink == null){
                     ownedByOther=true;
-                    rankedRouteValue.remove(i);
+                    rankedRouteValue.remove(i); // remove from consideration
                     i--;
                     break;
                 }
@@ -281,26 +282,54 @@ public class Player implements railway.sim.Player {
                 }
             }
             if (!ownedByOther){
-                break;
+                break; // no need to go on with this for loop! Route identified! 
             }
         }
-        if (bids.size()==0){
+        if (bids.size()==0){ // 
             linkToBid = availableBids.get(rand.nextInt(availableBids.size()));
-        }
-        else{
-            linkToBid = bids.get(0);
+        } 
+        else{ 
+            linkToBid = bids.get(0); 
+            secondLinkToBid = bids.get(1);
         }
 
-        if (bids.size()==1){
+        if (bids.size()==1){ 
             rankedRouteValue.remove(routeToBid);
         }
 
+        // make linkToBid 
         //System.out.println(linkToBid.id);
         // Don't bid if the random bid turns out to be beyond our budget.
+                // get the first two bids
+        double amount = linkToBid.distance * transit[townLookup.get(linkToBid.town1)][townLookup.get(linkToBid.town2)];
+        if (secondLinkToBid != null) {
+            amount += secondLinkToBid.distance * transit[secondLinkToBid.town1][secondLinkToBid.town2];
+        }
 
+        // taking into account the entire route 
+        amount += 0.2 * routeToBid.volPerKm * routeToBid.distance; // the entire distance? 
+
+        // Don't bid if the random bid turns out to be beyond our budget.
+        if (budget - amount < 0.) {
+            return null;
+        }
+
+        // Check if another player has made a bid for this link.
+        for (Bid b : currentBids) {
+            if (b.id1 == linkToBid.id || b.id2 == linkToBid.id) {
+                if (budget - b.amount - 10 < 0.) {
+                    return null;
+                }
+                else {
+                    amount = b.amount + 10;
+                }
+
+                break;
+            }
+        }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
 
         Bid bid = new Bid();
-        bid.amount = linkToBid.amount;
+        bid.amount = amount;
         bid.id1 = linkToBid.id;
 
         for (Bid bi: currentBids){
