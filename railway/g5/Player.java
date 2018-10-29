@@ -18,7 +18,8 @@ public class Player implements railway.sim.Player {
     private double budget;
 
     private List<BidInfo> availableBids = new ArrayList<>();
-
+	
+    private List<String> ownedCities = new ArrayList<>();
     private Map<Integer, Integer> railValues = new HashMap<Integer, Integer>();
 
     public Player() {
@@ -89,13 +90,28 @@ public class Player implements railway.sim.Player {
         boolean uncontested = true;
         Bid maxBid = null;
         double unitPrice = 0.0;
+		
         List<Integer> availableLinks = new ArrayList<>();
         Map<Integer, Double> minAmounts = new HashMap<Integer, Double>();
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
+		
+		// Check if connecting edge to owned edge exists
+		if (ownedCities.contains(bi.town1)) {
+			availableLinks.add(bi.id);
+			minAmounts.put(bi.id, bi.amount);
+		}
+		if (ownedCities.contains(bi.town2)) {
+			availableLinks.add(bi.id);
+			minAmounts.put(bi.id. bi.amount);
+		{
                 availableLinks.add(bi.id);
                 minAmounts.put(bi.id, bi.amount);
             }
+	    if (bi.owner == "g5") {
+		ownedCities.add(bi.town1);
+		ownedCities.add(bi.town2);
+	    }
         }
         List<Integer> noBidLinks = availableLinks;
 
