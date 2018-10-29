@@ -103,8 +103,6 @@ public class Player implements railway.sim.Player {
         }
         List<Integer> noBidLinks = availableLinks;
 
-
-
         Map<String, Integer> numBids = new HashMap<String, Integer>();
         for(Bid pastBid : currentBids){
 
@@ -114,6 +112,14 @@ public class Player implements railway.sim.Player {
           }
           if(noBidLinks.contains(pastBid.id2)){
             noBidLinks.remove(pastBid.id2);
+          }
+
+          // Update min amount
+          if(pastBid.id2 == -1){
+            minAmounts.replace(pastBid.id1, minAmounts.get(pastBid.id1), pastBid.amount);
+          }
+          else{ // Update for both links
+
           }
 
           // Determine current winning bid
@@ -144,8 +150,8 @@ public class Player implements railway.sim.Player {
         }
 
 
-
         if(uncontested){
+          System.out.println("We are uncontested!");
           // Find links we'd like to buy at that price, or pairs of links
 
           // And buy the most valuable one
