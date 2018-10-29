@@ -285,10 +285,11 @@ public class Player implements railway.sim.Player {
                         linkinfos.add(currLink);
                     }
                 }
+                if (!ownedByOther){
+                    break; // no need to go on with this for loop! Route identified! 
+                }
             }
-            if (!ownedByOther){
-                break; // no need to go on with this for loop! Route identified! 
-            }
+
         }
         if (bids.size()==0){ // 
             linkToBid = availableBids.get(rand.nextInt(availableBids.size()));
@@ -296,7 +297,7 @@ public class Player implements railway.sim.Player {
         else if (bids.size()==1){ 
             linkToBid = bids.get(0); 
             linkValueToBid = linkinfos.get(0);
-            rankedRouteValue.remove(routeToBid);
+            //rankedRouteValue.remove(routeToBid);
         }
         else{
             linkToBid = bids.get(0); 
@@ -310,16 +311,16 @@ public class Player implements railway.sim.Player {
         //System.out.println(linkToBid.id);
         // Don't bid if the random bid turns out to be beyond our budget.
                 // get the first two bids
-        System.out.println(linkValueToBid.town1);
-        double amount = 0.2*linkValueToBid.distance * transit[linkValueToBid.town1][linkValueToBid.town2];
+        //System.out.println(linkValueToBid.town1);
+        double amount = linkValueToBid.distance * transit[linkValueToBid.town1][linkValueToBid.town2];
         amount += linkToBid.amount;
         if (secondLinkToBid != null) {
-            amount += 0.2*secondLinkValueToBid.distance * transit[secondLinkValueToBid.town1][secondLinkValueToBid.town2];
+            amount += secondLinkValueToBid.distance * transit[secondLinkValueToBid.town1][secondLinkValueToBid.town2];
             amount += secondLinkToBid.amount;
         }
 
         // taking into account the entire route 
-        amount += 0.2 * routeToBid.volPerKm * routeToBid.distance; // the entire distance? 
+        amount += routeToBid.volPerKm * routeToBid.distance; // the entire distance? 
 
         // Don't bid if the random bid turns out to be beyond our budget.
         if (budget - amount < 0.) {
