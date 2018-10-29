@@ -1,5 +1,7 @@
 package railway.g5;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,6 +19,8 @@ public class Player implements railway.sim.Player {
 
     private List<BidInfo> availableBids = new ArrayList<>();
 
+    private Map<Integer, Integer> railValues = new HashMap<Integer, Integer>();
+
     public Player() {
         rand = new Random();
     }
@@ -28,8 +32,57 @@ public class Player implements railway.sim.Player {
         List<List<Integer>> infra,
         int[][] transit,
         List<String> townLookup) {
-
+	
         this.budget = budget;
+
+	
+	Map<Integer, Integer> cityTraffic = new HashMap<Integer, Integer>();
+
+	for (int m=0; m<geo.size(); m++){
+	    cityTraffic.put(m, 0);
+	    for (int n=0; n<geo.size(); n++){
+		if( n == m ) {
+		    for(int p=0; p<geo.size(); p++){
+			cityTraffic.put(m, cityTraffic.get(m)+transit[n][p]);
+		    }
+		} else {
+		    cityTraffic.put(m, cityTraffic.get(m)+transit[n][m]);
+		}
+	    }
+	}
+
+	int id = 0;
+
+	for (int i=0; i<infra.size(); ++i){
+	    for (int j=0; j<infra.get(i).size(); ++j){
+		int irails = infra.get(i).size();
+		int jrails = infra.get(infra.get(i).get(j)).size();
+		
+		//		System.out.printf("i is %d, irails starting at %d\n", i, irails);
+		//		System.out.printf("j is %d, jrails starting at %d\n", j, jrails);
+		
+
+		for (int k=0; k<infra.size(); ++k){
+		    if (infra.get(k).contains(i) ){
+			irails +=1;
+			//	System.out.printf("found a %d in line %d, irails now %d\n", i, k, irails);
+		    }
+		    if (infra.get(k).contains(infra.get(i).get(j)) ){
+			jrails +=1;
+			//	System.out.printf("found a %d in line %d, jrails now %d\n", j, k, jrails);
+		    }
+		}
+		int value = 0;
+		if (irails != 0){
+		    value += cityTraffic.get(i)/irails;
+		}
+		if (jrails != 0){
+		    value += cityTraffic.get(j)/jrails;
+		}
+		railValues.put(id, value);
+		id++;
+	    }
+	}
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
