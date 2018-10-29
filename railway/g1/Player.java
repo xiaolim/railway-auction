@@ -1,5 +1,6 @@
 package railway.g1;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -15,11 +16,15 @@ public class Player implements railway.sim.Player {
     // Random seed of 42.
     private int seed = 42;
     private Random rand = new Random(seed);
+    private double START_BUDGET;
+    
     private double[][] min_price; //minimum price to buy  link i,j
     private double[][] revenue; //revenue of link i,j
     private int[][] min_path; //record whether link i-j is a minimum path from i to j
     private Map<String, Integer> map; // this map is used to query index of town from townLookup
+    
     private List<BidInfo> availableBids = new ArrayList<>();
+    private List<BidInfo> lastState;
     
     // The coordinates of stations, infrastructure and raw transit files are stored for future reference.
     List<Coordinates> geo;
@@ -28,29 +33,41 @@ public class Player implements railway.sim.Player {
     
     
     // Keep track of player owned links. It maps a link infra.get(i).get(j), denoted by an integer 
-    // pair [i, j], to the player who owns that link (null if it is not sold yet). 
-    Map<Pair, String> playerOwnedLinks;
+    // pair [i, j], to all player indexes who own that link (null if it is not sold yet). 
+    Map<Pair, List<Integer>> playerOwnedLinks;
     
     private List<String> players = new ArrayList<String>();
-    private List<Double> budget = new ArrayList<Double>();
+    private List<Double> budgets = new ArrayList<Double>();
     
-    public class Pair {
-    	int i1;
+    public class Pair implements Serializable{
+		private static final long serialVersionUID = 3520054221183875559L;
+		
+		int i1;
     	int i2;
     	Pair(int i1, int i2){
     		this.i1 = i1;
     		this.i2 = i2;
     	}
 
-        /*@Override
-        public boolean equals(Pair o) {
-            if (o.i1 == this.i1) {
-                if(o.i2 == this.i2) {
-                    return true;
-                }
-            }
-            return false;
-        }*/
+    	@Override
+        public boolean equals(Object o) {
+    		try {
+    			return (i1 == ((Pair)o).i1 && i2 == ((Pair)o).i2);
+    		}
+    		catch (Exception e) {
+    			return false;
+    		}
+        }
+        
+        @Override
+        public int hashCode() {
+        	return Integer.valueOf(i1 * geo.size() + i2).hashCode();
+        }
+        
+        @Override
+        public String toString() {
+        	return (i1 + " " + i2);
+        }
     }
 
     private double getDistance(int t1, int t2) {
@@ -114,7 +131,8 @@ public class Player implements railway.sim.Player {
     	this.geo = geo;
     	this.infra = infra;
     	this.transit = transit;
-        this.budget.add(budget);
+    	START_BUDGET = budget;
+    	this.budgets.add(START_BUDGET);
         this.players.add(name);
         //System.out.println("Player name: " + name);
         this.revenue = getRevenue();
@@ -123,16 +141,51 @@ public class Player implements railway.sim.Player {
         //System.out.println("tag3");
         for(int i=0;i<townLookup.size();i++)
             map.put(townLookup.get(i),i);
+        
+        // Initialize playerOwnedLinks
+        playerOwnedLinks = new HashMap<Pair, List<Integer>>();
+        for (int i = 0; i < infra.size(); i++) {
+        	for (Integer j : infra.get(i)) {
+        		playerOwnedLinks.putIfAbsent(new Pair(i, (int)j), new LinkedList<Integer>());
+        		List<Integer> entries = playerOwnedLinks.get(new Pair(i, (int)j));
+        		entries.add(-1);
+        	}
+        }
+        
+        /*for (Pair p : playerOwnedLinks.keySet()) {
+        	System.out.print(p.i1 + " " + p.i2 + ": ");
+        	for (String s : playerOwnedLinks.get(p))
+        		System.out.print((s==null));
+        	System.out.println();
+        }*/
+        
 
-
-        getHeatMap(playerOwnedLinks,"g1");
     }
     
     /**
      * Update ownerships and remaining budgets for all players.
      */
-    public void updateStatus(List<BidInfo> currentBids) {
-    	// TODO
+    public void updateStatus(List<BidInfo> currentState) {
+    	if (lastState != null){
+    		for (int i = 0; i < currentState.size(); i++) {
+    			if ((currentState.get(i).owner != null) && !currentState.get(i).owner.equals(lastState.get(i).owner)) {
+    				List<Integer> ownerList = playerOwnedLinks.get(new Pair(map.get(currentState.get(i).town1),
+    															map.get(currentState.get(i).town2)));
+    				System.out.println(new Pair(map.get(currentState.get(i).town1),
+    															map.get(currentState.get(i).town2)));
+    				int index = players.indexOf(currentState.get(i).owner);
+    				if (index == -1) {
+    					index = players.size();
+    					players.add(currentState.get(i).owner);
+    					budgets.add(START_BUDGET);
+    				}
+    				ownerList.remove(Integer.valueOf(-1));
+    				ownerList.add(index);
+    	            budgets.set(index, budgets.get(index) - currentState.get(i).amount);
+    			}
+    		}
+    	}
+		lastState = currentState;
     }
     
     /**
@@ -140,12 +193,12 @@ public class Player implements railway.sim.Player {
      * If an indirect route involves a link not owned by any player yet, the expectation assumes no 
      * switching penalty, but the revenue is divided by all possible routes proportional to distance 
      * of each route. Note that we will get fraction population number.
-     * @param playerOwnedLinks a current or hypothetical map keeping track of ownership of each link
+     * @param playerOwnedLinks2 a current or hypothetical map keeping track of ownership of each link
      * @param player the name of player
      * @return a map from each link denoted by an integer pair [i, j] to its corresponding traffic.
      * @see playerOwnedLinks
      */
-    public Map<Pair, Double> getHeatMap(Map<Pair, String> playerOwnedLinks, String player) {
+    public Map<Pair, Double> getHeatMap(Map<Pair, List<Integer>> playerOwnedLinks2, String player) {
     	Map<Pair, Double> heatmap = new HashMap<Pair, Double>();
         for(int i=0;i<infra.size();i++) {
             for(int j=0;j<infra.get(i).size();j++) {
@@ -263,9 +316,10 @@ public class Player implements railway.sim.Player {
     	// TODO Find a way such that we bid on a link that gives us 0 benefit externally (?)
     	// while giving other links that we owned higher traffics. I am not sure how to do this right now.
     	
-    	// Update status
+    	// Update status & heat map
     	updateStatus(allBids);
-    	
+        getHeatMap(playerOwnedLinks,"g1");
+        
     	// Random player code below
     	
     	// The random player bids only once in a round.
@@ -363,7 +417,7 @@ public class Player implements railway.sim.Player {
     public void updateBudget(Bid bid) {
     	// TODO
         if (bid != null) {
-            budget.set(0, budget.get(0) - bid.amount);
+            //budget.set(0, budget.get(0) - bid.amount);
         }
 
         availableBids = new ArrayList<>();
