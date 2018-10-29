@@ -259,12 +259,16 @@ public class Player implements railway.sim.Player {
         RouteValue routeToBid=null; 
         BidInfo linkToBid =null; 
         BidInfo secondLinkToBid = null;
+        LinkValue linkValueToBid =null; 
+        LinkValue secondLinkValueToBid = null;
         List<BidInfo> bids=null; 
+        List<LinkValue> linkinfos = null;
         for (int i=0; i< rankedRouteValue.size();i++){
             routeToBid = rankedRouteValue.get(i); 
             List<LinkValue> bidLinks=routeToBid.linkValues; 
             boolean ownedByOther =false; // start out as false
             bids = new ArrayList<BidInfo>(); 
+            linkinfos = new ArrayList<LinkValue>(); 
             for (int j=0; j<bidLinks.size();j++){ // go through all in bidLinks 
                 LinkValue currLink = bidLinks.get(j); 
                 //System.out.println(currLink.town1 +"-"+ currLink.town2 +" "+currLink.distance);
@@ -278,6 +282,7 @@ public class Player implements railway.sim.Player {
                 else{
                     if(alink.owner==null || !alink.owner.equals(this.name)){
                         bids.add(alink);
+                        linkinfos.add(currLink);
                     }
                 }
             }
@@ -288,22 +293,27 @@ public class Player implements railway.sim.Player {
         if (bids.size()==0){ // 
             linkToBid = availableBids.get(rand.nextInt(availableBids.size()));
         } 
-        else{ 
+        else if (bids.size()==1){ 
             linkToBid = bids.get(0); 
-            secondLinkToBid = bids.get(1);
-        }
-
-        if (bids.size()==1){ 
+            linkValueToBid = linkinfos.get(0);
             rankedRouteValue.remove(routeToBid);
         }
+        else{
+            linkToBid = bids.get(0); 
+            linkValueToBid = linkinfos.get(0);
+            secondLinkToBid = bids.get(1);
+            secondLinkValueToBid = linkinfos.get(1);
+        }
+
 
         // make linkToBid 
         //System.out.println(linkToBid.id);
         // Don't bid if the random bid turns out to be beyond our budget.
                 // get the first two bids
-        double amount = linkToBid.distance * transit[townLookup.get(linkToBid.town1)][townLookup.get(linkToBid.town2)];
+        System.out.println(linkValueToBid.town1);
+        double amount = linkValueToBid.distance * transit[linkValueToBid.town1][linkValueToBid.town2];
         if (secondLinkToBid != null) {
-            amount += secondLinkToBid.distance * transit[secondLinkToBid.town1][secondLinkToBid.town2];
+            amount += secondLinkValueToBid.distance * transit[secondLinkValueToBid.town1][secondLinkValueToBid.town2];
         }
 
         // taking into account the entire route 
