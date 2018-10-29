@@ -32,10 +32,10 @@ public class Player implements railway.sim.Player {
         List<List<Integer>> infra,
         int[][] transit,
         List<String> townLookup) {
-	
+
         this.budget = budget;
 
-	
+
 	Map<Integer, Integer> cityTraffic = new HashMap<Integer, Integer>();
 
 	for (int m=0; m<geo.size(); m++){
@@ -57,10 +57,10 @@ public class Player implements railway.sim.Player {
 	    for (int j=0; j<infra.get(i).size(); ++j){
 		int irails = infra.get(i).size();
 		int jrails = infra.get(infra.get(i).get(j)).size();
-		
+
 		//		System.out.printf("i is %d, irails starting at %d\n", i, irails);
 		//		System.out.printf("j is %d, jrails starting at %d\n", j, jrails);
-		
+
 
 		for (int k=0; k<infra.size(); ++k){
 		    if (infra.get(k).contains(i) ){
@@ -86,22 +86,85 @@ public class Player implements railway.sim.Player {
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
+
         // Check if everyone else has dropped out
+        // And mark the current winning/leading bid
+        // Also mark links that haven't been bid on
+        boolean uncontested = True;
+        Bid maxBid = null;
+        double unitPrice = 0.0;
+        List<Integer> availableLinks = new ArrayList<>();
+        for (BidInfo bi : allBids) {
+            if (bi.owner == null) {
+                availableLinks.add(bi.id);
+            }
+        }
+        List<Integer> noBidLinks = availableLinks;
 
-        // Sort through the bids to find the current winning bid
 
-        // Find a rail we would like to buy past that price / distance
+        Map<String, Integer> numBids = new HashMap<String, Integer>();
+        for(Bid pastBid : currentBids){
 
-        // Make winning bid
+          // Update links that haven't been bid on
+          if(noBidLinks.contains(pastBid.id1)){
+            noBidLinks.remove(pastBid.id1)
+          }
+          if(noBidLinks.contains(pastBid.id2)){
+            noBidLinks.remove(pastBid.id2)
+          }
+
+          // Determine current winning bid
+          String player = pastBid.bidder;
+          double distance = 1;
+          double curPrice = pastBid.amount / distance;
+
+          // Count bids to see if players dropped out
+          if(!numBids.containsKey(player)){
+            numBids.put(player, 1);
+          }
+          else{
+            int num = numBids.get(player);
+            numBids.replace(player, num, num+1);
+          }
+        }
+
+        int pastRounds = 0;
+        if (numBids.containsKey("g5")){
+          pastRounds = numBids.get("g5");
+        }
+        // A player could have made 1 less bid than us but still be in the running
+        for (String key : numBids.keySet()){
+          int playerBids = numBids.get(key);
+          if (playerBids > pastRounds - 2){
+            uncontested = False
+          }
+        }
 
 
-        // Sort though currentBids to make find rails that aren't bet on yet
 
-        // Choose one and make a minimum bid
+        if(uncontested){
+          // Find links we'd like to buy at that price, or pairs of links
 
+          // And buy the most valuable one
+        }
+
+        // If there are links without any bids
+        if(noBidLinks.size() != 0){
+          // Choose one and make a minimum bid
+          int linkId = noBidLinks.get(rand.nextInt(noBidLinks.size());
+          int minAmount = 10000; //Replace this
+
+          Bid bid = new Bid();
+          bid.id1 = linkId;
+          bid.amount = amount;
+          return bid;
+        }
 
         // If there are no rails we'd like to purchase at the highest price / distance
         // Drop out
+
+
+        // Increment bid on a valuable enough link
 
 
         // Random player doesn't care about bids made by other players.
