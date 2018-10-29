@@ -94,12 +94,15 @@ public class Player implements railway.sim.Player {
         Bid maxBid = null;
         double unitPrice = 0.0;
         List<Integer> availableLinks = new ArrayList<>();
+        Map<Integer, Double> minAmounts = new HashMap<Integer, Double>();
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
                 availableLinks.add(bi.id);
+                minAmounts.put(bi.id, bi.amount);
             }
         }
         List<Integer> noBidLinks = availableLinks;
+
 
 
         Map<String, Integer> numBids = new HashMap<String, Integer>();
@@ -152,11 +155,10 @@ public class Player implements railway.sim.Player {
         if(noBidLinks.size() != 0){
           // Choose one and make a minimum bid
           int linkId = noBidLinks.get(rand.nextInt(noBidLinks.size()));
-          int minAmount = 10000; //Replace this
 
           Bid bid = new Bid();
           bid.id1 = linkId;
-          bid.amount = minAmount;
+          bid.amount = minAmounts.get(linkId);
           return bid;
         }
 
