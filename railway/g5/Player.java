@@ -101,12 +101,10 @@ public class Player implements railway.sim.Player {
 			availableLinks.add(bi.id);
 			minAmounts.put(bi.id, bi.amount);
 		}
-		if (ownedCities.contains(bi.town2)) {
-			availableLinks.add(bi.id);
-			minAmounts.put(bi.id. bi.amount);
-		{
-                availableLinks.add(bi.id);
-                minAmounts.put(bi.id, bi.amount);
+		else {
+                	availableLinks.add(bi.id);
+                	minAmounts.put(bi.id, bi.amount);
+		}
             }
 	    if (bi.owner == "g5") {
 		ownedCities.add(bi.town1);
