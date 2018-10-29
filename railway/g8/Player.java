@@ -203,7 +203,7 @@ public class Player implements railway.sim.Player {
         bid.id1 = bidID;
         bid.amount = cashMoney;
 
-        System.out.println("Bid before checking other players: " + cashMoney + "  " + bid.amount);
+        //System.out.println("Bid before checking other players: " + cashMoney + "  " + bid.amount);
 
         // Check if another player has made a bid for this link.
         for (Bid b : currentBids) {
@@ -216,7 +216,7 @@ public class Player implements railway.sim.Player {
             }
         }
 
-        System.out.println("Bid amount: " + bid.amount + " Current budget " + budget);
+        //System.out.println("Bid amount: " + bid.amount + " Current budget " + budget);
         if (bid.amount > budget) {
             return null;
         }
