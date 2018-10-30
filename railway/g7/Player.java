@@ -22,6 +22,7 @@ public class Player implements railway.sim.Player {
     private WeightedGraph graph;
     private List<RouteValue> rankedRouteValue;
     private List<BidInfo> allBids;
+    private List<List<Integer>> bridges; 
 
     private List<BidInfo> availableBids = new ArrayList<>();
 
@@ -50,7 +51,7 @@ public class Player implements railway.sim.Player {
         //         System.out.print(links.get(i).get(j) + " ");
         //     }
         // }
-        List<List<Integer>> bridges = findBridges();
+        bridges = findBridges();
         //System.out.println("The bridges are:");
         for (int i = 0; i < bridges.size(); i++) {
             for (int j = 0; j < bridges.get(i).size(); j++) {
@@ -196,7 +197,7 @@ public class Player implements railway.sim.Player {
             }
         }
 
-        return bridges;
+        return bridges; 
     }
 
     // return null if owned by other; return bidInfo if not
@@ -263,6 +264,8 @@ public class Player implements railway.sim.Player {
         LinkValue secondLinkValueToBid = null;
         List<BidInfo> bids=null; 
         List<LinkValue> linkinfos = null;
+        double bidAmount = 0;
+
         for (int i=0; i< rankedRouteValue.size();i++){
             routeToBid = rankedRouteValue.get(i); 
             List<LinkValue> bidLinks=routeToBid.linkValues; 
@@ -290,9 +293,31 @@ public class Player implements railway.sim.Player {
                 }
             }
 
-        }
-        if (bids.size()==0){ // 
-            linkToBid = availableBids.get(rand.nextInt(availableBids.size()));
+        }        
+        if (bids.size()==0){ 
+            // consider bridges
+            if (bridges.size()== 0) {
+                linkToBid = availableBids.get(rand.nextInt(availableBids.size()));
+            } else {
+                for (int i = 0; i < bridges.size(); i++) {
+                    List<Integer> bridgeLink = bridges.get(i); 
+                    LinkValue currLink = new LinkValue(bridgeLink.get(0), bridgeLink.get(1));
+                    BidInfo blink = checkOwnershipByTownID(currLink.town1, currLink.town2);
+                    if (blink == null) { // if owned by another group
+                        bridges.remove(i);
+                        i--;
+                        break;
+                    }
+                    else{
+                        if(blink.owner==null || !blink.owner.equals(this.name)){
+                            linkToBid = blink;
+                            linkValueToBid = currLink;
+                            break;
+                        }
+                    }
+                }
+            }
+            bidAmount = linkValueToBid.distance * transit[linkValueToBid.town1][linkValueToBid.town2];
         } 
         else if (bids.size()==1){ 
             linkToBid = bids.get(0); 
@@ -304,26 +329,25 @@ public class Player implements railway.sim.Player {
             linkValueToBid = linkinfos.get(0);
             secondLinkToBid = bids.get(1);
             secondLinkValueToBid = linkinfos.get(1);
+
+            // make linkToBid 
+            //System.out.println(linkToBid.id);
+            // Don't bid if the random bid turns out to be beyond our budget.
+                    // get the first two bids
+            //System.out.println(linkValueToBid.town1);
+            bidAmount = linkValueToBid.distance * transit[linkValueToBid.town1][linkValueToBid.town2];
+            bidAmount += linkToBid.amount; 
+            if (secondLinkToBid != null) {
+                bidAmount += secondLinkValueToBid.distance * transit[secondLinkValueToBid.town1][secondLinkValueToBid.town2];
+                bidAmount += secondLinkToBid.amount; 
+            }
+
+            // taking into account the entire route 
+            bidAmount += routeToBid.volPerKm * routeToBid.distance; // the entire distance? 
         }
 
-
-        // make linkToBid 
-        //System.out.println(linkToBid.id);
         // Don't bid if the random bid turns out to be beyond our budget.
-                // get the first two bids
-        //System.out.println(linkValueToBid.town1);
-        double amount = linkValueToBid.distance * transit[linkValueToBid.town1][linkValueToBid.town2];
-        amount += linkToBid.amount;
-        if (secondLinkToBid != null) {
-            amount += secondLinkValueToBid.distance * transit[secondLinkValueToBid.town1][secondLinkValueToBid.town2];
-            amount += secondLinkToBid.amount;
-        }
-
-        // taking into account the entire route 
-        amount += routeToBid.volPerKm * routeToBid.distance; // the entire distance? 
-
-        // Don't bid if the random bid turns out to be beyond our budget.
-        if (budget - amount < 0.) {
+        if (budget - bidAmount < 0.) {
             return null;
         }
 
@@ -334,7 +358,7 @@ public class Player implements railway.sim.Player {
                     return null;
                 }
                 else {
-                    amount = b.amount + 10;
+                    bidAmount = b.amount + 10;
                 }
 
                 break;
@@ -342,7 +366,7 @@ public class Player implements railway.sim.Player {
         }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
 
         Bid bid = new Bid();
-        bid.amount = amount;
+        bid.amount = bidAmount;
         bid.id1 = linkToBid.id;
 
         for (Bid bi: currentBids){
