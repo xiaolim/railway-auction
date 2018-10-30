@@ -242,7 +242,7 @@ public class Player implements railway.sim.Player {
         }
     }
 
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, ) {
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
