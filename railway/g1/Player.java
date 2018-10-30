@@ -19,12 +19,15 @@ public class Player implements railway.sim.Player {
     private Random rand = new Random(seed);
     private double START_BUDGET;
     
+    public String name;
+    
     private double[][] min_price; //minimum price to buy  link i,j
     private double[][] revenue; //revenue of link i,j
     private int[][] min_path; //record whether link i-j is a minimum path from i to j
     private Map<String, Integer> map; // this map is used to query index of town from townLookup
 
     private List<BidInfo> availableBids = new ArrayList<>();
+    private boolean newTournament = true;
     
     // The coordinates of stations, infrastructure and raw transit files are stored for future reference.
     List<Coordinates> geo;
@@ -33,15 +36,16 @@ public class Player implements railway.sim.Player {
 
     Map<Pair, Double> heatmap;
     
+    List<BidInfo> ourlinks = new ArrayList<BidInfo>();
     
     // Keep track of player owned links. It maps a link infra.get(i).get(j), denoted by an integer 
     // pair [i, j], to all player indexes who own that link (null if it is not sold yet). 
     // allLinks provide the same BidInfos but indexed by the bid index.
     Map<Pair, List<BidInfo>> playerOwnedLinks;
+    //Map<String, List<BidInfo>> playerLinks;
     List<BidInfo> allLinks;
     
-    private List<String> players = new ArrayList<String>();
-    private List<Double> budgets = new ArrayList<Double>();
+    private Map<String, Double> budgets = new HashMap<String, Double>();
 	private Object Pair;
     //use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
     //This can be done in O(n).If you want the paths to contain to links(etc. (a,b), (c,d)), you can just
@@ -151,9 +155,9 @@ public class Player implements railway.sim.Player {
     	this.geo = geo;
     	this.infra = infra;
     	this.transit = transit;
+    	this.name = name;
     	START_BUDGET = budget;
-    	this.budgets.add(START_BUDGET);
-        this.players.add(name);
+        this.budgets.put(name, START_BUDGET);
         //System.out.println("Player name: " + name);
         this.revenue = getRevenue();
         //System.out.println("tag2");
@@ -188,7 +192,19 @@ public class Player implements railway.sim.Player {
     /**
      * Update ownerships and remaining budgets for all players.
      */
-    public void updateStatus(List<BidInfo> currentState) {
+    public void updateStatus(Bid lastRoundMaxBid) {
+    	if (lastRoundMaxBid != null) {
+    		BidInfo b1 = allLinks.get(lastRoundMaxBid.id1);
+    		double budget = budgets.getOrDefault(b1.owner, START_BUDGET);
+    		budgets.put(b1.owner, budget - b1.amount);
+    		b1.owner = lastRoundMaxBid.bidder;
+    		b1.amount = lastRoundMaxBid.amount;
+    		if (lastRoundMaxBid.id2 != -1) {
+    			BidInfo b2 = allLinks.get(lastRoundMaxBid.id2);
+        		b2.owner = lastRoundMaxBid.bidder;
+        		b2.amount = lastRoundMaxBid.amount;
+    		}
+    	}
     	/*
     	for (int i = 0; i < currentState.size(); i++) {
     		if ((currentState.get(i).owner != null) && !currentState.get(i).owner.equals(lastState.get(i).owner)) {
@@ -296,9 +312,9 @@ public class Player implements railway.sim.Player {
             }
         }
 
-        for (Pair p:heatmap.keySet()) {
+        /*for (Pair p:heatmap.keySet()) {
             System.out.println("t1: "+p.i1+", t2: "+p.i2+", traffic: "+heatmap.get(p));
-        }
+        }*/
 
     	return heatmap;
     }
@@ -327,7 +343,10 @@ public class Player implements railway.sim.Player {
     	// while giving other links that we owned higher traffics. I am not sure how to do this right now.
     	
     	// Update status & heat map
-    	updateStatus(allBids);
+    	if (newTournament) {
+    		updateStatus(lastRoundMaxBid);
+    		newTournament = false;
+    	}
         //getHeatMap(playerOwnedLinks,"g1");
         
     	// Random player code below
@@ -343,12 +362,6 @@ public class Player implements railway.sim.Player {
         int maxid = id;
         if (availableBids.size() != 0) {
             return null;
-        }
-        List<BidInfo> ourlinks = new ArrayList<>();
-        for(BidInfo bi : allBids){
-            if (bi.owner == "g1"){
-                ourlinks.add(bi);
-            }
         }
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
@@ -397,7 +410,8 @@ public class Player implements railway.sim.Player {
 
 
         }
-        System.out.println(maxamount+" "+maxid);
+
+        //System.out.println(maxamount+" "+maxid);
         if (availableBids.size() == 0) {
             return null;
         }
@@ -407,9 +421,9 @@ public class Player implements railway.sim.Player {
 //        BidInfo randomBid = availableBids.get(rand.nextInt(availableBids.size()));
 
         // Don't bid if the random bid turns out to be beyond our budget.
-//        if (budget - amount < 0.) {
-//            return null;
-//        }
+        if (budgets.get(name) - maxamount < 0) {
+            return null;
+        }
 
         // Check if another player has made a bid for this link.
 //
@@ -427,9 +441,13 @@ public class Player implements railway.sim.Player {
     public void updateBudget(Bid bid) {
     	// TODO
         if (bid != null) {
+        	
+        	ourlinks.add(allLinks.get(bid.id1));
+        	if (bid.id2 != -1)
+        		ourlinks.add(allLinks.get(bid.id2));
             //budget.set(0, budget.get(0) - bid.amount);
         }
-
+        newTournament = true;
         availableBids = new ArrayList<>();
     }
 }
