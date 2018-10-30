@@ -62,7 +62,8 @@ public class Player implements railway.sim.Player {
             List<Coordinates> geo,
             List<List<Integer>> infra, //
             int[][] transit, //
-            List<String> townLookup) {
+            List<String> townLookup,
+            List<BidInfo> allBids) {
 
         this.budget = budget;
         this.transit = transit;
@@ -216,7 +217,7 @@ public class Player implements railway.sim.Player {
         }
     }
 
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids,  Bid lastRoundMaxBid) {
 
         if (availableBids.size() != 0) {
             return null;
