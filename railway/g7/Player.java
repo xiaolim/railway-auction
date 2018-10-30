@@ -15,14 +15,19 @@ public class Player implements railway.sim.Player {
 
     private double budget;
     private String name;
+    private List<BidInfo> allBids;
+
     private List<Coordinates> geo;
     private List<List<Integer>> infra;
     private int[][] transit;
     private List<String> townLookup;
+
     private WeightedGraph graph;
     private List<RouteValue> rankedRouteValue;
-    private List<BidInfo> allBids;
     private List<List<Integer>> bridges; 
+    private List<LinkValue> bridgeLinks;
+    private List<List<LinkValue>> routeLinks;
+
     private List<BidInfo> availableBids = new ArrayList<>();
 
     public Player() {
@@ -43,6 +48,7 @@ public class Player implements railway.sim.Player {
         this.infra = infra;
         this.transit = transit;
         this.townLookup = townLookup;
+        this.allBids = allBids;
         initializeGraph();
         // List<List<Integer>> links = getMostVolumePerKm();
         // for (int i = 0; i < links.size(); i++) {
@@ -51,7 +57,7 @@ public class Player implements railway.sim.Player {
         //         System.out.print(links.get(i).get(j) + " ");
         //     }
         // }
-        bridges = findBridges();
+        bridges = findBridge();
         //System.out.println("The bridges are:");
         for (int i = 0; i < bridges.size(); i++) {
             for (int j = 0; j < bridges.get(i).size(); j++) {
@@ -59,11 +65,13 @@ public class Player implements railway.sim.Player {
             }
             //System.out.println();
         }
+        initializeBridgeLinks();
         rankedRouteValue = new ArrayList<RouteValue>();
         gatherAllVolumePerKm();
         for (int i = 0; i < rankedRouteValue.size(); i++) {
             //System.out.println("route number: " + i + ", volume: " + rankedRouteValue.get(i).getVolumePerKm() + ", distance: " + rankedRouteValue.get(i).getDistance());
         }
+        initializeRouteLinks();
     }
 
     private void initializeGraph() {
@@ -81,6 +89,29 @@ public class Player implements railway.sim.Player {
                 graph.addEdge(source, target, distance);
             }
         }
+    }
+    public void initializeBridgeLinks(){
+    	for (int i=0; i < bridges.size();i++){
+    		List blink = bridges.get(i);
+    		int town1 = blink.get(0);
+    		int town2 = blink.get(1);
+    		BidInfo bInfo = getBidInfo(town1,town2);
+    		bridgeLinks.add(new LinkValue(town1,town2,bInfo));
+    	}
+    	Collections.sort(bridgeLinks, Collections.reverseOrder());
+    }
+
+    public void initializeRouteLinks(){
+    	for (int i=0; i < rankedRouteValue.size();i++){
+    		List<List<Integer>> listOfRoutes = rankedRouteValue.get(i).routes;
+    		for (int j=0; j < listOfRoutes.size();j++){
+    			List<Integer> routeInt = listOfRoutes.get(i);
+    			List<LinkValue> shortestRoute = new ArrayList<LinkValue>();
+    			for (int k=0; k < shortestRoute.size();k++){
+    				
+    			}
+    		}
+    	}
     }
 
     private double calcEuclideanDistance(Coordinates a, Coordinates b) {
@@ -217,15 +248,15 @@ public class Player implements railway.sim.Player {
         return null;
     }
 
-    public int getBidID(int id1, int id2){
+    public BidInfo getBidInfo(int id1, int id2){
         String name1 = townLookup.get(id1);
         String name2 = townLookup.get(id2);
         for (BidInfo bi : allBids){
             if ((bi.town1.equals(name1) && bi.town2.equals(name2))||(bi.town1.equals(name2) && bi.town2.equals(name1))){
-                return bi.id;
+                return bi;
             }
         }
-        return -1;
+        return null;
     }
 
     public LinkValue getLongestPair(RouteValue route){
@@ -266,34 +297,34 @@ public class Player implements railway.sim.Player {
         List<LinkValue> linkinfos = null;
         double bidAmount = 0;
 
-        for (int i=0; i< rankedRouteValue.size();i++){
-            routeToBid = rankedRouteValue.get(i); 
-            List<LinkValue> bidLinks=routeToBid.linkValues; 
-            boolean ownedByOther =false; // start out as false
-            bids = new ArrayList<BidInfo>(); 
-            linkinfos = new ArrayList<LinkValue>(); 
-            for (int j=0; j<bidLinks.size();j++){ // go through all in bidLinks 
-                LinkValue currLink = bidLinks.get(j); 
-                //System.out.println(currLink.town1 +"-"+ currLink.town2 +" "+currLink.distance);
-                BidInfo alink = checkOwnershipByTownID(currLink.town1, currLink.town2);
-                if (alink == null){
-                    ownedByOther=true;
-                    rankedRouteValue.remove(i); // remove from consideration
-                    i--;
-                    break;
-                }
-                else{
-                    if(alink.owner==null || !alink.owner.equals(this.name)){
-                        bids.add(alink);
-                        linkinfos.add(currLink);
-                    }
-                }
-                if (!ownedByOther){
-                    break; // no need to go on with this for loop! Route identified! 
-                }
-            }
+        // for (int i=0; i< rankedRouteValue.size();i++){
+        //     routeToBid = rankedRouteValue.get(i); 
+        //     List<LinkValue> bidLinks=routeToBid.linkValues; 
+        //     boolean ownedByOther =false; // start out as false
+        //     bids = new ArrayList<BidInfo>(); 
+        //     linkinfos = new ArrayList<LinkValue>(); 
+        //     for (int j=0; j<bidLinks.size();j++){ // go through all in bidLinks 
+        //         LinkValue currLink = bidLinks.get(j); 
+        //         //System.out.println(currLink.town1 +"-"+ currLink.town2 +" "+currLink.distance);
+        //         BidInfo alink = checkOwnershipByTownID(currLink.town1, currLink.town2);
+        //         if (alink == null){
+        //             ownedByOther=true;
+        //             rankedRouteValue.remove(i); // remove from consideration
+        //             i--;
+        //             break;
+        //         }
+        //         else{
+        //             if(alink.owner==null || !alink.owner.equals(this.name)){
+        //                 bids.add(alink);
+        //                 linkinfos.add(currLink);
+        //             }
+        //         }
+        //         if (!ownedByOther){
+        //             break; // no need to go on with this for loop! Route identified! 
+        //         }
+        //     }
 
-        }        
+        // }        
         if (bids.size()==0){ 
             // consider bridges
             if (bridges.size()== 0) {
