@@ -24,7 +24,6 @@ public class Player implements railway.sim.Player {
     private Map<String, Integer> map; // this map is used to query index of town from townLookup
     
     private List<BidInfo> availableBids = new ArrayList<>();
-    private List<BidInfo> lastState;
     
     // The coordinates of stations, infrastructure and raw transit files are stored for future reference.
     List<Coordinates> geo;
@@ -34,10 +33,13 @@ public class Player implements railway.sim.Player {
     
     // Keep track of player owned links. It maps a link infra.get(i).get(j), denoted by an integer 
     // pair [i, j], to all player indexes who own that link (null if it is not sold yet). 
-    Map<Pair, List<Integer>> playerOwnedLinks;
+    // allLinks provide the same BidInfos but indexed by the bid index.
+    Map<Pair, List<BidInfo>> playerOwnedLinks;
+    List<BidInfo> allLinks;
     
     private List<String> players = new ArrayList<String>();
     private List<Double> budgets = new ArrayList<Double>();
+	private Object Pair;
     
     public class Pair implements Serializable{
 		private static final long serialVersionUID = 3520054221183875559L;
@@ -126,8 +128,8 @@ public class Player implements railway.sim.Player {
         rand = new Random();
     }
 
-    public void init(String name, double budget, List<Coordinates> geo, 
-    				List<List<Integer>> infra, int[][] transit, List<String> townLookup) {
+    public void init(String name, double budget, List<Coordinates> geo, List<List<Integer>> infra, 
+    					int[][] transit, List<String> townLookup, List<BidInfo> allBids) {
     	this.geo = geo;
     	this.infra = infra;
     	this.transit = transit;
@@ -139,17 +141,19 @@ public class Player implements railway.sim.Player {
         //System.out.println("tag2");
         map = new HashMap<String, Integer>();
         //System.out.println("tag3");
-        for(int i=0;i<townLookup.size();i++)
+        for (int i = 0; i < townLookup.size(); i++) {
             map.put(townLookup.get(i),i);
-        
+        }
         // Initialize playerOwnedLinks
-        playerOwnedLinks = new HashMap<Pair, List<Integer>>();
-        for (int i = 0; i < infra.size(); i++) {
-        	for (Integer j : infra.get(i)) {
-        		playerOwnedLinks.putIfAbsent(new Pair(i, (int)j), new LinkedList<Integer>());
-        		List<Integer> entries = playerOwnedLinks.get(new Pair(i, (int)j));
-        		entries.add(-1);
-        	}
+        allLinks = allBids;
+        playerOwnedLinks = new HashMap<Pair, List<BidInfo>>();
+        
+        Pair link;
+        for (int i = 0; i < allLinks.size(); i++) {
+			link = new Pair(townLookup.indexOf(allLinks.get(i).town1), townLookup.indexOf(allLinks.get(i).town2));
+        	playerOwnedLinks.putIfAbsent(link, new LinkedList<BidInfo>());
+        	List<BidInfo> entries = playerOwnedLinks.get(link);
+        	entries.add(allLinks.get(i));
         }
         
         /*for (Pair p : playerOwnedLinks.keySet()) {
@@ -166,26 +170,26 @@ public class Player implements railway.sim.Player {
      * Update ownerships and remaining budgets for all players.
      */
     public void updateStatus(List<BidInfo> currentState) {
-    	if (lastState != null){
-    		for (int i = 0; i < currentState.size(); i++) {
-    			if ((currentState.get(i).owner != null) && !currentState.get(i).owner.equals(lastState.get(i).owner)) {
-    				List<Integer> ownerList = playerOwnedLinks.get(new Pair(map.get(currentState.get(i).town1),
-    															map.get(currentState.get(i).town2)));
-    				System.out.println(new Pair(map.get(currentState.get(i).town1),
-    															map.get(currentState.get(i).town2)));
-    				int index = players.indexOf(currentState.get(i).owner);
-    				if (index == -1) {
-    					index = players.size();
-    					players.add(currentState.get(i).owner);
-    					budgets.add(START_BUDGET);
-    				}
-    				ownerList.remove(Integer.valueOf(-1));
-    				ownerList.add(index);
-    	            budgets.set(index, budgets.get(index) - currentState.get(i).amount);
+    	/*
+    	for (int i = 0; i < currentState.size(); i++) {
+    		if ((currentState.get(i).owner != null) && !currentState.get(i).owner.equals(lastState.get(i).owner)) {
+    			List<Integer> ownerList = playerOwnedLinks.get(new Pair(map.get(currentState.get(i).town1),
+    														map.get(currentState.get(i).town2)));
+    			System.out.println(new Pair(map.get(currentState.get(i).town1),
+    														map.get(currentState.get(i).town2)));
+    			int index = players.indexOf(currentState.get(i).owner);
+    			if (index == -1) {
+    				index = players.size();
+    				players.add(currentState.get(i).owner);
+    				budgets.add(START_BUDGET);
+    			}
+    			ownerList.remove(Integer.valueOf(-1));
+    			ownerList.add(index);
+    	        budgets.set(index, budgets.get(index) - currentState.get(i).amount);
     			}
     		}
-    	}
 		lastState = currentState;
+		*/
     }
     
     /**
@@ -198,7 +202,7 @@ public class Player implements railway.sim.Player {
      * @return a map from each link denoted by an integer pair [i, j] to its corresponding traffic.
      * @see playerOwnedLinks
      */
-    public Map<Pair, Double> getHeatMap(Map<Pair, List<Integer>> playerOwnedLinks2, String player) {
+    public Map<Pair, Double> getHeatMap(Map<Pair, List<BidInfo>> playerOwnedLinks2, String player) {
     	Map<Pair, Double> heatmap = new HashMap<Pair, Double>();
         for(int i=0;i<infra.size();i++) {
             for(int j=0;j<infra.get(i).size();j++) {
@@ -312,7 +316,7 @@ public class Player implements railway.sim.Player {
         }
         return null;
     }
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
     	// TODO Find a way such that we bid on a link that gives us 0 benefit externally (?)
     	// while giving other links that we owned higher traffics. I am not sure how to do this right now.
     	
