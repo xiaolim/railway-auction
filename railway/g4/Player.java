@@ -20,9 +20,9 @@ public class Player implements railway.sim.Player {
 
     private List<BidInfo> availableBids = new ArrayList<>();
     
-    // use maps to store each player's budget and arrays for links
+    // use maps to store each player's budget and links
     private HashMap<String, Double> allPlayerBudget = new HashMap<>();
-    private HashMap<String, LinkedList<String>> allPlayerLinks = new HashMap<>();
+    private HashMap<String, String> allPlayerLinks = new HashMap<>();
 
     private List<Coordinates> geo;
     private List<String> townLookup;
@@ -48,7 +48,8 @@ public class Player implements railway.sim.Player {
         List<Coordinates> geo,
         List<List<Integer>> infra,
         int[][] transit,
-        List<String> townLookup) 
+        List<String> townLookup,
+        List<BidInfo> allBids) 
     {
         this.name = name;
         this.townLookup = townLookup;
@@ -60,11 +61,11 @@ public class Player implements railway.sim.Player {
         System.out.println(budget);
 
         // this does not account for playing against random player
-        for (int i=1; i<=8; i++)
-        {
-            String group = "g" + Integer.toString(i);
-            allPlayerBudget.put(group, budget);
-        }
+        // for (int i=1; i<=8; i++)
+        // {
+        //     String group = "g" + Integer.toString(i);
+        //     allPlayerBudget.put(group, budget);
+        // }
         
     	/*
     	 * A,B
@@ -215,7 +216,7 @@ public class Player implements railway.sim.Player {
     
 
 
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> availableBids) {
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> availableBids, Bid lastRoundMaxBid) {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
@@ -233,46 +234,27 @@ public class Player implements railway.sim.Player {
         
         
         // *************************************************************************
-        // Use availableBids to keep track of each player's budget and links bought
-        // WARNING: does not work when against random
+        // Updates allPlayerLinks hashmap with link ownership information
         // *************************************************************************
-        for (BidInfo b : availableBids) {
-            if (b.owner != null) {
-                String link = b.town1 + "-" + b.town2;
-                // System.out.println("group: " + b.owner);
-                // System.out.println("bid amount: " + b.amount);
+        if (lastRoundMaxBid != null) {
+            if (allPlayerLinks.get(lastRoundMaxBid.id1) == null) {
+                allPlayerLinks.put(Integer.toString(lastRoundMaxBid.id1), lastRoundMaxBid.bidder);
+            } 
 
-                // check if link is in allPlayerLinks. If not, put it in and update budget
-                if (allPlayerLinks.get(b.owner) == null) {
-                    Double oldBudget = allPlayerBudget.get(b.owner);
-                    Double newBudget = oldBudget - b.amount;
-                    allPlayerBudget.put(b.owner, newBudget);
-                    // put link in links
-                    LinkedList<String> links = new LinkedList<>();
-                    links.add(link);
-                    allPlayerLinks.put(b.owner, links);
-                }
-                else {
-                    LinkedList<String> playerLinks = allPlayerLinks.get(b.owner);
-                    if (!playerLinks.contains(link)) {
-                        playerLinks.add(link);
-                        //update budget
-                        Double oldBudget = allPlayerBudget.get(b.owner);
-                        Double newBudget = oldBudget - b.amount;
-                        allPlayerBudget.put(b.owner, newBudget);
-                    }
-                }
+            if (lastRoundMaxBid.id2 != -1) {
+                if (allPlayerLinks.get(lastRoundMaxBid.id2) == null) {
+                    allPlayerLinks.put(Integer.toString(lastRoundMaxBid.id2), lastRoundMaxBid.bidder);
+                } 
             }
         }
 
         // System.out.println("taken links: ");
-        // for (Map.Entry<String, LinkedList<String>> entry : allPlayerLinks.entrySet() ) {
+        // for (Map.Entry<String, String> entry : allPlayerLinks.entrySet()) {
         //     String key = entry.getKey();
-        //     LinkedList<String> value = entry.getValue();
+        //     String value = entry.getValue();
         //     System.out.print(key + ": " + value);
         //     System.out.println();
-            
-        // }  
+        // }
 
         // System.out.println("group budget: ");
         // for (Map.Entry<String, Double> entry : allPlayerBudget.entrySet() ) {
