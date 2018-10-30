@@ -29,6 +29,8 @@ public class Player implements railway.sim.Player {
     List<Coordinates> geo;
     List<List<Integer>> infra;
     int[][] transit;
+
+    Map<Pair, Double> heatmap;
     
     
     // Keep track of player owned links. It maps a link infra.get(i).get(j), denoted by an integer 
@@ -162,9 +164,10 @@ public class Player implements railway.sim.Player {
         		System.out.print((s==null));
         	System.out.println();
         }*/
-        
+        heatmap = createHeatMap();
 
     }
+
     
     /**
      * Update ownerships and remaining budgets for all players.
@@ -202,7 +205,9 @@ public class Player implements railway.sim.Player {
      * @return a map from each link denoted by an integer pair [i, j] to its corresponding traffic.
      * @see playerOwnedLinks
      */
-    public Map<Pair, Double> getHeatMap(Map<Pair, List<BidInfo>> playerOwnedLinks2, String player) {
+
+
+    public Map<Pair, Double> createHeatMap() {
     	Map<Pair, Double> heatmap = new HashMap<Pair, Double>();
         for(int i=0;i<infra.size();i++) {
             for(int j=0;j<infra.get(i).size();j++) {
@@ -260,7 +265,6 @@ public class Player implements railway.sim.Player {
                         }
                     }
                 }
-
             }
         }
 
@@ -270,6 +274,17 @@ public class Player implements railway.sim.Player {
 
     	return heatmap;
     }
+
+    public Map<Pair, Double> predictHeatMap(List<BidInfo> hypotheticalState, String player) {
+        // heatmap is current heatmap
+        Map<Pair, Double> newmap = new HashMap<Pair, Double>();
+
+
+        return newmap;
+    }
+
+
+
     //This is to Query the info of according bid
     private BidInfo QBidInfo(Bid bid, List<BidInfo> allBids){
         for(BidInfo bi : allBids){
@@ -285,7 +300,7 @@ public class Player implements railway.sim.Player {
     	
     	// Update status & heat map
     	updateStatus(allBids);
-        getHeatMap(playerOwnedLinks,"g1");
+        //getHeatMap(playerOwnedLinks,"g1");
         
     	// Random player code below
     	
