@@ -41,15 +41,6 @@ public class Player implements railway.sim.Player {
         List<String> townLookup,
         List<BidInfo> allBids) {
 
-    	// try {
-    	// 	System.err.println("Starting");
-    	// 	Thread.sleep(998);
-    		
-    	// 	System.err.println("Ending");
-    	// } catch(InterruptedException ex) {
-    	// 	System.err.println(ex);
-    	// }
-
     	System.err.println("Starting");
 
         this.budget = budget;
@@ -68,101 +59,75 @@ public class Player implements railway.sim.Player {
 	        }
 	    }
 
-	    ownership = new boolean[transit.length][transit[0].length];
-
-	    // for(int[] row : transit) {
-	    // 	for(int i : row) {
-	    // 		System.err.print(i + " ");
-	    // 	}
-	    // 	System.err.print('\n');
-	    // }
-
-	    // for(boolean[] row : ownership) {
-	    // 	for(boolean b : row) {
-	    // 		System.err.print(b + " ");
-	    // 	}
-	    // 	System.err.print('\n');
-	    // }
+	    //ownership = new boolean[transit.length][transit[0].length];
 
         System.err.println("Ending");
 
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
-    	try {
-    		//System.err.println("Starting");
-    		Thread.sleep(998);
-    		//System.err.println("Ending");
-    	} catch(InterruptedException ex) {
-    		System.err.println(ex);
-    	}
-
-    	return null;
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
-        // if (availableBids.size() != 0) {
-        //     return null;
-        // }
+        if (availableBids.size() != 0) {
+            return null;
+        }
 
-        // for (BidInfo bi : allBids) {
-        //     if (bi.owner == null) {
-        //         availableBids.add(bi);
-        //     }
-        // }
+        for (BidInfo bi : allBids) {
+            if (bi.owner == null) {
+                availableBids.add(bi);
+            }
+        }
 
-        // if (availableBids.size() == 0) {
-        //     return null;
-        // }
+        if (availableBids.size() == 0) {
+            return null;
+        }
 
-        // int max_connections = -1;
-        // BidInfo max_bid = null;
-        // for (BidInfo cur_bid : availableBids) {
-        //     String t1 = cur_bid.town1;
-        //     String t2 = cur_bid.town2;
-        //     int t1_i = townLookup.indexOf(t1);
-        //     int t2_i = townLookup.indexOf(t2);
-        //     //System.out.println("towns " + t1 + ", " + t2);
+        int max_connections = -1;
+        BidInfo max_bid = null;
+        for (BidInfo cur_bid : availableBids) {
+            String t1 = cur_bid.town1;
+            String t2 = cur_bid.town2;
+            int t1_i = townLookup.indexOf(t1);
+            int t2_i = townLookup.indexOf(t2);
 
-        //     int num_connections = connections[t1_i] + connections[t2_i];
-        //     //System.out.println("num_connections = " + num_connections);
-        //     if (num_connections > max_connections) {
-        //         max_connections = num_connections;
-        //         max_bid = cur_bid;
-        //     }
+            int num_connections = connections[t1_i] + connections[t2_i];
+            if (num_connections > max_connections) {
+                max_connections = num_connections;
+                max_bid = cur_bid;
+            }
 
-        // }
-        // //BidInfo randomBid = availableBids.get(rand.nextInt(availableBids.size()));
+        }
         
-        // double amount = max_bid.amount;
+        double amount = max_bid.amount;
 
-        // //System.out.println("OWNER: " + max_bid.owner);
-        // // Don't bid if the random bid turns out to be beyond our budget.
-        // if (budget - amount < 0.) { 
-        //     return null;
-        // }
+        //System.out.println("OWNER: " + max_bid.owner);
+        // Don't bid if the random bid turns out to be beyond our budget.
+        if (budget - amount < 0.) { 
+            return null;
+        }
 
-        // // Check if another player has made a bid for this link.
-        // for (Bid b : currentBids) {
-        //     if (b.id1 == max_bid.id || b.id2 == max_bid.id) {
-        //         if (budget - b.amount - 10000 < 0.) {
-        //             return null;
-        //         }
-        //         else {
-        //             amount = b.amount + 10000;
-        //         }
+        // Check if another player has made a bid for this link.
+        for (Bid b : currentBids) {
+            if (b.id1 == max_bid.id || b.id2 == max_bid.id) {
+                if (budget - b.amount - 10000 < 0.) {
+                    return null;
+                }
+                else {
+                    amount = b.amount + 10000;
+                }
 
-        //         break;
-        //     }
-        // }
+                break;
+            }
+        }
 
-        // Bid bid = new Bid();
-        // bid.amount = amount;
-        // bid.id1 = max_bid.id;
+        Bid bid = new Bid();
+        bid.amount = amount;
+        bid.id1 = max_bid.id;
 
-        // //the_bid = max_bid;
+        //the_bid = max_bid;
 
-        // return bid;
+        return bid;
     }
 
     // Thanks Sidhi!
@@ -211,32 +176,6 @@ public class Player implements railway.sim.Player {
                 Math.pow(geo.get(t1).y - geo.get(t2).y, 2),
             0.5);
     }
-
-    // outline for a search algorithm -- TODO
-    // private Score search(int depth, GameState state, Action action) {
-    // 	if (depth > 3) {
-    // 		return state.evaluate();
-    // 	} else {
-    // 		state.apply(action);
-
-    // 		actions = state.getPossibleActions();
-    // 		List<Score> stats = new ArrayList<Score>(actions.length);
-    // 		for (Action a : actions) {
-    // 			stats.add(search(depth + 1, state, a));
-    // 		}
-
-    // 		state.undo(action);
-
-    // 		return reduce(stats);
-    // 	}
-
-    // 	return null;
-    // }
-
-    // private Score reduce(List<Score> scores) {
-    // 	// TODO
-    // 	return null;
-    // }
 
     public void updateBudget(Bid bid) {
         if (bid != null) {
