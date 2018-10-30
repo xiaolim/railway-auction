@@ -23,7 +23,6 @@ public class Player implements railway.sim.Player {
     private List<RouteValue> rankedRouteValue;
     private List<BidInfo> allBids;
     private List<List<Integer>> bridges; 
-
     private List<BidInfo> availableBids = new ArrayList<>();
 
     public Player() {
@@ -36,7 +35,8 @@ public class Player implements railway.sim.Player {
         List<Coordinates> geo,
         List<List<Integer>> infra,
         int[][] transit,
-        List<String> townLookup) {
+        List<String> townLookup,
+        List<BidInfo> allBids) {
         this.name = name;
         this.budget = budget;
         this.geo = geo;
@@ -242,7 +242,7 @@ public class Player implements railway.sim.Player {
         }
     }
 
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
@@ -400,26 +400,48 @@ public class Player implements railway.sim.Player {
     private class LinkValue implements Comparable<LinkValue>{
         int town1;
         int town2;
-        int townMid; // used for bidding pair of links
+        //int townMid; // used for bidding pair of links
         double distance;
-        int bidID=-1;
+        BidInfo bid;
 
-        public LinkValue (int id1, int id2){
+        public LinkValue (int id1, int id2, BidInfo bidInfo){
             town1 = id1;
             town2 = id2;
             distance = graph.getWeight(id1,id2);
+            bid = bidInfo;
         }
 
-        public LinkValue (int id1, int id2, int id3, double dist){
-            town1 = id1;
-            town2 = id2;
-            townMid = id3;
-            distance = dist;
-        }
+        // public LinkValue (int id1, int id2, int id3, double dist){
+        //     town1 = id1;
+        //     town2 = id2;
+        //     townMid = id3;
+        //     distance = dist;
+        // }
 
         @Override
         public int compareTo(LinkValue lv) {
             return (int) Math.signum(distance - lv.distance);
+        }
+
+        @Override
+        public boolean equals(Object o) { 
+  
+            // If the object is compared with itself then return true   
+            if (o == this) { 
+                return true; 
+            } 
+  
+            /* Check if o is an instance of Complex or not 
+            "null instanceof [type]" also returns false */
+            if (!(o instanceof LinkValue)) { 
+                return false; 
+            } 
+          
+            // typecast o to Complex so that we can compare data members  
+            LinkValue lv = (LinkValue) o; 
+          
+            // Compare the data members and return accordingly  
+            return (town1 == lv.town1 && town2 == lv.town2) || (town1 == lv.town2 && town2 == lv.town1); 
         }
     }
 
@@ -427,16 +449,11 @@ public class Player implements railway.sim.Player {
         List<List<Integer>> routes;
         double volPerKm;
         double distance;
-        List<LinkValue> linkValues= new ArrayList<LinkValue>();
 
         public RouteValue (List<List<Integer>> r, double v, double d){
             routes = copyListofList(r);
             volPerKm = v;
             distance = d;
-            for (int i=0; i < routes.get(0).size()-1;i++){
-                linkValues.add(Player.this.new LinkValue(routes.get(0).get(i),routes.get(0).get(i+1)));
-            }
-            Collections.sort(linkValues, Collections.reverseOrder());
         }
 
         private List<List<Integer>> copyListofList(List<List<Integer>> list) {
