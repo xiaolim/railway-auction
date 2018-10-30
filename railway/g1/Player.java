@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 import java.util.Random;
 import railway.sim.utils.*;
 // To access data classes.
@@ -22,7 +23,7 @@ public class Player implements railway.sim.Player {
     private double[][] revenue; //revenue of link i,j
     private int[][] min_path; //record whether link i-j is a minimum path from i to j
     private Map<String, Integer> map; // this map is used to query index of town from townLookup
-    
+
     private List<BidInfo> availableBids = new ArrayList<>();
     
     // The coordinates of stations, infrastructure and raw transit files are stored for future reference.
@@ -42,8 +43,15 @@ public class Player implements railway.sim.Player {
     private List<String> players = new ArrayList<String>();
     private List<Double> budgets = new ArrayList<Double>();
 	private Object Pair;
-    
-    public class Pair implements Serializable{
+    //use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
+    //This can be done in O(n).If you want the paths to contain to links(etc. (a,b), (c,d)), you can just
+    // use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)).retainAll(contain-paths.get(c,d)) which can also be done in O(n)
+	// With the paths you get, you can easily change the heatmap  weight in O(n).
+    //Alsp you can use contain_paths.get(a,b).retainAll(sour_dest_paths.get(i,j)) to get paths contain (a,b) and start i, end j;
+    private Map<Pair, List<List<Integer>>> sour_dest_paths; //paths start from Pair.i1 and end in Pair.i2
+    private Map<Pair, List<List<Integer>>> contain_paths;//paths that contains link (Pair.i1, Pair.i2)
+
+    public class Pair implements Serializable, Comparable<Pair>{
 		private static final long serialVersionUID = 3520054221183875559L;
 		
 		int i1;
@@ -52,7 +60,15 @@ public class Player implements railway.sim.Player {
     		this.i1 = i1;
     		this.i2 = i2;
     	}
-
+    	//implement compareto to make sure the hashmap can work well because JAVA are Object-Orientied
+        @Override
+        public int compareTo(Pair other){
+    	    if(this.i1==other.i1 && this.i2==other.i2){
+    	        return 0;
+            }else{
+    	        return this.i1*this.i1+this.i2*this.i2-other.i1*other.i1-other.i2*other.i2;
+            }
+        }
     	@Override
         public boolean equals(Object o) {
     		try {
@@ -208,6 +224,8 @@ public class Player implements railway.sim.Player {
 
 
     public Map<Pair, Double> createHeatMap() {
+        sour_dest_paths = new HashMap<Pair, List<List<Integer>>>();
+        contain_paths =  new HashMap<Pair, List<List<Integer>>>();
     	Map<Pair, Double> heatmap = new HashMap<Pair, Double>();
         for(int i=0;i<infra.size();i++) {
             for(int j=0;j<infra.get(i).size();j++) {
@@ -231,7 +249,7 @@ public class Player implements railway.sim.Player {
                 double totaltransit = transit[i][j];
                 int[][] prev = Dijkstra.dijkstra(g, i);
                 List<List<Integer>> allP = Dijkstra.getPaths(g,prev,j);
-
+                sour_dest_paths.put(new Pair(i,j), allP);
                 int pathnum = allP.size();
                 double transitpp = totaltransit / pathnum; 
                 //System.out.println("transitpp: "+transitpp);
@@ -242,6 +260,16 @@ public class Player implements railway.sim.Player {
                         if(b>0) {
                             int t1 = allP.get(a).get(b-1); //0
                             int t2 = allP.get(a).get(b); //1
+                            Pair con = new Pair(b-1,b);
+                            if(contain_paths.get(con)==null){
+                                List<List<Integer>> pa = new ArrayList<>();
+                                pa.add(allP.get(a));
+                                contain_paths.put(con, pa);
+                            }else{
+                                List<List<Integer>> pa = contain_paths.get(con);
+                                pa.add(allP.get(a));
+                                contain_paths.put(con, pa);
+                            }
 
                             //find heatmap key
                             Pair link = new Pair(0,0);
