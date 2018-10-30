@@ -218,32 +218,14 @@ public class Player implements railway.sim.Player {
             }
         }
 
-        double trafficcheck = 0;
         for (int i=0;i<transit.length;i++) {
             for (int j=0;j<transit[i].length;j++) { //int j=0;j<transit[i].length;j++
                 if(transit[i][j]==0) {
                     continue;
                 }
                 double totaltransit = transit[i][j];
-                trafficcheck += totaltransit;
-                //System.out.println("loop:"+totaltransit);
                 int[][] prev = Dijkstra.dijkstra(g, i);
                 List<List<Integer>> allP = Dijkstra.getPaths(g,prev,j);
-
-                for(int a=0;a<allP.size();a++) {
-                    for(int b=0;b<allP.get(a).size();b++) {
-                        //System.out.println("a: " + a + ", b: "+ b);
-                        //System.out.println(allP.get(a).get(b));
-                    }
-                }
-
-                double distance = 0; //just use first path
-                for(int a=0;a<allP.get(0).size();a++) {
-                    if(a>0) {
-                        distance += getDistance(allP.get(0).get(a),allP.get(0).get(a-1));
-                    }
-                }
-                //System.out.println("distance: "+distance);
 
                 int pathnum = allP.size();
                 double transitpp = totaltransit / pathnum; 
@@ -253,9 +235,6 @@ public class Player implements railway.sim.Player {
                     for(int b=0;b<allP.get(a).size();b++) {
                         //divide up transitpp based on distance
                         if(b>0) {
-                            double currdist = getDistance(allP.get(a).get(b),allP.get(a).get(b-1));
-                            double expectedtraffic = transitpp * (currdist/distance);
-                            //System.out.println("exp: "+expectedtraffic); //1000
                             int t1 = allP.get(a).get(b-1); //0
                             int t2 = allP.get(a).get(b); //1
 
@@ -277,33 +256,17 @@ public class Player implements railway.sim.Player {
                                     }
                                 }
                             }
-
-                            //System.out.println(heatmap.containsKey(link));
-                            //System.out.println("currtraffic: "+heatmap.get(link));
-                            heatmap.put(link,heatmap.get(link)+expectedtraffic);
-                            //System.out.println("aftertraffic: "+heatmap.get(link));
+                            heatmap.put(link,heatmap.get(link)+transitpp);
                         }
                     }
                 }
 
-                //print heatmap
-                /*for (Pair p:heatmap.keySet()) {
-                    System.out.println("t1: "+p.i1+", t2: "+p.i2+", traffic: "+heatmap.get(p));
-                }*/
-
-
             }
-            //break;
         }
 
-        double total = 0.0;
         for (Pair p:heatmap.keySet()) {
             System.out.println("t1: "+p.i1+", t2: "+p.i2+", traffic: "+heatmap.get(p));
-            total += heatmap.get(p);
         }
-        System.out.println("total traffic: "+total);
-        System.out.println("traffic check: "+trafficcheck);
-
 
     	return heatmap;
     }
