@@ -72,15 +72,29 @@ public class Player implements railway.sim.Player {
 
 	    ownership = new boolean[transit.length][transit[0].length];
 
+	    // for(int[] row : transit) {
+	    // 	for(int i : row) {
+	    // 		System.err.print(i + " ");
+	    // 	}
+	    // 	System.err.print('\n');
+	    // }
+
+	    // for(boolean[] row : ownership) {
+	    // 	for(boolean b : row) {
+	    // 		System.err.print(b + " ");
+	    // 	}
+	    // 	System.err.print('\n');
+	    // }
+
         System.err.println("Ending");
 
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
     	try {
-    		System.err.println("Starting");
+    		//System.err.println("Starting");
     		Thread.sleep(998);
-    		System.err.println("Ending");
+    		//System.err.println("Ending");
     	} catch(InterruptedException ex) {
     		System.err.println(ex);
     	}
@@ -199,6 +213,32 @@ public class Player implements railway.sim.Player {
                 Math.pow(geo.get(t1).y - geo.get(t2).y, 2),
             0.5);
     }
+
+    // outline for a search algorithm -- TODO
+    // private Score search(int depth, GameState state, Action action) {
+    // 	if (depth > 3) {
+    // 		return state.evaluate();
+    // 	} else {
+    // 		state.apply(action);
+
+    // 		actions = state.getPossibleActions();
+    // 		List<Score> stats = new ArrayList<Score>(actions.length);
+    // 		for (Action a : actions) {
+    // 			stats.add(search(depth + 1, state, a));
+    // 		}
+
+    // 		state.undo(action);
+
+    // 		return reduce(stats);
+    // 	}
+
+    // 	return null;
+    // }
+
+    // private Score reduce(List<Score> scores) {
+    // 	// TODO
+    // 	return null;
+    // }
 
     public void updateBudget(Bid bid) {
         if (bid != null) {
