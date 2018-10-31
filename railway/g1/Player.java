@@ -55,7 +55,7 @@ public class Player implements railway.sim.Player {
     private Map<Pair, List<List<Integer>>> sour_dest_paths; //paths start from Pair.i1 and end in Pair.i2
     private Map<Pair, List<List<Integer>>> contain_paths;//paths that contains link (Pair.i1, Pair.i2)
 
-    public class Pair implements Serializable, Comparable<Pair>{
+    public final class Pair implements Serializable, Comparable<Pair>{
 		private static final long serialVersionUID = 3520054221183875559L;
 		
 		int i1;
@@ -64,7 +64,8 @@ public class Player implements railway.sim.Player {
     		this.i1 = i1;
     		this.i2 = i2;
     	}
-    	//implement compareto to make sure the hashmap can work well because JAVA are Object-Orientied
+    	
+    	//implement compareTo to make sure the hashmap can work well because JAVA are Object-Orientied
         @Override
         public int compareTo(Pair other){
     	    if(this.i1==other.i1 && this.i2==other.i2){
@@ -196,7 +197,7 @@ public class Player implements railway.sim.Player {
     	if (lastRoundMaxBid != null) {
     		BidInfo b1 = allLinks.get(lastRoundMaxBid.id1);
     		double budget = budgets.getOrDefault(b1.owner, START_BUDGET);
-    		budgets.put(b1.owner, budget - b1.amount);
+    		budgets.put(lastRoundMaxBid.bidder, budget - lastRoundMaxBid.amount);
     		b1.owner = lastRoundMaxBid.bidder;
     		b1.amount = lastRoundMaxBid.amount;
     		if (lastRoundMaxBid.id2 != -1) {
@@ -421,6 +422,7 @@ public class Player implements railway.sim.Player {
 //        BidInfo randomBid = availableBids.get(rand.nextInt(availableBids.size()));
 
         // Don't bid if the random bid turns out to be beyond our budget.
+        //System.err.println(budgets.get(name));
         if (budgets.get(name) - maxamount < 0) {
             return null;
         }
