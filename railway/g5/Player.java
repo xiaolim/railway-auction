@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.lang.Math;
 
 // To access data classes.
 import railway.sim.utils.*;
@@ -26,9 +27,10 @@ public class Player implements railway.sim.Player{
     private boolean firstRound;	
 
     private List<String> ownedCities = new ArrayList<>();
-    private Map<Integer, Integer> railValues = new HashMap<Integer, Integer>();
     final static double profitMargin = 0.8;
-    
+
+    private Map<Integer, Double> railValues = new HashMap<Integer, Double>();
+    private Map<Integer, Double> railDistance = new HashMap<Integer, Double>();
     public Player() {
         rand = new Random();
     }
@@ -81,20 +83,26 @@ public class Player implements railway.sim.Player{
 		          }
               if (infra.get(k).contains(infra.get(i).get(j)) ){
                 jrails +=1;
-			     //	System.out.printf("found a %d in line %d, jrails now %d\n", j, k, jrails);
-		          }
-		        }
-		        int value = 0;
-            if (irails != 0){
-              value += cityTraffic.get(i)/irails;
-            }
-            if (jrails != 0){
-              value += cityTraffic.get(j)/jrails;
-            }
-            railValues.put(id, value);
-            id++;
-          }
-        }
+			//	System.out.printf("found a %d in line %d, jrails now %d\n", j, k, jrails);
+		    }
+		}
+		double value = 0;
+		if (irails != 0){
+		    value += cityTraffic.get(i)/irails;
+		}
+		if (jrails != 0){
+		    value += cityTraffic.get(infra.get(i).get(j))/jrails;
+		}
+		Coordinates p1 = geo.get(i);
+		Coordinates p2 = geo.get(infra.get(i).get(j));
+		//		System.out.printf("%f, %f and %f, %f\n", p1.x, p1.y, p2.x, p1.y);
+		double dist = Math.sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
+       		value = value*dist*10;
+		railValues.put(id, value);
+		railDistance.put(id, dist);
+		id++;
+	    }
+	}
     }
 
     public boolean bidEquals(Bid bid1, Bid bid2){
