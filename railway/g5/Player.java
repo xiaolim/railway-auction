@@ -21,7 +21,8 @@ public class Player implements railway.sim.Player {
     private List<BidInfo> availableBids = new ArrayList<>();
 
     private Map<Integer, Double> railValues = new HashMap<Integer, Double>();
-
+    private Map<Integer, Double> railDistance = new HashMap<Integer, Double>();
+    
     public Player() {
         rand = new Random();
     }
@@ -79,8 +80,10 @@ public class Player implements railway.sim.Player {
 		Coordinates p1 = geo.get(i);
 		Coordinates p2 = geo.get(infra.get(i).get(j));
 		//		System.out.printf("%f, %f and %f, %f\n", p1.x, p1.y, p2.x, p1.y);
-       		value = value*Math.sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y))*10;
+		double dist = Math.sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
+       		value = value*dist*10;
 		railValues.put(id, value);
+		railDistance.put(id, dist);
 		id++;
 	    }
 	}
