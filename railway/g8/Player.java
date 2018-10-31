@@ -229,7 +229,7 @@ public class Player implements railway.sim.Player {
         double fractionOfBudget = (double) (budget * percent);
         bid += (10*dist* fractionOfBudget)/totalDistance;
 
-        System.out.println("New bid: " + bid + " our addition: " + (.1 * fractionOfBudget));
+        //System.out.println("New bid: " + bid + " our addition: " + (.1 * fractionOfBudget));
         if (bid < budget) {
             return bid;
         } else {
