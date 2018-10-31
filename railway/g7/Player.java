@@ -452,7 +452,7 @@ public class Player implements railway.sim.Player {
   				if (bi.id == temp.bid.id){
   					linkToBid = bi;
                     aval = true;
-                    maxAmount = 10*values.get(0);
+                    maxAmount = 5*values.get(0);
   					break;
   				}
   			}
