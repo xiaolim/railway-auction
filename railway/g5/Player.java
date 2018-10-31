@@ -21,6 +21,7 @@ public class Player implements railway.sim.Player{
     private List<Integer> availableLinks = new ArrayList<>();
     private Map<Integer, Double> minAmounts = new HashMap<Integer, Double>();
     private Map<String, Double> playerBudgets = new HashMap<String, Double>();
+    //we are provided last round maxBid value 
     private Bid lastWinner = new Bid();
 
     private List<String> ownedCities = new ArrayList<>();
@@ -96,13 +97,18 @@ public class Player implements railway.sim.Player{
     }
 
     public boolean bidEquals(Bid bid1, Bid bid2){
+      System.out.println("Inside Bid Equals");
       boolean result = true;
+      System.out.println(bid1.id1);
+      System.out.println(bid2.id1);
       if(bid1.id1 != bid2.id1){
         result = false;
       }
+      System.out.println("One");
       if(bid1.id2 != bid2.id2){
         result = false;
       }
+      System.out.println("Two");
       if(bid1.amount != bid2.amount){
         result = false;
       }
@@ -113,7 +119,9 @@ public class Player implements railway.sim.Player{
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid){
-      if(!bidEquals(lastWinner, lastRoundMaxBid)){
+     
+      if(lastRoundMaxBid != null && !bidEquals(lastWinner, lastRoundMaxBid)){
+	System.out.println("in update last winner");
         // Entered a new round, make necessary updates
         lastWinner = lastRoundMaxBid;
 
@@ -124,8 +132,9 @@ public class Player implements railway.sim.Player{
         }
 
         // Update player budget
+        // 
       }
-
+      System.out.println("after new winner set");
       // Check if everyone else has dropped out
       boolean uncontested = false;
       if(currentBids.size() > 0){
@@ -142,14 +151,23 @@ public class Player implements railway.sim.Player{
         // Determine if there is a link we'd like to buy at that price
         for(Bid pastBid : currentBids){
           String player = pastBid.bidder;
-          double distance = 1;
+          // Get actual distance of link
+	  double distance = 1;
           double curPrice = pastBid.amount / distance;
+
+	  // If curPrice > initPrice
+	  //  set winning bid
         }
+
+	// For loop through available bids
+	// Ratio of value vs price we would pay
+	// Greatest ratio is the bid that we place when uncontested
 
         // Buy the best available link / pair
         return null;
       }
       else{
+	System.out.println("contested");
         // Sort through bids to update current minimums
         List<Integer> noBidLinks = availableLinks;
         for(Bid pastBid : currentBids){
@@ -177,12 +195,14 @@ public class Player implements railway.sim.Player{
           // Increment bid on a valuable enough link
           for (int linkId : availableLinks){
             if(railValues.get(linkId)*10 > minAmounts.get(linkId) + 10000){
-              Bid bid = new Bid();
+              System.out.println("about to bid");
+	      Bid bid = new Bid();
               bid.id1 = linkId;
               bid.amount = minAmounts.get(linkId) + 10000;
               return bid;
             }
           }
+	  System.out.println("end of function");
         }
       }
       // If there are no rails we'd like to purchase at the highest price / distance
