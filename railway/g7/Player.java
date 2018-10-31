@@ -7,7 +7,9 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.TreeMap;
 import java.util.Random;
-
+import java.util.Hashtable;
+import java.util.HashSet;
+import java.util.Set;
 // To access data classes.
 import railway.sim.utils.*;
 
@@ -18,19 +20,31 @@ public class Player implements railway.sim.Player {
 
     private double budget;
     private String name;
+    private List<BidInfo> allBids;
+
     private List<Coordinates> geo;
     private List<List<Integer>> infra;
     private int[][] transit;
     private List<String> townLookup;
+    private Hashtable<Integer, Double> distanceLookup = 
+              new Hashtable<Integer, Double>();
+
     private WeightedGraph graph;
     private List<RouteValue> rankedRouteValue;
-    private List<BidInfo> allBids;
     private List<List<Integer>> bridges; 
+    private List<LinkValue> bridgeLinks = new ArrayList<>();
+    private List<List<LinkValue>> routeLinks = new ArrayList<>();
+<<<<<<< HEAD
     private Map<LinkValue, List<List<Integer>>> bridgeMap;
     private double[][] shortestPaths;
     private Map<LinkValue, Double> bridgeValue;
     private Map<Double, LinkValue> valueToBridge;
+=======
+
+>>>>>>> 792d4330a8ea5e0572588c05f0313a221d2a41e7
     private List<BidInfo> availableBids = new ArrayList<>();
+    private Set<Integer> availableBidId = new HashSet<>();
+    private Set<Integer> ourBidId = new HashSet<>();
 
     public Player() {
         rand = new Random();
@@ -50,7 +64,11 @@ public class Player implements railway.sim.Player {
         this.infra = infra;
         this.transit = transit;
         this.townLookup = townLookup;
+<<<<<<< HEAD
         shortestPaths = new double[transit.length][transit[0].length];
+=======
+        this.allBids = allBids;
+>>>>>>> 792d4330a8ea5e0572588c05f0313a221d2a41e7
         initializeGraph();
         // List<List<Integer>> links = getMostVolumePerKm();
         // for (int i = 0; i < links.size(); i++) {
@@ -59,7 +77,21 @@ public class Player implements railway.sim.Player {
         //         System.out.print(links.get(i).get(j) + " ");
         //     }
         // }
+<<<<<<< HEAD
         // bridges = findBridges();
+=======
+        bridges = findBridges();
+        //System.out.println("The bridges are:");
+        for (int i = 0; i < bridges.size(); i++) {
+            for (int j = 0; j < bridges.get(i).size(); j++) {
+                //System.out.print(bridges.get(i).get(j) + " ");
+            }
+            //System.out.println();
+        }
+        initializeBridgeLinks();
+        initializeDistHash();
+        rankedRouteValue = new ArrayList<RouteValue>();
+>>>>>>> 792d4330a8ea5e0572588c05f0313a221d2a41e7
         gatherAllVolumePerKm();
         buildBridgeMap();
         // for (Map.Entry<LinkValue, List<List<Integer>>> entry: bridgeMap.entrySet()) {
@@ -76,6 +108,7 @@ public class Player implements railway.sim.Player {
         for (Map.Entry<Double, LinkValue> entry: valueToBridge.entrySet()) {
             System.out.println(entry.getValue() + ", from " + townLookup.get(entry.getValue().town1) + " to " + townLookup.get(entry.getValue().town2) + ", and its value is: " + entry.getKey());
         }
+<<<<<<< HEAD
         //System.out.println("The bridges are:");
         // for (int i = 0; i < bridges.size(); i++) {
         //     for (int j = 0; j < bridges.get(i).size(); j++) {
@@ -89,6 +122,15 @@ public class Player implements railway.sim.Player {
         //     //System.out.println("route number: " + i + ", volume: " + rankedRouteValue.get(i).getVolumePerKm() + ", distance: " + rankedRouteValue.get(i).getDistance());
         // }
         // calculateBridgeValue();
+=======
+        initializeRouteLinks();
+    }
+
+    private void initializeDistHash(){
+    	for (BidInfo bi: allBids){
+    		distanceLookup.put(bi.id,graph.getWeight(townLookup.indexOf(bi.town1),townLookup.indexOf(bi.town2)));
+    	}
+>>>>>>> 792d4330a8ea5e0572588c05f0313a221d2a41e7
     }
 
     private void initializeGraph() {
@@ -106,6 +148,34 @@ public class Player implements railway.sim.Player {
                 graph.addEdge(source, target, distance);
             }
         }
+    }
+    public void initializeBridgeLinks(){
+    	for (int i=0; i < bridges.size();i++){
+    		List blink = bridges.get(i);
+    		int town1 = (int)blink.get(0);
+    		int town2 = (int)blink.get(1);
+    		BidInfo bInfo = getBidInfo(town1,town2);
+    		bridgeLinks.add(new LinkValue(town1,town2,bInfo));
+    	}
+    	Collections.sort(bridgeLinks, Collections.reverseOrder());
+    }
+
+    public void initializeRouteLinks(){
+    	for (int i=0; i < rankedRouteValue.size();i++){
+    		List<List<Integer>> listOfRoutes = rankedRouteValue.get(i).routes;
+    		for (int j=0; j < listOfRoutes.size();j++){
+    			List<Integer> routeInt = listOfRoutes.get(j);
+    			List<LinkValue> shortestRoute = new ArrayList<LinkValue>();
+    			for (int k=0; k < routeInt.size()-1;k++){
+    				int town1 = routeInt.get(k);
+    				int town2 = routeInt.get(k+1);
+    				BidInfo bInfo = getBidInfo(town1,town2);
+    				shortestRoute.add(new LinkValue(town1,town2, bInfo));
+    			}
+    			Collections.sort(shortestRoute, Collections.reverseOrder());
+    			routeLinks.add(shortestRoute);
+    		}
+    	}
     }
 
     private double calcEuclideanDistance(Coordinates a, Coordinates b) {
@@ -339,6 +409,7 @@ public class Player implements railway.sim.Player {
         }
     }
 
+<<<<<<< HEAD
     private void calculateBridgeValue() {
         for (Map.Entry<LinkValue, List<List<Integer>>> entry: bridgeMap.entrySet()) {
             System.out.println(entry.getKey() + ", from " + townLookup.get(entry.getKey().town1) + " to " + townLookup.get(entry.getKey().town2));
@@ -353,6 +424,14 @@ public class Player implements railway.sim.Player {
                 int target = nodes.get(i).get(1);
                 value += shortestPaths[source][target] * transit[source][target];
                 System.out.println();
+=======
+    public BidInfo getBidInfo(int id1, int id2){
+        String name1 = townLookup.get(id1);
+        String name2 = townLookup.get(id2);
+        for (BidInfo bi : allBids){
+            if ((bi.town1.equals(name1) && bi.town2.equals(name2))||(bi.town1.equals(name2) && bi.town2.equals(name1))){
+                return bi;
+>>>>>>> 792d4330a8ea5e0572588c05f0313a221d2a41e7
             }
             if (nodes.get(0).get(0) == nodes.get(nodes.size() / 2).get(0) && nodes.get(0).get(1) == nodes.get(nodes.size() / 2).get(1)) {
                 System.out.println("duplicate route, value should be halved: " + value);
@@ -361,6 +440,7 @@ public class Player implements railway.sim.Player {
             System.out.println("the value of this link is: " + value);
             bridgeValue.put(entry.getKey(), value);
         }
+<<<<<<< HEAD
     }
 
     // // return null if owned by other; return bidInfo if not
@@ -514,6 +594,123 @@ public class Player implements railway.sim.Player {
         // if (budget - bidAmount < 0.) {
         //     return null;
         // }
+=======
+        return null;
+    }
+
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
+        // The random player bids only once in a round.
+        // This checks whether we are in the same round.
+        // Random player doesn't care about bids made by other players.
+        // this.allBids = allBids; 
+
+    	System.out.println(routeLinks.size());
+
+        for (BidInfo bi : allBids) { 
+            if (bi.owner == null) {
+                availableBids.add(bi);
+                availableBidId.add(bi.id);
+            }
+        } 
+
+        if (availableBids.size()==0){
+            return null;
+        } 
+
+        // RouteValue routeToBid=null; 
+        BidInfo linkToBid =null; 
+
+        // find first bridge in the list, if the bridge is already taken remove it from the list
+        double bidAmount = 0;
+        while(linkToBid == null && bridgeLinks.size()>0){
+        	LinkValue temp = bridgeLinks.get(0);
+  			boolean bidAvail = false;
+  			for (BidInfo bi: availableBids){
+  				if (bi.id == temp.bid.id){
+  					bidAvail = true;
+  					linkToBid = bi;
+  					break;
+  				}
+  			}
+  			if (!bidAvail){
+        		bridgeLinks.remove(temp);
+        	}
+        }
+
+        // if there's no bridge, look for the most traveled route
+        if (linkToBid == null){
+	        for (int i=0;i<routeLinks.size();i++){
+	        	List<LinkValue> path = routeLinks.get(i);
+	        	boolean full = true;
+	        	for (int j=0;j< path.size();j++){
+	        		LinkValue linkV = path.get(j);
+	        		int bidId = linkV.bid.id;
+	        		if (!availableBidId.contains(bidId) && !ourBidId.contains(bidId)){
+	        			routeLinks.remove(path);
+	        			i--;
+	        			break;
+	        		}
+	        		if(availableBidId.contains(bidId)){
+	        			linkToBid = linkV.bid;
+	        			full = false;
+	        			break;
+	        		}
+	        	}
+	        	if (full == true){
+	        		routeLinks.remove(path);
+	        		i--;
+	        	}
+	        	else{
+	        		break;
+	        	}
+	        }
+	    }
+
+        // If no bridge, and no most traveled route, just choose random
+        if (linkToBid==null){
+        	linkToBid = availableBids.get(rand.nextInt(availableBids.size()));
+        }
+
+        // if minimum amount to bid is lower than budget, return null
+        bidAmount=linkToBid.amount;
+        if (budget - bidAmount < 0.) {
+            return null;
+        }
+
+        // find current highest bid and over bid that
+        Collections.reverse(currentBids);
+        double currMax = 0;
+        String maxBidder = null;
+        for (Bid b : currentBids) {
+        	// increment 10000
+        	if (b.id1 == linkToBid.id || b.id2 == linkToBid.id) {
+                 if (budget - b.amount - 10000 < 0.) {
+                     return null;
+                 }
+                 else{
+                 	bidAmount = b.amount + 10000;
+                 }
+            }
+            // find max bid
+            double currDis = distanceLookup.get(b.id1);
+            if (b.id2 != -1) currDis += distanceLookup.get(b.id2);
+            double currVal = b.amount/currDis;
+            if (currVal > currMax){
+            	currMax = currVal;
+            	maxBidder = b.bidder;
+            }
+        }  
+        // increase bid to match max bit                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+        if (maxBidder!= null && !maxBidder.equals(this.name)){
+        	double temp = currMax*distanceLookup.get(linkToBid.id);
+        	if (temp > bidAmount && temp < budget){
+        		bidAmount = temp+10000;
+        	}
+        }
+        else if (maxBidder!=null && maxBidder.equals(this.name)){
+        	return null;
+        }
+>>>>>>> 792d4330a8ea5e0572588c05f0313a221d2a41e7
 
         // // Check if another player has made a bid for this link.
         // for (Bid b : currentBids) {
@@ -529,6 +726,7 @@ public class Player implements railway.sim.Player {
         //     }
         // }                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
 
+<<<<<<< HEAD
         // Bid bid = new Bid();
         // bid.amount = bidAmount;
         // bid.id1 = linkToBid.id;
@@ -540,14 +738,22 @@ public class Player implements railway.sim.Player {
         // }
 
         // return bid;
+=======
+        return bid;
+>>>>>>> 792d4330a8ea5e0572588c05f0313a221d2a41e7
     }
 
     public void updateBudget(Bid bid) {
         if (bid != null) {
             budget -= bid.amount;
+            ourBidId.add(bid.id1);
+            if (bid.id2 != -1){
+            	ourBidId.add(bid.id2);
+            }
         }
 
         availableBids = new ArrayList<>();
+        availableBidId = new HashSet<>();
     }
 
     public BidInfo getBidInfo(int id1, int id2, List<BidInfo> allBids){
