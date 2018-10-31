@@ -286,54 +286,6 @@ public class Player implements railway.sim.Player {
         return bridges; 
     }
 
-    // private Map<LinkValue, List<List<Integer>>> buildBridgeMap() {
-    //     List<List<Integer>> bridges = new ArrayList<List<Integer>>();
-    //     Map<LinkValue, List<List<Integer>>> map = new HashMap<LinkValue, List<List<Integer>>>();
-    //     for (int i = 0; i < infra.size(); i++) {
-    //         for (int j = 0; j < infra.get(i).size(); j++) {
-    //             int source = i;
-    //             int target = infra.get(i).get(j);
-    //             double weight = graph.getWeight(source, target);
-    //             graph.removeEdge(source, target);
-    //             // boolean bridgeFound = false;
-    //             // System.out.println("source: " + source + ", target: " + target);
-    //             for (int s = 0; s < townLookup.size(); s++) {
-    //                 int[][] prev = Dijkstra.dijkstra(graph, s);
-    //                 for (int t = s + 1; t < prev.length; t++) {
-    //                     if (prev[t][0] != 0) {
-    //                         // bridgeFound = true;
-    //                         // System.out.println("s: " + s + ", t: " + t);
-    //                         // break;
-    //                         continue;
-    //                     }
-
-    //                     LinkValue lv = new LinkValue(source, target, null);
-    //                     if (!map.containsKey(lv)) {
-    //                         System.out.println(lv + ", not contained in map!");
-    //                         List<List<Integer>> nodes = new ArrayList<List<Integer>>();
-    //                         // List<Integer> part1 = new ArrayList<Integer>();
-    //                         // List<Integer> part2 = new ArrayList<Integer>();
-    //                         // nodes.add(part1);
-    //                         // nodes.add(part2);
-    //                         map.put(lv, nodes);
-    //                     }
-    //                     List<Integer> pair = new ArrayList<Integer>();
-    //                     pair.add(s);
-    //                     pair.add(t);
-    //                     List<List<Integer>> nodes = map.get(lv);
-    //                     nodes.add(pair);
-    //                     // nodes.get(0).add(s);
-    //                     // nodes.get(1).add(t);
-    //                 }
-    //             }
-
-    //             graph.addEdge(source, target, weight);
-    //         }
-    //     }
-
-    //     return map; 
-    // }
-
     private void buildBridgeMap() {
         System.out.println("buildBridgeMap started");
         bridgeMap = new HashMap<LinkValue, List<List<Integer>>>();
@@ -346,7 +298,8 @@ public class Player implements railway.sim.Player {
                 graph.removeEdge(source, target);
                 // boolean bridgeFound = false;
                 // System.out.println("source: " + source + ", target: " + target);
-                LinkValue lv = new LinkValue(source, target, null);
+                BidInfo bInfo = getBidInfo(source,target);
+                LinkValue lv = new LinkValue(source, target, bInfo);
                 double value = 0;
                 for (int s = 0; s < townLookup.size(); s++) {
                     int[][] prev = Dijkstra.dijkstra(graph, s);
@@ -489,31 +442,40 @@ public class Player implements railway.sim.Player {
 
         // find first bridge in the list, if the bridge is already taken remove it from the list
         double bidAmount = 0;
-        while(linkToBid == null && bridgeLinks.size()>0){
-        	LinkValue temp = bridgeLinks.get(0);
-  			boolean bidAvail = false;
+        double maxAmount = 0;
+        List<Double> values= new ArrayList<Double>(valueToBridge.keySet());
+        System.out.println("keySet:"+ values.size());
+        while(linkToBid == null && valueToBridge.size()>0){
+        	LinkValue temp = valueToBridge.get(values.get(0));
+            boolean aval = false;
   			for (BidInfo bi: availableBids){
   				if (bi.id == temp.bid.id){
-  					bidAvail = true;
   					linkToBid = bi;
+                    aval = true;
+                    maxAmount = 10*values.get(0);
   					break;
   				}
   			}
-  			if (!bidAvail){
-        		bridgeLinks.remove(temp);
-        	}
+            if (!aval){
+                valueToBridge.remove(values.get(0));
+                values.remove(values.get(0));
+            }
         }
 
         // if there's no bridge, look for the most traveled route
         if (linkToBid == null){
+            System.out.println("There's no bridge");
+            RouteValue routeToBid = null;
 	        for (int i=0;i<routeLinks.size();i++){
 	        	List<LinkValue> path = routeLinks.get(i);
+                routeToBid = rankedRouteValue.get(i);
 	        	boolean full = true;
 	        	for (int j=0;j< path.size();j++){
 	        		LinkValue linkV = path.get(j);
 	        		int bidId = linkV.bid.id;
 	        		if (!availableBidId.contains(bidId) && !ourBidId.contains(bidId)){
 	        			routeLinks.remove(path);
+                        rankedRouteValue.remove(routeToBid);
 	        			i--;
 	        			break;
 	        		}
@@ -523,14 +485,25 @@ public class Player implements railway.sim.Player {
 	        			break;
 	        		}
 	        	}
-	        	if (full == true){
+	        	if (full){
 	        		routeLinks.remove(path);
+                    rankedRouteValue.remove(routeToBid);
 	        		i--;
 	        	}
 	        	else{
 	        		break;
 	        	}
 	        }
+            if (linkToBid!=null){
+                maxAmount = linkToBid.amount;
+                // if (secondLinkToBid != null) {
+                //     amount += secondLinkValueToBid.distance * transit[secondLinkValueToBid.town1][secondLinkValueToBid.town2];
+                //     amount += secondLinkToBid.amount;
+                // }
+
+                // taking into account the entire route 
+                maxAmount += 20*routeToBid.volPerKm * routeToBid.distance; // the entire distance? 
+            }
 	    }
 
         // If no bridge, and no most traveled route, just choose random
@@ -548,6 +521,7 @@ public class Player implements railway.sim.Player {
         Collections.reverse(currentBids);
         double currMax = 0;
         String maxBidder = null;
+        Set<Integer> maxLinkID = new HashSet<Integer>();
         for (Bid b : currentBids) {
         	// increment 10000
         	if (b.id1 == linkToBid.id || b.id2 == linkToBid.id) {
@@ -564,14 +538,26 @@ public class Player implements railway.sim.Player {
             double currVal = b.amount/currDis;
             if (currVal > currMax){
             	currMax = currVal;
+                maxLinkID.add(b.id1);
+                if (b.id2 != -1){
+                    maxLinkID.add(b.id2);
+                }
             	maxBidder = b.bidder;
             }
         }  
-        // increase bid to match max bit                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              
+        System.out.println("MaxBidder:" +maxBidder);
         if (maxBidder!= null && !maxBidder.equals(this.name)){
-        	double temp = currMax*distanceLookup.get(linkToBid.id);
+        	double temp = currMax*distanceLookup.get(linkToBid.id)+1;
+            if (temp > maxAmount){
+                System.out.println("Match MaxBidder is too high");
+                return null;
+            }
         	if (temp > bidAmount && temp < budget){
-        		bidAmount = temp+10000;
+                System.out.println("Match MaxBidder");
+        		bidAmount = temp;
+                if (maxLinkID.contains(linkToBid.id)){
+                    bidAmount+=10000;
+                }
         	}
         }
         else if (maxBidder!=null && maxBidder.equals(this.name)){
