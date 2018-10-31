@@ -467,8 +467,8 @@ public class Player implements railway.sim.Player {
             System.out.println("There's no bridge");
             RouteValue routeToBid = null;
 	        for (int i=0;i<routeLinks.size();i++){
-	        	List<LinkValue> path = routeLinks.get(i);
-                routeToBid = rankedRouteValue.get(i);
+	        	List<LinkValue> path = routeLinks.get(0);
+                routeToBid = rankedRouteValue.get(0);
 	        	boolean full = true;
 	        	for (int j=0;j< path.size();j++){
 	        		LinkValue linkV = path.get(j);
@@ -502,7 +502,7 @@ public class Player implements railway.sim.Player {
                 // }
 
                 // taking into account the entire route 
-                maxAmount += 20*routeToBid.volPerKm * routeToBid.distance; // the entire distance? 
+                maxAmount += 10*routeToBid.volPerKm * routeToBid.distance; // the entire distance? 
             }
 	    }
 
