@@ -247,6 +247,7 @@ public class Player implements railway.sim.Player {
                 if (allPlayerLinks.get(lastRoundMaxBid.id2) == null) {
                     allPlayerLinks.put(Integer.toString(lastRoundMaxBid.id2), lastRoundMaxBid.bidder);
                 } 
+            }
         }
         /*for (BidInfo b : availableBids) {
             if (b.owner != null) {
