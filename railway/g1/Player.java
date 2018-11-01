@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;
 import java.util.Random;
 import railway.sim.utils.*;
 // To access data classes.
@@ -18,28 +19,43 @@ public class Player implements railway.sim.Player {
     private Random rand = new Random(seed);
     private double START_BUDGET;
     
+    public String name;
+    
     private double[][] min_price; //minimum price to buy  link i,j
     private double[][] revenue; //revenue of link i,j
     private int[][] min_path; //record whether link i-j is a minimum path from i to j
     private Map<String, Integer> map; // this map is used to query index of town from townLookup
-    
+
     private List<BidInfo> availableBids = new ArrayList<>();
-    private List<BidInfo> lastState;
+    private boolean newTournament = true;
     
     // The coordinates of stations, infrastructure and raw transit files are stored for future reference.
     List<Coordinates> geo;
     List<List<Integer>> infra;
     int[][] transit;
+
+    Map<Pair, Double> heatmap;
     
+    List<BidInfo> ourlinks = new ArrayList<BidInfo>();
     
     // Keep track of player owned links. It maps a link infra.get(i).get(j), denoted by an integer 
     // pair [i, j], to all player indexes who own that link (null if it is not sold yet). 
-    Map<Pair, List<Integer>> playerOwnedLinks;
+    // allLinks provide the same BidInfos but indexed by the bid index.
+    Map<Pair, List<BidInfo>> playerOwnedLinks;
+    //Map<String, List<BidInfo>> playerLinks;
+    List<BidInfo> allLinks;
     
-    private List<String> players = new ArrayList<String>();
-    private List<Double> budgets = new ArrayList<Double>();
-    
-    public class Pair implements Serializable{
+    private Map<String, Double> budgets = new HashMap<String, Double>();
+	private Object Pair;
+    //use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
+    //This can be done in O(n).If you want the paths to contain to links(etc. (a,b), (c,d)), you can just
+    // use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)).retainAll(contain-paths.get(c,d)) which can also be done in O(n)
+	// With the paths you get, you can easily change the heatmap  weight in O(n).
+    //Alsp you can use contain_paths.get(a,b).retainAll(sour_dest_paths.get(i,j)) to get paths contain (a,b) and start i, end j;
+    private Map<Pair, List<List<Integer>>> sour_dest_paths; //paths start from Pair.i1 and end in Pair.i2
+    private Map<Pair, List<List<Integer>>> contain_paths;//paths that contains link (Pair.i1, Pair.i2)
+
+    public final class Pair implements Serializable, Comparable<Pair>{
 		private static final long serialVersionUID = 3520054221183875559L;
 		
 		int i1;
@@ -48,7 +64,16 @@ public class Player implements railway.sim.Player {
     		this.i1 = i1;
     		this.i2 = i2;
     	}
-
+    	
+    	//implement compareTo to make sure the hashmap can work well because JAVA are Object-Orientied
+        @Override
+        public int compareTo(Pair other){
+    	    if(this.i1==other.i1 && this.i2==other.i2){
+    	        return 0;
+            }else{
+    	        return this.i1*this.i1+this.i2*this.i2-other.i1*other.i1-other.i2*other.i2;
+            }
+        }
     	@Override
         public boolean equals(Object o) {
     		try {
@@ -126,30 +151,32 @@ public class Player implements railway.sim.Player {
         rand = new Random();
     }
 
-    public void init(String name, double budget, List<Coordinates> geo, 
-    				List<List<Integer>> infra, int[][] transit, List<String> townLookup) {
+    public void init(String name, double budget, List<Coordinates> geo, List<List<Integer>> infra, 
+    					int[][] transit, List<String> townLookup, List<BidInfo> allBids) {
     	this.geo = geo;
     	this.infra = infra;
     	this.transit = transit;
+    	this.name = name;
     	START_BUDGET = budget;
-    	this.budgets.add(START_BUDGET);
-        this.players.add(name);
+        this.budgets.put(name, START_BUDGET);
         //System.out.println("Player name: " + name);
         this.revenue = getRevenue();
         //System.out.println("tag2");
         map = new HashMap<String, Integer>();
         //System.out.println("tag3");
-        for(int i=0;i<townLookup.size();i++)
+        for (int i = 0; i < townLookup.size(); i++) {
             map.put(townLookup.get(i),i);
-        
+        }
         // Initialize playerOwnedLinks
-        playerOwnedLinks = new HashMap<Pair, List<Integer>>();
-        for (int i = 0; i < infra.size(); i++) {
-        	for (Integer j : infra.get(i)) {
-        		playerOwnedLinks.putIfAbsent(new Pair(i, (int)j), new LinkedList<Integer>());
-        		List<Integer> entries = playerOwnedLinks.get(new Pair(i, (int)j));
-        		entries.add(-1);
-        	}
+        allLinks = allBids;
+        playerOwnedLinks = new HashMap<Pair, List<BidInfo>>();
+        
+        Pair link;
+        for (int i = 0; i < allLinks.size(); i++) {
+			link = new Pair(townLookup.indexOf(allLinks.get(i).town1), townLookup.indexOf(allLinks.get(i).town2));
+        	playerOwnedLinks.putIfAbsent(link, new LinkedList<BidInfo>());
+        	List<BidInfo> entries = playerOwnedLinks.get(link);
+        	entries.add(allLinks.get(i));
         }
         
         /*for (Pair p : playerOwnedLinks.keySet()) {
@@ -158,34 +185,47 @@ public class Player implements railway.sim.Player {
         		System.out.print((s==null));
         	System.out.println();
         }*/
-        
+        heatmap = createHeatMap();
 
     }
+
     
     /**
      * Update ownerships and remaining budgets for all players.
      */
-    public void updateStatus(List<BidInfo> currentState) {
-    	if (lastState != null){
-    		for (int i = 0; i < currentState.size(); i++) {
-    			if ((currentState.get(i).owner != null) && !currentState.get(i).owner.equals(lastState.get(i).owner)) {
-    				List<Integer> ownerList = playerOwnedLinks.get(new Pair(map.get(currentState.get(i).town1),
-    															map.get(currentState.get(i).town2)));
-    				System.out.println(new Pair(map.get(currentState.get(i).town1),
-    															map.get(currentState.get(i).town2)));
-    				int index = players.indexOf(currentState.get(i).owner);
-    				if (index == -1) {
-    					index = players.size();
-    					players.add(currentState.get(i).owner);
-    					budgets.add(START_BUDGET);
-    				}
-    				ownerList.remove(Integer.valueOf(-1));
-    				ownerList.add(index);
-    	            budgets.set(index, budgets.get(index) - currentState.get(i).amount);
-    			}
+    public void updateStatus(Bid lastRoundMaxBid) {
+    	if (lastRoundMaxBid != null) {
+    		BidInfo b1 = allLinks.get(lastRoundMaxBid.id1);
+    		double budget = budgets.getOrDefault(b1.owner, START_BUDGET);
+    		budgets.put(lastRoundMaxBid.bidder, budget - lastRoundMaxBid.amount);
+    		b1.owner = lastRoundMaxBid.bidder;
+    		b1.amount = lastRoundMaxBid.amount;
+    		if (lastRoundMaxBid.id2 != -1) {
+    			BidInfo b2 = allLinks.get(lastRoundMaxBid.id2);
+        		b2.owner = lastRoundMaxBid.bidder;
+        		b2.amount = lastRoundMaxBid.amount;
     		}
     	}
+    	/*
+    	for (int i = 0; i < currentState.size(); i++) {
+    		if ((currentState.get(i).owner != null) && !currentState.get(i).owner.equals(lastState.get(i).owner)) {
+    			List<Integer> ownerList = playerOwnedLinks.get(new Pair(map.get(currentState.get(i).town1),
+    														map.get(currentState.get(i).town2)));
+    			System.out.println(new Pair(map.get(currentState.get(i).town1),
+    														map.get(currentState.get(i).town2)));
+    			int index = players.indexOf(currentState.get(i).owner);
+    			if (index == -1) {
+    				index = players.size();
+    				players.add(currentState.get(i).owner);
+    				budgets.add(START_BUDGET);
+    			}
+    			ownerList.remove(Integer.valueOf(-1));
+    			ownerList.add(index);
+    	        budgets.set(index, budgets.get(index) - currentState.get(i).amount);
+    			}
+    		}
 		lastState = currentState;
+		*/
     }
     
     /**
@@ -198,7 +238,11 @@ public class Player implements railway.sim.Player {
      * @return a map from each link denoted by an integer pair [i, j] to its corresponding traffic.
      * @see playerOwnedLinks
      */
-    public Map<Pair, Double> getHeatMap(Map<Pair, List<Integer>> playerOwnedLinks2, String player) {
+
+
+    public Map<Pair, Double> createHeatMap() {
+        sour_dest_paths = new HashMap<Pair, List<List<Integer>>>();
+        contain_paths =  new HashMap<Pair, List<List<Integer>>>();
     	Map<Pair, Double> heatmap = new HashMap<Pair, Double>();
         for(int i=0;i<infra.size();i++) {
             for(int j=0;j<infra.get(i).size();j++) {
@@ -214,33 +258,15 @@ public class Player implements railway.sim.Player {
             }
         }
 
-        double trafficcheck = 0;
         for (int i=0;i<transit.length;i++) {
             for (int j=0;j<transit[i].length;j++) { //int j=0;j<transit[i].length;j++
                 if(transit[i][j]==0) {
                     continue;
                 }
                 double totaltransit = transit[i][j];
-                trafficcheck += totaltransit;
-                //System.out.println("loop:"+totaltransit);
                 int[][] prev = Dijkstra.dijkstra(g, i);
                 List<List<Integer>> allP = Dijkstra.getPaths(g,prev,j);
-
-                for(int a=0;a<allP.size();a++) {
-                    for(int b=0;b<allP.get(a).size();b++) {
-                        //System.out.println("a: " + a + ", b: "+ b);
-                        //System.out.println(allP.get(a).get(b));
-                    }
-                }
-
-                double distance = 0; //just use first path
-                for(int a=0;a<allP.get(0).size();a++) {
-                    if(a>0) {
-                        distance += getDistance(allP.get(0).get(a),allP.get(0).get(a-1));
-                    }
-                }
-                //System.out.println("distance: "+distance);
-
+                sour_dest_paths.put(new Pair(i,j), allP);
                 int pathnum = allP.size();
                 double transitpp = totaltransit / pathnum; 
                 //System.out.println("transitpp: "+transitpp);
@@ -249,11 +275,18 @@ public class Player implements railway.sim.Player {
                     for(int b=0;b<allP.get(a).size();b++) {
                         //divide up transitpp based on distance
                         if(b>0) {
-                            double currdist = getDistance(allP.get(a).get(b),allP.get(a).get(b-1));
-                            double expectedtraffic = transitpp * (currdist/distance);
-                            //System.out.println("exp: "+expectedtraffic); //1000
                             int t1 = allP.get(a).get(b-1); //0
                             int t2 = allP.get(a).get(b); //1
+                            Pair con = new Pair(b-1,b);
+                            if(contain_paths.get(con)==null){
+                                List<List<Integer>> pa = new ArrayList<>();
+                                pa.add(allP.get(a));
+                                contain_paths.put(con, pa);
+                            }else{
+                                List<List<Integer>> pa = contain_paths.get(con);
+                                pa.add(allP.get(a));
+                                contain_paths.put(con, pa);
+                            }
 
                             //find heatmap key
                             Pair link = new Pair(0,0);
@@ -273,36 +306,30 @@ public class Player implements railway.sim.Player {
                                     }
                                 }
                             }
-
-                            //System.out.println(heatmap.containsKey(link));
-                            //System.out.println("currtraffic: "+heatmap.get(link));
-                            heatmap.put(link,heatmap.get(link)+expectedtraffic);
-                            //System.out.println("aftertraffic: "+heatmap.get(link));
+                            heatmap.put(link,heatmap.get(link)+transitpp);
                         }
                     }
                 }
-
-                //print heatmap
-                /*for (Pair p:heatmap.keySet()) {
-                    System.out.println("t1: "+p.i1+", t2: "+p.i2+", traffic: "+heatmap.get(p));
-                }*/
-
-
             }
-            //break;
         }
 
-        double total = 0.0;
-        for (Pair p:heatmap.keySet()) {
+        /*for (Pair p:heatmap.keySet()) {
             System.out.println("t1: "+p.i1+", t2: "+p.i2+", traffic: "+heatmap.get(p));
-            total += heatmap.get(p);
-        }
-        System.out.println("total traffic: "+total);
-        System.out.println("traffic check: "+trafficcheck);
-
+        }*/
 
     	return heatmap;
     }
+
+    public Map<Pair, Double> predictHeatMap(List<BidInfo> hypotheticalState, String player) {
+        // heatmap is current heatmap
+        Map<Pair, Double> newmap = new HashMap<Pair, Double>();
+
+
+        return newmap;
+    }
+
+
+
     //This is to Query the info of according bid
     private BidInfo QBidInfo(Bid bid, List<BidInfo> allBids){
         for(BidInfo bi : allBids){
@@ -312,13 +339,16 @@ public class Player implements railway.sim.Player {
         }
         return null;
     }
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
     	// TODO Find a way such that we bid on a link that gives us 0 benefit externally (?)
     	// while giving other links that we owned higher traffics. I am not sure how to do this right now.
     	
     	// Update status & heat map
-    	updateStatus(allBids);
-        getHeatMap(playerOwnedLinks,"g1");
+    	if (newTournament) {
+    		updateStatus(lastRoundMaxBid);
+    		newTournament = false;
+    	}
+        //getHeatMap(playerOwnedLinks,"g1");
         
     	// Random player code below
     	
@@ -333,12 +363,6 @@ public class Player implements railway.sim.Player {
         int maxid = id;
         if (availableBids.size() != 0) {
             return null;
-        }
-        List<BidInfo> ourlinks = new ArrayList<>();
-        for(BidInfo bi : allBids){
-            if (bi.owner == "g1"){
-                ourlinks.add(bi);
-            }
         }
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
@@ -387,7 +411,8 @@ public class Player implements railway.sim.Player {
 
 
         }
-        System.out.println(maxamount+" "+maxid);
+
+        //System.out.println(maxamount+" "+maxid);
         if (availableBids.size() == 0) {
             return null;
         }
@@ -397,9 +422,10 @@ public class Player implements railway.sim.Player {
 //        BidInfo randomBid = availableBids.get(rand.nextInt(availableBids.size()));
 
         // Don't bid if the random bid turns out to be beyond our budget.
-//        if (budget - amount < 0.) {
-//            return null;
-//        }
+        //System.err.println(budgets.get(name));
+        if (budgets.get(name) - maxamount < 0) {
+            return null;
+        }
 
         // Check if another player has made a bid for this link.
 //
@@ -417,9 +443,13 @@ public class Player implements railway.sim.Player {
     public void updateBudget(Bid bid) {
     	// TODO
         if (bid != null) {
+        	
+        	ourlinks.add(allLinks.get(bid.id1));
+        	if (bid.id2 != -1)
+        		ourlinks.add(allLinks.get(bid.id2));
             //budget.set(0, budget.get(0) - bid.amount);
         }
-
+        newTournament = true;
         availableBids = new ArrayList<>();
     }
 }

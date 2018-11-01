@@ -74,7 +74,8 @@ public class Player implements railway.sim.Player {
         List<Coordinates> geo,
         List<List<Integer>> infra,
         int[][] transit,
-        List<String> townLookup) {
+        List<String> townLookup,
+        List<BidInfo> allBids) {
 
         this.budget = budget;
         this.name = name;
@@ -134,7 +135,7 @@ public class Player implements railway.sim.Player {
     // }
 
 
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
         
 
         availableBids.clear();
@@ -219,6 +220,8 @@ public class Player implements railway.sim.Player {
             //System.out.println("amount bid on current link is " + min_amt);
             // System.out.println("max bid is" + max_bid + " our prev bid was" + prev_bid);
            if(prev_bid>=min_amt || budget<bid_amount || max_bid<=our_bid ) break;
+
+           if(max_bid==our_bid)return null;
 
            if(min_amt>= budget/2) continue;
 
@@ -365,6 +368,21 @@ public class Player implements railway.sim.Player {
         }
 
         return getDistance(s,e);
+    }
+
+        private  double linkValue(String t1, String t2) {
+        // return getDistance(townRevLookup.get(t1), townRevLookup.get(t2));
+
+        int s=-1,e=-1;
+        for(int i=0;i<townLookup.size();i++)
+        {
+            if(townLookup.get(i).equals(t1))
+                s = i;
+            else if (townLookup.get(i).equals(t2))
+                e = i;
+        }
+
+        return getDistance(s,e)*transit[s][e];
     }
 
     // private static double getDistance(int linkId) {
