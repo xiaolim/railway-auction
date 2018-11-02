@@ -158,6 +158,69 @@ public class Player implements railway.sim.Player {
         }
     }
 
+    private void getUncontestableRoute() {
+        WeightedGraph g = buildGraph();
+        for (int s = 0; s < transit.length; s++) {
+            for (int t = s + 1; t < transit[s].length; s++) {
+                List<List<Integer>> links = getLinks(s, t);
+                int num = Integer.MAX_VALUE;
+                int index = 0;
+                for (int i = 0; i < links.size(); i++) {
+                    if (links.get(i).size() == 2) {
+                        num = 2;
+                        index = i;
+                        break;
+                    }
+                    if (links.get(i).size() < num) {
+                        num = links.get(i).size();
+                        index = i;
+                    }
+                }
+
+                if (num == 2) {
+                    continue;
+                } 
+
+                int switches = links.get(index).size() - 2;
+                double addedWeight = switches * 200 / (links.get(index).size() - 1);
+                for (int i = 0; i < links.get(index).size() - 1; i++) {
+                    double weight = g.getWeight(links.get(index).get(i), links.get(index).get(i + 1));
+                    g.removeEdge(links.get(index).get(i), links.get(index).get(i + 1));
+                    g.addEdge(links.get(index).get(i), links.get(index).get(i + 1), weight + addedWeight);
+                }
+
+                List<List<Integer>> newLinks = getLinks(s, t);
+                int distance = 0;
+                for (int i = 0; i < newLinks.get(0).size() - 1; i++) {
+                    distance += g.getWeight(newLinks.get(0).get(i), newLinks.get(0).get(i + 1));
+                }
+                if (distance <= shortestPaths[s][t] + switches * 200) {
+                    continue;
+                }
+            }
+        }
+
+    }
+
+    private WeightedGraph buildGraph() {
+        WeightedGraph g = new WeightedGraph(townLookup.size());
+        for (int i = 0; i < townLookup.size(); i++) {
+            g.setLabel(townLookup.get(i));
+        }
+
+        for (int i = 0; i < infra.size(); i++) {
+            for (int j = 0; j < infra.get(i).size(); j++) {
+                int source = i;
+                int target = infra.get(i).get(j);
+                // g.addEdge(source, target, transit[source][target]);
+                double distance = calcEuclideanDistance(geo.get(source), geo.get(target));
+                g.addEdge(source, target, distance);
+            }
+        }
+
+        return g;
+    }
+
     private void initLinkTable() {
         linkToID = new HashMap<Link, Integer>();
         idToLink = new HashMap<Integer, Link>();
@@ -256,7 +319,7 @@ public class Player implements railway.sim.Player {
     private void gatherAllVolumePerKm() {
         // double max = 0;
         rankedRouteValue = new ArrayList<RouteValue>();
-        List<List<Integer>> maxLinks = new ArrayList<List<Integer>>();
+        // List<List<Integer>> maxLinks = new ArrayList<List<Integer>>();
         for (int i = 0; i < transit.length; i++) {
             for (int j = i + 1; j < transit[i].length; j++) {
                 rankedRouteValue.add(getRouteValue(i, j));
@@ -466,13 +529,16 @@ public class Player implements railway.sim.Player {
         int linkID = -1;
         double value = 0;
         if (valueToBridge.size() == 0) {
-            return null;
+            System.out.println("no bridge");
+            return getRandomBid(currentBids, allBids, lastRoundMaxBid);
         }
         for (Map.Entry<Double, Link> entry: valueToBridge.entrySet()) {
             Link nextBridge = entry.getValue();
             if (linkToID.containsKey(nextBridge)) {
                 linkID = linkToID.get(nextBridge);
                 value = entry.getKey();
+                valueToBridge.remove(value);
+                break;
             }
         }
 
@@ -505,6 +571,7 @@ public class Player implements railway.sim.Player {
         double distance = bridge.getDistance();
         System.out.println("max bidder: " + bidder);
         if (bidder.equals("g7") || max * distance > value * 10) {
+            System.out.println("we are the highest price already, or the current price is too high");
             return null;
         }
 
@@ -513,6 +580,7 @@ public class Player implements railway.sim.Player {
         LinkInfo li = idToLinkInfo.get(linkID);
         if (li.getAmount() > max * distance) {
             if (budget < li.getAmount()) {
+                System.out.println("budget smaller than minimum bid, budget: " + budget + ", min: " + li.getAmount());
                 return null;
             }
             ourBid.amount = li.getAmount();
@@ -520,6 +588,7 @@ public class Player implements railway.sim.Player {
         }
         else {
             if (budget < max * distance + 10000) {
+                System.out.println("budget smaller than max * distance + 10000, budget: " + budget + ", bid required: " + Double.toString(max * distance + 10000));
                 return null;
             }
             ourBid.amount = max * distance + 10000;
