@@ -10,6 +10,7 @@ import java.util.Random;
 import java.util.Hashtable;
 import java.util.HashSet;
 import java.util.Set;
+import java.lang.management.*;
 // To access data classes.
 import railway.sim.utils.*;
 
@@ -37,7 +38,12 @@ public class Player implements railway.sim.Player {
     private Map<LinkValue, List<List<Integer>>> bridgeMap;
     private double[][] shortestPaths;
     private Map<LinkValue, Double> bridgeValue;
-    private Map<Double, LinkValue> valueToBridge;
+    private Map<Double, Link> valueToBridge;
+    private Map<Link, Integer> linkToID;
+    private Map<Integer, Link> idToLink;
+    private Map<Integer, LinkInfo> idToLinkInfo;
+    private Map<String, Integer> townIDLookup;
+    private double lastBidAmount;
 
     private List<BidInfo> availableBids = new ArrayList<>();
     private Set<Integer> availableBidId = new HashSet<>();
@@ -45,6 +51,8 @@ public class Player implements railway.sim.Player {
 
     public Player() {
         rand = new Random();
+        valueToBridge = new HashMap<Double, Link>();
+        lastBidAmount = 0.;
     }
 
     public void init(
@@ -63,7 +71,9 @@ public class Player implements railway.sim.Player {
         this.townLookup = townLookup;
         this.allBids = allBids;
         shortestPaths = new double[transit.length][transit[0].length];
+        initTownIDLookup();
         initializeGraph();
+        initLinkTable();
         // List<List<Integer>> links = getMostVolumePerKm();
         // for (int i = 0; i < links.size(); i++) {
         //     System.out.println("The %s link is: ");
@@ -71,19 +81,21 @@ public class Player implements railway.sim.Player {
         //         System.out.print(links.get(i).get(j) + " ");
         //     }
         // }
-        bridges = findBridges();
+        // bridges = findBridges();
         //System.out.println("The bridges are:");
-        for (int i = 0; i < bridges.size(); i++) {
-            for (int j = 0; j < bridges.get(i).size(); j++) {
-                //System.out.print(bridges.get(i).get(j) + " ");
-            }
-            //System.out.println();
-        }
-        initializeBridgeLinks();
-        initializeDistHash();
-        rankedRouteValue = new ArrayList<RouteValue>();
-        gatherAllVolumePerKm();
-        buildBridgeMap();
+        // for (int i = 0; i < bridges.size(); i++) {
+        //     for (int j = 0; j < bridges.get(i).size(); j++) {
+        //         //System.out.print(bridges.get(i).get(j) + " ");
+        //     }
+        //     //System.out.println();
+        // }
+        // initializeBridgeLinks();
+        // initializeDistHash();
+        // rankedRouteValue = new ArrayList<RouteValue>();
+        // gatherAllVolumePerKm();
+        BridgeThread bridgeThread = new BridgeThread("BridgeThread");
+        bridgeThread.start();
+        // buildBridgeMap();
         // for (Map.Entry<LinkValue, List<List<Integer>>> entry: bridgeMap.entrySet()) {
         //     System.out.println(entry.getKey() + ", from " + townLookup.get(entry.getKey().town1) + " to " + townLookup.get(entry.getKey().town2));
         //     System.out.println();
@@ -95,9 +107,9 @@ public class Player implements railway.sim.Player {
         //         System.out.println();
         //     }
         // }
-        for (Map.Entry<Double, LinkValue> entry: valueToBridge.entrySet()) {
-            System.out.println(entry.getValue() + ", from " + townLookup.get(entry.getValue().town1) + " to " + townLookup.get(entry.getValue().town2) + ", and its value is: " + entry.getKey());
-        }
+        // for (Map.Entry<Double, LinkValue> entry: valueToBridge.entrySet()) {
+        //     System.out.println(entry.getValue() + ", from " + townLookup.get(entry.getValue().town1) + " to " + townLookup.get(entry.getValue().town2) + ", and its value is: " + entry.getKey());
+        // }
 
         //System.out.println("The bridges are:");
         // for (int i = 0; i < bridges.size(); i++) {
@@ -113,12 +125,19 @@ public class Player implements railway.sim.Player {
         // }
         // calculateBridgeValue();
 
-        initializeRouteLinks();
+        // initializeRouteLinks();
     }
 
     private void initializeDistHash(){
         for (BidInfo bi: allBids){
             distanceLookup.put(bi.id,graph.getWeight(townLookup.indexOf(bi.town1),townLookup.indexOf(bi.town2)));
+        }
+    }
+
+    private void initTownIDLookup() {
+        townIDLookup = new HashMap<String, Integer>();
+        for (int i = 0; i < townLookup.size(); i++) {
+            townIDLookup.put(townLookup.get(i), i);
         }
     }
 
@@ -138,6 +157,23 @@ public class Player implements railway.sim.Player {
             }
         }
     }
+
+    private void initLinkTable() {
+        linkToID = new HashMap<Link, Integer>();
+        idToLink = new HashMap<Integer, Link>();
+        idToLinkInfo = new HashMap<Integer, LinkInfo>();
+        for (BidInfo binfo: allBids) {
+            int i = townIDLookup.get(binfo.town1);
+            int j = townIDLookup.get(binfo.town2);
+            linkToID.put(new Link(i, j), binfo.id);
+            idToLink.put(binfo.id, new Link(i, j));
+            idToLinkInfo.put(binfo.id, new LinkInfo(new Link(i, j), binfo.amount, binfo.owner));
+            // System.out.println("owner: " + binfo.owner);
+        }
+        System.out.println("linkTable finished");
+    }
+
+
     public void initializeBridgeLinks(){
         for (int i=0; i < bridges.size();i++){
             List blink = bridges.get(i);
@@ -147,6 +183,7 @@ public class Player implements railway.sim.Player {
             bridgeLinks.add(new LinkValue(town1,town2,bInfo));
         }
         Collections.sort(bridgeLinks, Collections.reverseOrder());
+        System.out.println("initializeBridgeLinks ended");
     }
 
     public void initializeRouteLinks(){
@@ -247,109 +284,109 @@ public class Player implements railway.sim.Player {
         Collections.sort(rankedRouteValue, Collections.reverseOrder());
     }
 
-    private List<List<Integer>> findBridges() {
-        List<List<Integer>> bridges = new ArrayList<List<Integer>>();
-        for (int i = 0; i < infra.size(); i++) {
-            for (int j = 0; j < infra.get(i).size(); j++) {
-                int source = i;
-                int target = infra.get(i).get(j);
-                double weight = graph.getWeight(source, target);
-                graph.removeEdge(source, target);
-                boolean bridgeFound = false;
-                // System.out.println("source: " + source + ", target: " + target);
-                for (int s = 0; s < townLookup.size(); s++) {
-                    int[][] prev = Dijkstra.dijkstra(graph, s);
-                    for (int t = s + 1; t < prev.length; t++) {
-                        if (prev[t][0] == 0) {
-                            bridgeFound = true;
-                            // System.out.println("s: " + s + ", t: " + t);
-                            break;
-                        }
-                    }
+    // private List<List<Integer>> findBridges() {
+    //     List<List<Integer>> bridges = new ArrayList<List<Integer>>();
+    //     for (int i = 0; i < infra.size(); i++) {
+    //         for (int j = 0; j < infra.get(i).size(); j++) {
+    //             int source = i;
+    //             int target = infra.get(i).get(j);
+    //             double weight = graph.getWeight(source, target);
+    //             graph.removeEdge(source, target);
+    //             boolean bridgeFound = false;
+    //             // System.out.println("source: " + source + ", target: " + target);
+    //             for (int s = 0; s < townLookup.size(); s++) {
+    //                 int[][] prev = Dijkstra.dijkstra(graph, s);
+    //                 for (int t = s + 1; t < prev.length; t++) {
+    //                     if (prev[t][0] == 0) {
+    //                         bridgeFound = true;
+    //                         // System.out.println("s: " + s + ", t: " + t);
+    //                         break;
+    //                     }
+    //                 }
 
-                    if (bridgeFound) {
-                        break;
-                    }
-                }
+    //                 if (bridgeFound) {
+    //                     break;
+    //                 }
+    //             }
 
-                if (bridgeFound) {
-                    List<Integer> bridge = new ArrayList<Integer>();
-                    bridge.add(source);
-                    bridge.add(target);
-                    bridges.add(bridge);
-                }
+    //             if (bridgeFound) {
+    //                 List<Integer> bridge = new ArrayList<Integer>();
+    //                 bridge.add(source);
+    //                 bridge.add(target);
+    //                 bridges.add(bridge);
+    //             }
 
-                graph.addEdge(source, target, weight);
-            }
-        }
+    //             graph.addEdge(source, target, weight);
+    //         }
+    //     }
 
-        return bridges; 
-    }
+    //     return bridges; 
+    // }
 
-    private void buildBridgeMap() {
-        System.out.println("buildBridgeMap started");
-        bridgeMap = new HashMap<LinkValue, List<List<Integer>>>();
-        valueToBridge = new TreeMap<Double, LinkValue>(Collections.reverseOrder());
-        for (int i = 0; i < infra.size(); i++) {
-            for (int j = 0; j < infra.get(i).size(); j++) {
-                int source = i;
-                int target = infra.get(i).get(j);
-                double weight = graph.getWeight(source, target);
-                graph.removeEdge(source, target);
-                // boolean bridgeFound = false;
-                // System.out.println("source: " + source + ", target: " + target);
-                BidInfo bInfo = getBidInfo(source,target);
-                LinkValue lv = new LinkValue(source, target, bInfo);
-                double value = 0;
-                for (int s = 0; s < townLookup.size(); s++) {
-                    int[][] prev = Dijkstra.dijkstra(graph, s);
-                    for (int t = s + 1; t < prev.length; t++) {
-                        if (prev[t][0] != 0) {
-                            // bridgeFound = true;
-                            // System.out.println("s: " + s + ", t: " + t);
-                            // break;
-                            continue;
-                        }
+    // private void buildBridgeMap() {
+    //     System.out.println("buildBridgeMap started");
+    //     bridgeMap = new HashMap<LinkValue, List<List<Integer>>>();
+    //     valueToBridge = new TreeMap<Double, LinkValue>(Collections.reverseOrder());
+    //     for (int i = 0; i < infra.size(); i++) {
+    //         for (int j = 0; j < infra.get(i).size(); j++) {
+    //             int source = i;
+    //             int target = infra.get(i).get(j);
+    //             double weight = graph.getWeight(source, target);
+    //             graph.removeEdge(source, target);
+    //             // boolean bridgeFound = false;
+    //             // System.out.println("source: " + source + ", target: " + target);
+    //             BidInfo bInfo = getBidInfo(source,target);
+    //             LinkValue lv = new LinkValue(source, target, bInfo);
+    //             double value = 0;
+    //             for (int s = 0; s < townLookup.size(); s++) {
+    //                 int[][] prev = Dijkstra.dijkstra(graph, s);
+    //                 for (int t = s + 1; t < prev.length; t++) {
+    //                     if (prev[t][0] != 0) {
+    //                         // bridgeFound = true;
+    //                         // System.out.println("s: " + s + ", t: " + t);
+    //                         // break;
+    //                         continue;
+    //                     }
 
-                        if (!bridgeMap.containsKey(lv)) {
-                            // System.out.println(lv + ", not contained in map!");
-                            List<List<Integer>> nodes = new ArrayList<List<Integer>>();
-                            // List<Integer> part1 = new ArrayList<Integer>();
-                            // List<Integer> part2 = new ArrayList<Integer>();
-                            // nodes.add(part1);
-                            // nodes.add(part2);
-                            bridgeMap.put(lv, nodes);
-                        }
-                        List<Integer> pair = new ArrayList<Integer>();
-                        pair.add(s);
-                        pair.add(t);
-                        List<List<Integer>> nodes = bridgeMap.get(lv);
-                        nodes.add(pair);
-                        value += shortestPaths[s][t] * transit[s][t];
-                        System.out.println("value is: " + value);
-                        // nodes.get(0).add(s);
-                        // nodes.get(1).add(t);
-                    }
-                }
+    //                     if (!bridgeMap.containsKey(lv)) {
+    //                         // System.out.println(lv + ", not contained in map!");
+    //                         List<List<Integer>> nodes = new ArrayList<List<Integer>>();
+    //                         // List<Integer> part1 = new ArrayList<Integer>();
+    //                         // List<Integer> part2 = new ArrayList<Integer>();
+    //                         // nodes.add(part1);
+    //                         // nodes.add(part2);
+    //                         bridgeMap.put(lv, nodes);
+    //                     }
+    //                     List<Integer> pair = new ArrayList<Integer>();
+    //                     pair.add(s);
+    //                     pair.add(t);
+    //                     List<List<Integer>> nodes = bridgeMap.get(lv);
+    //                     nodes.add(pair);
+    //                     value += shortestPaths[s][t] * transit[s][t];
+    //                     System.out.println("value is: " + value);
+    //                     // nodes.get(0).add(s);
+    //                     // nodes.get(1).add(t);
+    //                 }
+    //             }
 
-                graph.addEdge(source, target, weight);
+    //             graph.addEdge(source, target, weight);
 
-                if (!bridgeMap.containsKey(lv)) {
-                    continue;
-                }
+    //             if (!bridgeMap.containsKey(lv)) {
+    //                 continue;
+    //             }
 
-                List<List<Integer>> nodes = bridgeMap.get(lv);
-                System.out.println("one map built, and nodes size: " + nodes.size() + ", node size: " + nodes.get(0).size());
-                if (nodes.get(0).get(0) == nodes.get(nodes.size() / 2).get(0) && nodes.get(0).get(1) == nodes.get(nodes.size() / 2).get(1)) {
-                    // System.out.println("duplicate route, value should be halved: " + value);
-                    value /= 2;
-                }
+    //             List<List<Integer>> nodes = bridgeMap.get(lv);
+    //             System.out.println("one map built, and nodes size: " + nodes.size() + ", node size: " + nodes.get(0).size());
+    //             if (nodes.get(0).get(0) == nodes.get(nodes.size() / 2).get(0) && nodes.get(0).get(1) == nodes.get(nodes.size() / 2).get(1)) {
+    //                 // System.out.println("duplicate route, value should be halved: " + value);
+    //                 value /= 2;
+    //             }
 
 
-                valueToBridge.put(value, lv);
-            }
-        }
-    }
+    //             valueToBridge.put(value, lv);
+    //         }
+    //     }
+    // }
 
 
     private void calculateBridgeValue() {
@@ -424,151 +461,283 @@ public class Player implements railway.sim.Player {
         // Random player doesn't care about bids made by other players.
         // this.allBids = allBids; 
 
-        System.out.println(routeLinks.size());
-
-        for (BidInfo bi : allBids) { 
-            if (bi.owner == null) {
-                availableBids.add(bi);
-                availableBidId.add(bi.id);
-            }
-        } 
-
-        if (availableBids.size()==0){
+        // System.out.println(routeLinks.size());
+        updateAvailableLinks(lastRoundMaxBid);
+        int linkID = -1;
+        double value = 0;
+        if (valueToBridge.size() == 0) {
             return null;
-        } 
-
-        // RouteValue routeToBid=null; 
-        BidInfo linkToBid =null; 
-
-        // find first bridge in the list, if the bridge is already taken remove it from the list
-        double bidAmount = 0;
-        double maxAmount = 0;
-        List<Double> values= new ArrayList<Double>(valueToBridge.keySet());
-        System.out.println("keySet:"+ values.size());
-        while(linkToBid == null && valueToBridge.size()>0){
-            LinkValue temp = valueToBridge.get(values.get(0));
-            boolean aval = false;
-            for (BidInfo bi: availableBids){
-                if (bi.id == temp.bid.id){
-                    linkToBid = bi;
-                    aval = true;
-                    maxAmount = 5*values.get(0);
-                    break;
-                }
-            }
-            if (!aval){
-                valueToBridge.remove(values.get(0));
-                values.remove(values.get(0));
+        }
+        for (Map.Entry<Double, Link> entry: valueToBridge.entrySet()) {
+            Link nextBridge = entry.getValue();
+            if (linkToID.containsKey(nextBridge)) {
+                linkID = linkToID.get(nextBridge);
+                value = entry.getKey();
             }
         }
 
-        // if there's no bridge, look for the most traveled route
-        if (linkToBid == null){
-            System.out.println("There's no bridge");
-            RouteValue routeToBid = null;
-            for (int i=0;i<routeLinks.size();i++){
-                List<LinkValue> path = routeLinks.get(0);
-                routeToBid = rankedRouteValue.get(0);
-                boolean full = true;
-                for (int j=0;j< path.size();j++){
-                    LinkValue linkV = path.get(j);
-                    int bidId = linkV.bid.id;
-                    if (!availableBidId.contains(bidId) && !ourBidId.contains(bidId)){
-                        routeLinks.remove(path);
-                        rankedRouteValue.remove(routeToBid);
-                        i--;
-                        break;
-                    }
-                    if(availableBidId.contains(bidId)){
-                        linkToBid = linkV.bid;
-                        full = false;
-                        break;
-                    }
-                }
-                if (full){
-                    routeLinks.remove(path);
-                    rankedRouteValue.remove(routeToBid);
-                    i--;
-                }
-                else{
-                    break;
-                }
-            }
-            if (linkToBid!=null){
-                maxAmount = linkToBid.amount;
-                // if (secondLinkToBid != null) {
-                //     amount += secondLinkValueToBid.distance * transit[secondLinkValueToBid.town1][secondLinkValueToBid.town2];
-                //     amount += secondLinkToBid.amount;
-                // }
+        if (linkID == -1) {
+            return getRandomBid(currentBids, allBids, lastRoundMaxBid);
+        }
 
-                // taking into account the entire route 
-                maxAmount += 10*routeToBid.volPerKm * routeToBid.distance; // the entire distance? 
+        double max = 0.;
+        String bidder = "";
+        for (Bid bid: currentBids) {
+            Link link = idToLink.get(bid.id1);
+            double distance = graph.getWeight(link.town1, link.town2);
+            if (bid.amount / distance > max) {
+                max = bid.amount / distance;
+                bidder = bid.bidder;
+            }
+
+            if (bid.id2 == -1) {
+                continue;
+            }
+            link = idToLink.get(bid.id2);
+            distance = graph.getWeight(link.town1, link.town2);
+            if (bid.amount / distance > max) {
+                max = bid.amount / distance;
+                bidder = bid.bidder;
             }
         }
 
-        // If no bridge, and no most traveled route, just choose random
-        if (linkToBid==null){
-            linkToBid = availableBids.get(rand.nextInt(availableBids.size()));
-        }
-
-        // if minimum amount to bid is lower than budget, return null
-        bidAmount=linkToBid.amount;
-        if (budget - bidAmount < 0.) {
+        Link bridge = idToLink.get(linkID);
+        double distance = bridge.getDistance();
+        System.out.println("max bidder: " + bidder);
+        if (bidder.equals("g7") || max * distance > value * 10) {
             return null;
         }
 
-        // find current highest bid and over bid that
-        Collections.reverse(currentBids);
-        double currMax = 0;
-        String maxBidder = null;
-        Set<Integer> maxLinkID = new HashSet<Integer>();
-        for (Bid b : currentBids) {
-            // increment 10000
-            if (b.id1 == linkToBid.id || b.id2 == linkToBid.id) {
-                 if (budget - b.amount - 10000 < 0.) {
-                     return null;
-                 }
-                 else{
-                    bidAmount = b.amount + 10000;
-                 }
-            }
-            // find max bid
-            double currDis = distanceLookup.get(b.id1);
-            if (b.id2 != -1) currDis += distanceLookup.get(b.id2);
-            double currVal = b.amount/currDis;
-            if (currVal > currMax){
-                currMax = currVal;
-                maxLinkID.add(b.id1);
-                if (b.id2 != -1){
-                    maxLinkID.add(b.id2);
-                }
-                maxBidder = b.bidder;
-            }
-        }  
-        System.out.println("MaxBidder:" +maxBidder);
-        if (maxBidder!= null && !maxBidder.equals(this.name)){
-            double temp = currMax*distanceLookup.get(linkToBid.id)+1;
-            if (temp > maxAmount){
-                System.out.println("Match MaxBidder is too high");
+        Bid ourBid = new Bid();
+        ourBid.id1 = linkID;
+        LinkInfo li = idToLinkInfo.get(linkID);
+        if (li.getAmount() > max * distance) {
+            if (budget < li.getAmount()) {
                 return null;
             }
-            if (temp > bidAmount && temp < budget){
-                System.out.println("Match MaxBidder");
-                bidAmount = temp;
-                if (maxLinkID.contains(linkToBid.id)){
-                    bidAmount+=10000;
-                }
+            ourBid.amount = li.getAmount();
+            System.out.println("we bid the minimum amount: " + li.getAmount());
+        }
+        else {
+            if (budget < max * distance + 10000) {
+                return null;
+            }
+            ourBid.amount = max * distance + 10000;
+            System.out.println("we increased the max bid by 10000: " + ourBid.amount);
+        }
+
+        return ourBid;
+
+        // for (BidInfo bi : allBids) { 
+        //    if (bi.owner == null) {
+        //         availableBids.add(bi);
+        //         availableBidId.add(bi.id);
+        //     }
+        // } 
+
+        // if (availableBids.size()==0){
+        //     return null;
+        // } 
+
+        // // RouteValue routeToBid=null; 
+        // BidInfo linkToBid =null; 
+
+        // // find first bridge in the list, if the bridge is already taken remove it from the list
+        // double bidAmount = 0;
+        // double maxAmount = 0;
+        // List<Double> values= new ArrayList<Double>(valueToBridge.keySet());
+        // System.out.println("keySet:"+ values.size());
+        // while(linkToBid == null && valueToBridge.size()>0){
+        //     LinkValue temp = valueToBridge.get(values.get(0));
+        //     boolean aval = false;
+        //     for (BidInfo bi: availableBids){
+        //         if (bi.id == temp.bid.id){
+        //             linkToBid = bi;
+        //             aval = true;
+        //             maxAmount = 5*values.get(0);
+        //             break;
+        //         }
+        //     }
+        //     if (!aval){
+        //         valueToBridge.remove(values.get(0));
+        //         values.remove(values.get(0));
+        //     }
+        // }
+
+        // // if there's no bridge, look for the most traveled route
+        // if (linkToBid == null) {
+        //     System.out.println("There's no bridges");
+        // }
+
+        // return linkToBid;
+        // if (linkToBid == null){
+        //     System.out.println("There's no bridge");
+        //     RouteValue routeToBid = null;
+        //     for (int i=0;i<routeLinks.size();i++){
+        //         List<LinkValue> path = routeLinks.get(0);
+        //         routeToBid = rankedRouteValue.get(0);
+        //         boolean full = true;
+        //         for (int j=0;j< path.size();j++){
+        //             LinkValue linkV = path.get(j);
+        //             int bidId = linkV.bid.id;
+        //             if (!availableBidId.contains(bidId) && !ourBidId.contains(bidId)){
+        //                 routeLinks.remove(path);
+        //                 rankedRouteValue.remove(routeToBid);
+        //                 i--;
+        //                 break;
+        //             }
+        //             if(availableBidId.contains(bidId)){
+        //                 linkToBid = linkV.bid;
+        //                 full = false;
+        //                 break;
+        //             }
+        //         }
+        //         if (full){
+        //             routeLinks.remove(path);
+        //             rankedRouteValue.remove(routeToBid);
+        //             i--;
+        //         }
+        //         else{
+        //             break;
+        //         }
+        //     }
+        //     if (linkToBid!=null){
+        //         maxAmount = linkToBid.amount;
+        //         // if (secondLinkToBid != null) {
+        //         //     amount += secondLinkValueToBid.distance * transit[secondLinkValueToBid.town1][secondLinkValueToBid.town2];
+        //         //     amount += secondLinkToBid.amount;
+        //         // }
+
+        //         // taking into account the entire route 
+        //         maxAmount += 10*routeToBid.volPerKm * routeToBid.distance; // the entire distance? 
+        //     }
+        // }
+
+        // // If no bridge, and no most traveled route, just choose random
+        // if (linkToBid==null){
+        //     linkToBid = availableBids.get(rand.nextInt(availableBids.size()));
+        // }
+
+        // // if minimum amount to bid is lower than budget, return null
+        // bidAmount=linkToBid.amount;
+        // if (budget - bidAmount < 0.) {
+        //     return null;
+        // }
+
+        // // find current highest bid and over bid that
+        // Collections.reverse(currentBids);
+        // double currMax = 0;
+        // String maxBidder = null;
+        // Set<Integer> maxLinkID = new HashSet<Integer>();
+        // for (Bid b : currentBids) {
+        //     // increment 10000
+        //     if (b.id1 == linkToBid.id || b.id2 == linkToBid.id) {
+        //          if (budget - b.amount - 10000 < 0.) {
+        //              return null;
+        //          }
+        //          else{
+        //             bidAmount = b.amount + 10000;
+        //          }
+        //     }
+        //     // find max bid
+        //     double currDis = distanceLookup.get(b.id1);
+        //     if (b.id2 != -1) currDis += distanceLookup.get(b.id2);
+        //     double currVal = b.amount/currDis;
+        //     if (currVal > currMax){
+        //         currMax = currVal;
+        //         maxLinkID.add(b.id1);
+        //         if (b.id2 != -1){
+        //             maxLinkID.add(b.id2);
+        //         }
+        //         maxBidder = b.bidder;
+        //     }
+        // }  
+        // System.out.println("MaxBidder:" +maxBidder);
+        // if (maxBidder!= null && !maxBidder.equals(this.name)){
+        //     double temp = currMax*distanceLookup.get(linkToBid.id)+1;
+        //     if (temp > maxAmount){
+        //         System.out.println("Match MaxBidder is too high");
+        //         return null;
+        //     }
+        //     if (temp > bidAmount && temp < budget){
+        //         System.out.println("Match MaxBidder");
+        //         bidAmount = temp;
+        //         if (maxLinkID.contains(linkToBid.id)){
+        //             bidAmount+=10000;
+        //         }
+        //     }
+        // }
+        // else if (maxBidder!=null && maxBidder.equals(this.name)){
+        //     return null;
+        // }
+
+        // Bid bid = new Bid();
+        // bid.amount = bidAmount;
+        // bid.id1 = linkToBid.id;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+        // return bid;
+    }
+
+    private Bid getRandomBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
+        if (availableBids.size() != 0) {
+            return null;
+        }
+
+        for (BidInfo bi : allBids) {
+            if (bi.owner == null) {
+                availableBids.add(bi);
             }
         }
-        else if (maxBidder!=null && maxBidder.equals(this.name)){
+
+        if (availableBids.size() == 0) {
             return null;
+        }
+
+        BidInfo randomBid = availableBids.get(rand.nextInt(availableBids.size()));
+        double amount = randomBid.amount;
+
+        // Don't bid if the random bid turns out to be beyond our budget.
+        if (budget - amount < 0.) {
+            return null;
+        }
+
+        // Check if another player has made a bid for this link.
+        for (Bid b : currentBids) {
+            if (b.id1 == randomBid.id || b.id2 == randomBid.id) {
+                if (budget - b.amount - 10000 < 0.) {
+                    return null;
+                }
+                else {
+                    amount = b.amount + 10000;
+                }
+
+                break;
+            }
         }
 
         Bid bid = new Bid();
-        bid.amount = bidAmount;
-        bid.id1 = linkToBid.id;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+        bid.amount = amount;
+        bid.id1 = randomBid.id;
+
         return bid;
+    }
+
+    private void updateAvailableLinks(Bid lastRoundMaxBid) {
+        if (lastRoundMaxBid == null) {
+            return;
+        }
+
+        Link lastAwardedLink = idToLink.get(lastRoundMaxBid.id1);
+        linkToID.remove(lastAwardedLink);
+        if (lastRoundMaxBid.id2 == -1) {
+            return;
+        }
+        lastAwardedLink = idToLink.get(lastRoundMaxBid.id2);
+        linkToID.remove(lastAwardedLink);
+
+        if (lastRoundMaxBid.bidder.equals("g7")) {
+            budget -= lastRoundMaxBid.amount;
+        }
     }
 
     public void updateBudget(Bid bid) {
@@ -661,6 +830,129 @@ public class Player implements railway.sim.Player {
         }
     }
 
+    private class Link {
+        private int town1;
+        private int town2;
+
+        public Link(int id1, int id2){
+            if (id1 < id2) {
+                town1 = id1;
+                town2 = id2;
+            }
+            else {
+                town1 = id2;
+                town2 = id1;
+            }
+        }
+
+        public double getDistance() {
+            return graph.getWeight(town1, town2);
+        }
+
+        @Override
+        public boolean equals(Object o) { 
+  
+            // If the object is compared with itself then return true   
+            if (o == this) { 
+                return true; 
+            } 
+  
+            /* Check if o is an instance of Complex or not 
+            "null instanceof [type]" also returns false */
+            if (!(o instanceof Link)) { 
+                return false; 
+            } 
+          
+            // typecast o to Complex so that we can compare data members  
+            Link lv = (Link) o; 
+          
+            // Compare the data members and return accordingly  
+            return (town1 == lv.town1 && town2 == lv.town2) || (town1 == lv.town2 && town2 == lv.town1); 
+        }
+
+        @Override
+        public int hashCode() {
+            String s = "";
+            if (town1 < town2) {
+                s = Integer.toString(town1) + Integer.toString(town2);
+                
+            }
+            else {
+                s = Integer.toString(town2) + Integer.toString(town1);
+            }
+            return s.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return new String("This link is from " + town1 + " to " + town2);
+        }
+    }
+
+    private class LinkInfo {
+        private Link link;
+        private double amount;
+        private String owner;
+
+        public LinkInfo(Link l, double a, String o){
+            link = new Link(l.town1, l.town2);
+            amount = a;
+            owner = o;
+        }
+
+        public Link getLink() {
+            return new Link(link.town1, link.town2);
+        }
+
+        public void setAmount(double a) {
+            amount = a;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
+
+        public void setOwner(String o) {
+            owner = o;
+        }
+
+        public String getOwner() {
+            return owner;
+        }
+
+        @Override
+        public boolean equals(Object o) { 
+  
+            // If the object is compared with itself then return true   
+            if (o == this) { 
+                return true; 
+            } 
+  
+            /* Check if o is an instance of Complex or not 
+            "null instanceof [type]" also returns false */
+            if (!(o instanceof LinkInfo)) { 
+                return false; 
+            } 
+          
+            // typecast o to Complex so that we can compare data members  
+            LinkInfo lv = (LinkInfo) o; 
+          
+            // Compare the data members and return accordingly  
+            return link.equals(lv.link) && amount == lv.amount && owner.equals(lv.owner); 
+        }
+
+        @Override
+        public int hashCode() {
+            String s = link.toString() + Double.toString(amount) + owner;
+            return s.hashCode();
+        }
+
+        @Override
+        public String toString() {
+            return link.toString() + ", the amount is: " + Double.toString(amount) + ", and the owner is: " + owner;
+        }
+    }
+
     private class RouteValue implements Comparable<RouteValue>{
         List<List<Integer>> routes;
         double volPerKm;
@@ -708,4 +1000,136 @@ public class Player implements railway.sim.Player {
             }
         }
     }
+
+    private class BridgeThread implements Runnable {
+        private Thread t;
+        private String name;
+
+        BridgeThread(String name) {
+            this.name = name;
+        }
+
+        public void run() {
+            // initializeGraph();
+            // rankedRouteValue = new ArrayList<RouteValue>();
+            // gatherAllVolumePerKm();
+            // initLinkTable();
+            bridges = findBridges();
+            // initializeBridgeLinks();
+            initializeDistHash();
+            rankedRouteValue = new ArrayList<RouteValue>();
+            gatherAllVolumePerKm();
+            buildBridgeMap();
+            initializeRouteLinks();
+        }
+
+        public void start () {
+            if (t == null) {
+                t = new Thread (this, name);
+                t.start ();
+            }
+        }
+
+        // private void initLinkTable() {
+        //     linkToID = new HashMap<Link, Integer>();
+        //     idToLink = new HashMap<Integer, Link>();
+        //     idToLinkInfo = new HashMap<Integer, LinkInfo>();
+        //     for (BidInfo binfo: allBids) {
+        //         int i = townIDLookup.get(binfo.town1);
+        //         int j = townIDLookup.get(binfo.town2);
+        //         linkToID.put(new Link(i, j), binfo.id);
+        //         idToLink.put(binfo.id, new Link(i, j));
+        //         idToLinkInfo.put(binfo.id, new LinkInfo(new Link(i, j), binfo.amount, binfo.owner));
+        //     }
+        //     System.out.println("linkTable finished");
+        // }
+
+        private List<List<Integer>> findBridges() {
+            List<List<Integer>> bridges = new ArrayList<List<Integer>>();
+            for (int i = 0; i < infra.size(); i++) {
+                for (int j = 0; j < infra.get(i).size(); j++) {
+                    int source = i;
+                    int target = infra.get(i).get(j);
+                    double weight = graph.getWeight(source, target);
+                    graph.removeEdge(source, target);
+                    boolean bridgeFound = false;
+                // System.out.println("source: " + source + ", target: " + target);
+                    for (int s = 0; s < townLookup.size(); s++) {
+                        int[][] prev = Dijkstra.dijkstra(graph, s);
+                        for (int t = s + 1; t < prev.length; t++) {
+                            if (prev[t][0] == 0) {
+                                bridgeFound = true;
+                            // System.out.println("s: " + s + ", t: " + t);
+                                break;
+                            }
+                        }
+
+                        if (bridgeFound) {
+                            break;
+                        }
+                    }
+
+                    if (bridgeFound) {
+                        List<Integer> bridge = new ArrayList<Integer>();
+                        bridge.add(source);
+                        bridge.add(target);
+                        bridges.add(bridge);
+                    }
+
+                    graph.addEdge(source, target, weight);
+                }
+            }
+
+            System.out.println("find bridges ended");
+            return bridges; 
+        }
+
+        private void buildBridgeMap() {
+            System.out.println(Thread.currentThread().getId());
+            System.out.println(ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId()));
+            System.out.println("buildBridgeMap started");
+            valueToBridge = new TreeMap<Double, Link>(Collections.reverseOrder());
+            for (int i = 0; i < infra.size(); i++) {
+                for (int j = 0; j < infra.get(i).size(); j++) {
+                    int source = i;
+                    int target = infra.get(i).get(j);
+                    double weight = graph.getWeight(source, target);
+                    graph.removeEdge(source, target);
+                    Link lv = new Link(source, target);
+                    double value = 0;
+                    List<List<Integer>> nodes = new ArrayList<List<Integer>>();
+                    for (int s = 0; s < townLookup.size(); s++) {
+                        int[][] prev = Dijkstra.dijkstra(graph, s);
+                        for (int t = s + 1; t < prev.length; t++) {
+                            if (prev[t][0] != 0) {
+                                continue;
+                            }
+
+                            List<Integer> pair = new ArrayList<Integer>();
+                            pair.add(s);
+                            pair.add(t);
+                            nodes.add(pair);
+                            value += shortestPaths[s][t] * transit[s][t];
+                        }
+                    }
+
+                    graph.addEdge(source, target, weight);
+                    if (nodes.size() == 0) {
+                        continue;
+                    }
+
+                    if (nodes.get(0).get(0) == nodes.get(nodes.size() / 2).get(0) && nodes.get(0).get(1) == nodes.get(nodes.size() / 2).get(1)) {
+                        value /= 2;
+                    }
+
+
+                    valueToBridge.put(value, lv);
+                    System.out.println(ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId()));
+                }
+            }
+            System.out.println("buildBridgeMap ended");
+            System.out.println(ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId()));
+        }
+    }
+
 }
