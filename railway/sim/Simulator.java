@@ -157,7 +157,6 @@ public class Simulator {
                             deepClone(currentBids), deepClone(allBids), deepClone(maxBid));
                         if (bid == null) {
                             ++null_players;
-                            updates.remove(pw);
                         }
                         else {
                             currentBids.add(0, bid);
