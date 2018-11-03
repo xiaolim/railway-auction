@@ -1,5 +1,6 @@
 package railway.g8;
 
+import org.jetbrains.annotations.NotNull;
 import railway.sim.utils.BidInfo;
 import railway.sim.utils.Coordinates;
 
@@ -74,7 +75,7 @@ public class GraphUtility {
         //init eval
         eval = new int[townsize][townsize];
         for (int i = 0; i < townsize; i++) {
-            for (int j = i + 1; j < townsize; j++) {
+            for (int j = 0; j < townsize; j++) {
                 eval[i][j] = edgeWeight[i][j];
             }
         }
@@ -123,7 +124,7 @@ public class GraphUtility {
         }
     }
 
-    private List<Integer> pathTrace(int i, int j, int[][] next) {
+    private List<Integer> pathTrace(int i, int j, @NotNull int[][] next) {
         List<Integer> ret = new ArrayList<>();
         if (next[i][j] == -1) return ret;
         ret.add(i);
