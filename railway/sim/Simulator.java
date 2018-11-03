@@ -150,7 +150,7 @@ public class Simulator {
                 int i=0;
                 int null_players = 0;
 
-                while (updates.size() > 0 && null_players <= updates.size()) {
+                while (updates.size() > 0 && null_players < updates.size()) {
                     PlayerWrapper pw = updates.get(i);
                     try {
                         Bid bid = pw.getBid(
