@@ -28,7 +28,7 @@ public class Player implements railway.sim.Player {
     // Random seed of 42.
     private int seed = 42;
     private Random rand;
-    private double totalDistance=0;
+    private double totalDistance = 0;
     private double budget;
 
     private List<BidInfo> availableBids = new ArrayList<>();
@@ -98,25 +98,26 @@ public class Player implements railway.sim.Player {
 //            }
 //        }
 
-        buildEdgeHashMap(gu.edgeWeight,geo);
+        buildEdgeHashMap(gu.edgeWeight, geo);
         buildHashMap();
     }
-/*
-    public void calcDistances(){
-        for (int i=0; i < infra.size(); ++i) {
-            for (int j=0; j < infra.get(i).size(); ++j) {
-                int t1 = i;
-                int t2 = infra.get(i).get(j);
-                double distance = getDistance(t1, t2);
-           }
+
+    /*
+        public void calcDistances(){
+            for (int i=0; i < infra.size(); ++i) {
+                for (int j=0; j < infra.get(i).size(); ++j) {
+                    int t1 = i;
+                    int t2 = infra.get(i).get(j);
+                    double distance = getDistance(t1, t2);
+               }
+            }
         }
-    }
-*/
+    */
     private static double getDistance(int t1, int t2, List<Coordinates> geo) {
         return Math.pow(
-            Math.pow(geo.get(t1).x - geo.get(t2).x, 2) +
-                Math.pow(geo.get(t1).y - geo.get(t2).y, 2),
-            0.5);
+                Math.pow(geo.get(t1).x - geo.get(t2).x, 2) +
+                        Math.pow(geo.get(t1).y - geo.get(t2).y, 2),
+                0.5);
     }
 
 
@@ -138,7 +139,7 @@ public class Player implements railway.sim.Player {
         return best;
     }
 
-    private int highestTrafficEdgeWeight(){
+    private int highestTrafficEdgeWeight() {
         int currentMax = 0;
         int best = 0;
 
@@ -163,15 +164,16 @@ public class Player implements railway.sim.Player {
                 int there = row.get(i);
                 Connection pair = new Connection(l, there);
                 int traffic = edgeWeight[l][there];
-                double distance = getDistance(l,there,geo);
+                double distance = getDistance(l, there, geo);
                 totalDistance = totalDistance + distance;
                 bidIdEdgeWeight.put(bidID, traffic);
-                bidDistance.put(bidID,distance);
+                bidDistance.put(bidID, distance);
                 bidID++;
             }
         }
     }
-    //adds to both hashmaps, and updates total traffic 
+
+    //adds to both hashmaps, and updates total traffic
     private void buildHashMap() {
         int bidID = 0;
         for (int l = 0; l < infra.size(); l++) {
@@ -223,11 +225,11 @@ public class Player implements railway.sim.Player {
     private double calculateBid(int id) {
         double bid = bidIdMinBid.get(id);
         int traffic = bidIdTraffic.get(id);
-        double dist = bidDistance.get(id); 
+        double dist = bidDistance.get(id);
         float percent = ((float) traffic / (float) totalTraffic);
         //System.out.println("Traffic: " + traffic + " totalTraffic: " + totalTraffic + " percent: " + percent); 
         double fractionOfBudget = (double) (budget * percent);
-        bid += (10*dist* fractionOfBudget)/totalDistance;
+        bid += (10 * dist * fractionOfBudget) / totalDistance;
 
         //System.out.println("New bid: " + bid + " our addition: " + (.1 * fractionOfBudget));
         if (bid < budget) {
@@ -237,7 +239,7 @@ public class Player implements railway.sim.Player {
         }
     }
 
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids,  Bid lastRoundMaxBid) {
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
 
         if (availableBids.size() != 0) {
             return null;
@@ -256,41 +258,37 @@ public class Player implements railway.sim.Player {
         }
 
 
-        int bidID = highestTrafficEdgeWeight(); 
+        int bidID = highestTrafficEdgeWeight();
         //int bidID = calculateHighestTraffic();
         double cashMoney = calculateBid(bidID);
 
         Bid bid = new Bid();
         bid.id1 = bidID;
-        bid.amount = 0.05*totalDistance*cashMoney/(10*bidDistance.get(bidID));
+        bid.amount = 0.05 * totalDistance * cashMoney / (10 * bidDistance.get(bidID));
 
         //System.out.println("Bid before checking other playerse: " + cashMoney + "  " + bid.amount);
         double max = 0.0;
         // Check if another player has made a bid for this link.
         for (Bid b : currentBids) {
-            if (b.amount/bidDistance.get(b.id1)>max){
-                max = b.amount/bidDistance.get(b.id1);
-                if (max > cashMoney/bidDistance.get(bid.id1)){
+            if (b.amount / bidDistance.get(b.id1) > max) {
+                max = b.amount / bidDistance.get(b.id1);
+                if (max > cashMoney / bidDistance.get(bid.id1)) {
                     return null;
-                }
-                else if (budget - max*bidDistance.get(bid.id1) - 10000 < 0.){
+                } else if (budget - max * bidDistance.get(bid.id1) - 10000 < 0.) {
                     return null;
-                }
-                else{
-                    bid.amount = max*bidDistance.get(bid.id1) + 10000;
+                } else {
+                    bid.amount = max * bidDistance.get(bid.id1) + 10000;
                 }
             }
-            if (b.id2!=-1){
-                if (b.amount/bidDistance.get(b.id2)>max){
-                    max = b.amount/bidDistance.get(b.id2);
-                    if (max > cashMoney/bidDistance.get(bid.id1)){
+            if (b.id2 != -1) {
+                if (b.amount / bidDistance.get(b.id2) > max) {
+                    max = b.amount / bidDistance.get(b.id2);
+                    if (max > cashMoney / bidDistance.get(bid.id1)) {
                         return null;
-                    }
-                    else if (budget - max*bidDistance.get(bid.id1) - 10000 < 0.){
+                    } else if (budget - max * bidDistance.get(bid.id1) - 10000 < 0.) {
                         return null;
-                    }
-                    else{
-                        bid.amount = max*bidDistance.get(bid.id1) + 10000;
+                    } else {
+                        bid.amount = max * bidDistance.get(bid.id1) + 10000;
                     }
                 }
             }
