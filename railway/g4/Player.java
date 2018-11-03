@@ -11,7 +11,8 @@ import java.lang.Math;
 // To access data classes.
 import railway.sim.utils.*;
 
-public class Player implements railway.sim.Player {
+public class Player implements railway.sim.Player 
+{
     // Random seed of 42.
     private int seed = 42;
     private Random rand;
@@ -38,9 +39,19 @@ public class Player implements railway.sim.Player {
     // For use with paths
     private ArrayList<Integer> pathList = new ArrayList<>(); 
     
+    // Maps a connection with list of paths, from which obtaining minimum distance can be easy
+    private HashMap<Pair, Path> paths = new HashMap<Pair, Path>();
+    
     public Player() 
     {
         rand = new Random();
+    }
+    
+    // Used to store pair of stations
+    public Pair()
+    {
+    	int from;
+    	int to;
     }
 
     public void init(
@@ -148,6 +159,7 @@ public class Player implements railway.sim.Player {
         {
             adjList[i] = new ArrayList<>();
             List<Integer> row = infra.get(i);
+            
             for(int j = 0; j < NUM_STATIONS;j++)
             {
                 if(row.isEmpty())
@@ -172,32 +184,38 @@ public class Player implements railway.sim.Player {
     }
 
     // This function update the corresponding revenue on each edge of the map
-    private void update_rev(){
+    private void update_rev()
+    {
         int n = geo.size();
 
         // Create the graph.
         WeightedGraph g = new WeightedGraph(n);
          // Create the graph.
         
-        for (int i=0; i<n; ++i) {
+        for (int i=0; i<n; ++i) 
+        {
             g.setLabel(townLookup.get(i));
         }
         this.revenue = new int[n][n];
 
-        for (int i=0; i<infra.size(); ++i) {
-            for (int j=0; j<infra.get(i).size(); ++j) {
+        for (int i=0; i<infra.size(); ++i)
+        {
+            for (int j=0; j<infra.get(i).size(); ++j) 
+            {
                 g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
             }
         }
 
 
-        for (int i=0; i<n; ++i) {
+        for (int i=0; i<n; ++i) 
+        {
             int[][] prev = Dijkstra.dijkstra(g, i);
-            for (int j=i+1; j<n; ++j) {
-                List<List<Integer>> allPaths = Dijkstra.getPaths(g, prev, j);
-
+            for (int j=i+1; j<n; ++j) 
+            {
+                List<List<Integer>> allPaths = Dijkstra.getPaths(g, prev, j)
                 double cost = 0;
-                for (int k=0; k<allPaths.get(0).size()-1; ++k) {
+                for (int k=0; k<allPaths.get(0).size()-1; ++k) 
+                {
                     cost = getDistance(allPaths.get(0).get(k), allPaths.get(0).get(k+1));
                     revenue[allPaths.get(0).get(k)][allPaths.get(0).get(k+1)]+= cost * transit[i][j] * 10;
                     revenue[allPaths.get(0).get(k+1)][allPaths.get(0).get(k)]+= cost * transit[i][j] * 10;
@@ -205,19 +223,21 @@ public class Player implements railway.sim.Player {
             }
         }
     }
-
     
-    private double getDistance(Coordinates a, Coordinates b){
+    private double getDistance(Coordinates a, Coordinates b)
+    {
         return Math.pow(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2), 0.5);
     }
 
 
-    private double getDistance(int a, int b){
+    private double getDistance(int a, int b)
+    {
         return Math.pow(Math.pow(geo.get(a).x - geo.get(b).x, 2) + Math.pow(geo.get(a).y - geo.get(b).y, 2), 0.5);
     }
 
 
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> availableBids, Bid lastRoundMaxBid) {
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> availableBids, Bid lastRoundMaxBid) 
+    {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
@@ -233,18 +253,20 @@ public class Player implements railway.sim.Player {
         }
         */
 
-        
-        
         // *************************************************************************
         // Updates allPlayerLinks hashmap with link ownership information
         // *************************************************************************
-        if (lastRoundMaxBid != null) {
-            if (allPlayerLinks.get(lastRoundMaxBid.id1) == null) {
+        if (lastRoundMaxBid != null) 
+        {
+            if (allPlayerLinks.get(lastRoundMaxBid.id1) == null) 
+            {
                 allPlayerLinks.put(Integer.toString(lastRoundMaxBid.id1), lastRoundMaxBid.bidder);
             } 
 
-            if (lastRoundMaxBid.id2 != -1) {
-                if (allPlayerLinks.get(lastRoundMaxBid.id2) == null) {
+            if (lastRoundMaxBid.id2 != -1) 
+            {
+                if (allPlayerLinks.get(lastRoundMaxBid.id2) == null) 
+                {
                     allPlayerLinks.put(Integer.toString(lastRoundMaxBid.id2), lastRoundMaxBid.bidder);
                 } 
             }
@@ -297,18 +319,22 @@ public class Player implements railway.sim.Player {
         List<BidInfo> avail_Bids = new ArrayList<BidInfo>();
         List<Integer> amounts = new ArrayList<Integer>();
 
-        for (int i=0; i<availableBids.size();i++){
+        for (int i=0; i<availableBids.size();i++)
+        {
             BidInfo bi = availableBids.get(i);
-            if (bi.owner == null) {
+            if (bi.owner == null) 
+            {
                 avail_Bids.add(bi);
                 amounts.add((int)(bi.amount+10000));
             }
-            else{
+            else
+            {
                 amounts.add(-1);
             }
         }
 
-        if (avail_Bids.size() == 0) {
+        if (avail_Bids.size() == 0) 
+        {
             return null;
         }
         
@@ -317,12 +343,15 @@ public class Player implements railway.sim.Player {
         Coordinates d = new Coordinates(0,0);
         String maxbn = "";
         // Check if another player has made a bid for this link.
-        for (int i=0; i<currentBids.size();i++){
+        for (int i=0; i<currentBids.size();i++)
+        {
             Bid b = currentBids.get(i);
 
-            if (b.id2 == -1){
+            if (b.id2 == -1)
+            {
 
-                if (townLookup.indexOf(availableBids.get(b.id1).town1) == -1 || townLookup.indexOf(availableBids.get(b.id1).town2) == -1){
+                if (townLookup.indexOf(availableBids.get(b.id1).town1) == -1 || townLookup.indexOf(availableBids.get(b.id1).town2) == -1)
+                {
                    System.out.println("Town not found");
                    continue;
                 }
@@ -331,15 +360,18 @@ public class Player implements railway.sim.Player {
 
                 double dist = getDistance(s,d);
 
-                if (b.amount/dist > maxb){
+                if (b.amount/dist > maxb)
+                {
                    maxb = b.amount / dist;
                    maxbn = b.bidder;
                 }
-                if ((int)b.amount + 10000 > amounts.get(b.id1)){
+                if ((int)b.amount + 10000 > amounts.get(b.id1))
+                {
                     amounts.set(b.id1,(int)b.amount + 10000);
                 }
             }
-            else{
+            else
+            {
 
                 if (townLookup.indexOf(availableBids.get(b.id1).town1) == -1 || townLookup.indexOf(availableBids.get(b.id1).town2)==-1 || townLookup.indexOf(availableBids.get(b.id2).town1)==-1 || townLookup.indexOf(availableBids.get(b.id1).town2) == -1){
                    System.out.println("Town not found");
@@ -353,21 +385,25 @@ public class Player implements railway.sim.Player {
                 double dist2 = getDistance(k,d);
                 
                 double dist = dist1+dist2;
-                if (b.amount/dist > maxb){
+                if (b.amount/dist > maxb)
+                {
                    maxb = b.amount / dist;
                    maxbn = b.bidder;
                 }
 
-                if ((int)(dist1/dist*b.amount + 10000) > amounts.get(b.id1)){
+                if ((int)(dist1/dist*b.amount + 10000) > amounts.get(b.id1))
+                {
                     amounts.set(b.id1,(int)(dist1/dist*b.amount) + 10000);
                 }
-                if ((int)(dist2/dist*b.amount + 10000) > amounts.get(b.id2)){
+                if ((int)(dist2/dist*b.amount + 10000) > amounts.get(b.id2))
+                {
                     amounts.set(b.id2,(int)(dist2/dist*b.amount) + 10000);
                 }
             }
         }
         
-        if (maxbn.equals(name)){
+        if (maxbn.equals(name))
+        {
             return null;
         }
 
@@ -376,7 +412,6 @@ public class Player implements railway.sim.Player {
         
         for (int i=0; i<availableBids.size();i++)
         {
-            
             BidInfo bi = availableBids.get(i);
 
             if (townLookup.indexOf(bi.town1) == -1 || townLookup.indexOf(bi.town2) == -1)
@@ -385,19 +420,24 @@ public class Player implements railway.sim.Player {
                continue;
             }
             //System.out.println(revenue[townLookup.indexOf(bi.town1)+1][townLookup.indexOf(bi.town2)+1]);
-            if (amounts.get(i)==-1){
+            if (amounts.get(i)==-1)
+            {
                 continue;
             }
             int win_bid = (int)(maxb*getDistance(geo.get(townLookup.indexOf(bi.town1)),geo.get(townLookup.indexOf(bi.town2))));
             int winning_price = Math.max(amounts.get(i),win_bid);
 
-            if (winning_price < revenue[townLookup.indexOf(bi.town1)][townLookup.indexOf(bi.town2)]){
+            if (winning_price < revenue[townLookup.indexOf(bi.town1)][townLookup.indexOf(bi.town2)])
+            {
                 //System.out.println(bi.town1+ " to "+bi.town2 + " : "+String.valueOf(revenue[townLookup.indexOf(bi.town1)][townLookup.indexOf(bi.town2)]));
-                if (profit < revenue[townLookup.indexOf(bi.town1)][townLookup.indexOf(bi.town2)] - winning_price){
-                    if (winning_price > budget){
+                if (profit < revenue[townLookup.indexOf(bi.town1)][townLookup.indexOf(bi.town2)] - winning_price)
+                {
+                    if (winning_price > budget)
+                    {
                         continue;
                     }
-                    if (stop_criterian(winning_price, revenue[townLookup.indexOf(bi.town1)][townLookup.indexOf(bi.town2)])==0){
+                    if (stop_criterian(winning_price, revenue[townLookup.indexOf(bi.town1)][townLookup.indexOf(bi.town2)])==0)
+                    {
                         continue;
                     }
                     b.id1 = i;
@@ -405,13 +445,16 @@ public class Player implements railway.sim.Player {
                     profit = revenue[townLookup.indexOf(bi.town1)][townLookup.indexOf(bi.town2)] - winning_price;
                     //System.out.println(bi.town1+ " to "+bi.town2 + " : "+String.valueOf(profit));
                 }
-                if (winning_price > budget){
+                if (winning_price > budget)
+                {
                     continue;
                 }
-                if (stop_criterian(winning_price, revenue[townLookup.indexOf(bi.town1)][townLookup.indexOf(bi.town2)])==0){
+                if (stop_criterian(winning_price, revenue[townLookup.indexOf(bi.town1)][townLookup.indexOf(bi.town2)])==0)
+                {
                     continue;
                 }
-                if (b.id1 == -1){
+                if (b.id1 == -1)
+                {
                     continue;
                 }
                 if (bi.town1 == availableBids.get(b.id1).town1 || bi.town1 == availableBids.get(b.id1).town2 || bi.town2 == availableBids.get(b.id1).town1 || bi.town2 == availableBids.get(b.id1).town2){
@@ -430,17 +473,20 @@ public class Player implements railway.sim.Player {
     }
 
 
-    public void updateBudget(Bid bid) {
-        if (bid != null) {
+    public void updateBudget(Bid bid) 
+    {
+        if (bid != null) 
+        {
             budget -= bid.amount;
         }
-
         availableBids = new ArrayList<>();
     }
     
     // determine if we want to keep bidding, 0 if not, 1 if yes
-    public int stop_criterian(int cost, int revenue){
-        if (revenue < cost/2){
+    public int stop_criterian(int cost, int revenue)
+    {
+        if (revenue < cost/2)
+        {
             return 0;
         }
         return 1;
@@ -472,12 +518,12 @@ public class Player implements railway.sim.Player {
     
     // Prints all possible paths from source to destination
     public void printAllPaths(int s, int d)  
-    { 
+    {
         boolean[] isVisited = new boolean[NUM_STATIONS]; 
           
         //add source to path[] 
         pathList.add(s); 
-          
+        
         //Call recursive utility 
         printAllPathsUtil(s, d, isVisited, pathList); 
     }
@@ -487,7 +533,7 @@ public class Player implements railway.sim.Player {
             boolean[] isVisited, List<Integer> localPathList)
     {
         // Mark the current node 
-        isVisited[u] = true; 
+        isVisited[u] = true;
 
         // Have the class catch the paths
         if (u.equals(d))  
@@ -511,10 +557,32 @@ public class Player implements railway.sim.Player {
                 // remove current node 
                 // in path[] 
                 localPathList.remove(i); 
-            } 
+            }
         }
 
         // Mark the current node 
         isVisited[u] = false; 
-    } 
+    }
+    
+    /*
+     *  Purpose: Find your starting point
+     *  
+     *  If graph has tail find a pair such that 
+     *  degree of 1 is one station and highest degree in other station.
+     */
+    public void start()
+    {
+    	// Look for a station with degree 1.
+    	Integer tail = null;
+    	// If you find it, Great! Find a good neighbor with high order degree and spawn from there
+    	if(tail == null)
+    	{
+    		
+    	}
+    	// Otherwise, you are in a checkerboard like map most likely so tails are liability!
+    	else
+    	{
+    		
+    	}
+    }
 }
