@@ -16,6 +16,7 @@ public class GraphUtility {
     public double[][] dist; //shortest distance between all pairs
     public List[][] path; //shortest paths between all pairs
     public int[][] transfer; //shortest transfer times
+    public int[][] edgeWeight; //traffice on each segment
 
     public GraphUtility(List<Coordinates> geo, List<List<Integer>> infra, int[][] transit, List<String> townLookup) {
         this.geo = geo;
@@ -25,6 +26,7 @@ public class GraphUtility {
 
         initAdj();
         floydWarshall();
+        initEdgeWeight();
         //now adj, dist, path are available to uses
 //        System.out.println("DEBUG: FloydWarshall done");
     }
@@ -46,6 +48,29 @@ public class GraphUtility {
         }
     }
 
+    //call this after initAdj() and floydWarshall()
+    private void initEdgeWeight(){
+        int townsize = geo.size();
+        edgeWeight = new int[townsize][townsize];
+        for(int i=0;i<townsize;i++){
+            for(int j=i+1;j<townsize;j++){
+                if(adj[i][j]==Double.POSITIVE_INFINITY) continue;
+                edgeWeight[i][j] = edgeWeight[j][i] = transit[i][j];
+            }
+        }
+        for(int i=0;i<townsize;i++){
+            for(int j=i+1;j<townsize;j++){
+                List<Integer> townPath = path[i][j];
+                if(townPath.size()<3)
+                    continue;
+                for(int k=0;k<townPath.size()-1;k++){
+                    edgeWeight[townPath.get(k)][townPath.get(k+1)] += transit[i][j];
+                }
+            }
+        }
+    }
+
+    //call this after initAdj()
     private void floydWarshall() { //run algorithm and modify adj, dist, path
         int townSize = geo.size();
         dist = new double[townSize][townSize]; //distance matrix

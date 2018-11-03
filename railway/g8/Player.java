@@ -79,26 +79,26 @@ public class Player implements railway.sim.Player {
         //     System.out.print(",");
         // }
         // System.out.println("");
-        int townsize = geo.size();
-        int[][] edgeWeight = new int[townsize][townsize];
-        for(int i=0;i<townsize;i++){
-            for(int j=i+1;j<townsize;j++){
-                if(gu.adj[i][j]==Double.POSITIVE_INFINITY) continue;
-                edgeWeight[i][j] = edgeWeight[j][i] = transit[i][j];
-            }
-        }
-        for(int i=0;i<townsize;i++){
-            for(int j=i+1;j<townsize;j++){
-                List<Integer> townPath = gu.path[i][j];
-                if(townPath.size()<3)
-                    continue;
-                for(int k=0;k<townPath.size()-1;k++){
-                    edgeWeight[townPath.get(k)][townPath.get(k+1)] += transit[i][j];
-                }
-            }
-        }
+//        int townsize = geo.size();
+//        int[][] edgeWeight = new int[townsize][townsize];
+//        for(int i=0;i<townsize;i++){
+//            for(int j=i+1;j<townsize;j++){
+//                if(gu.adj[i][j]==Double.POSITIVE_INFINITY) continue;
+//                edgeWeight[i][j] = edgeWeight[j][i] = transit[i][j];
+//            }
+//        }
+//        for(int i=0;i<townsize;i++){
+//            for(int j=i+1;j<townsize;j++){
+//                List<Integer> townPath = gu.path[i][j];
+//                if(townPath.size()<3)
+//                    continue;
+//                for(int k=0;k<townPath.size()-1;k++){
+//                    edgeWeight[townPath.get(k)][townPath.get(k+1)] += transit[i][j];
+//                }
+//            }
+//        }
 
-        buildEdgeHashMap(edgeWeight,geo); 
+        buildEdgeHashMap(gu.edgeWeight,geo);
         buildHashMap();
     }
 /*
