@@ -194,7 +194,7 @@ public class Player implements railway.sim.Player {
     public void updateStatus(Bid lastRoundMaxBid) {
     	if (lastRoundMaxBid != null) {
     		BidInfo b1 = allLinks.get(lastRoundMaxBid.id1);
-    		double budget = budgets.getOrDefault(b1.owner, START_BUDGET);
+    		double budget = budgets.getOrDefault(lastRoundMaxBid.bidder, START_BUDGET);
     		budgets.put(lastRoundMaxBid.bidder, budget - lastRoundMaxBid.amount);
     		b1.owner = lastRoundMaxBid.bidder;
     		b1.amount = lastRoundMaxBid.amount;
