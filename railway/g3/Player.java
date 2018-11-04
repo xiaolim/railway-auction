@@ -32,6 +32,7 @@ public class Player implements railway.sim.Player {
     private double[][] revenue; // price to travel along paths
     private int[] connections; // number of connections for links
 
+    private boolean[][] ownership; // which links we own
     private List<G3Bid> availableBids = new ArrayList<G3Bid>();
 
     public Player() {
@@ -188,7 +189,7 @@ public class Player implements railway.sim.Player {
     }
 
     /* First version:
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
@@ -228,20 +229,20 @@ public class Player implements railway.sim.Player {
         G3Bid best = null;
         
         for(G3Bid cur_bid : availableBids) {
-        	if (cur_bid.town_id3 == -1) { 
-        		// check single links
-        		int t1_i = cur_bid.town_id1;
-            	int t2_i = cur_bid.town_id2;
-            	double cur_rev = (t1_i < t2_i) ? (revenue[t1_i][t2_i]) : (revenue[t2_i][t1_i]);
-        		double cur_profit = cur_bid.amount - cur_rev;
+            if (cur_bid.town_id3 == -1) { 
+                // check single links
+                int t1_i = cur_bid.town_id1;
+                int t2_i = cur_bid.town_id2;
+                double cur_rev = (t1_i < t2_i) ? (revenue[t1_i][t2_i]) : (revenue[t2_i][t1_i]);
+                double cur_profit = cur_bid.amount - cur_rev;
 
-	        	if (cur_profit >= max_profit) {
-	        		max_profit = cur_profit;
-	        		best = cur_bid;
-	        	}
-        	} else {
-        		// ignore double links for now
-        	}
+                if (cur_profit >= max_profit) {
+                    max_profit = cur_profit;
+                    best = cur_bid;
+                }
+            } else {
+                // ignore double links for now
+            }
             
             
         }
@@ -252,27 +253,6 @@ public class Player implements railway.sim.Player {
         }
 
         return best;
-    }
-
-    // Thanks Sidhi!
-    private double[][] getRevenue() {
-        final int n = geo.size();
-
-        // Create the graph.
-        WeightedGraph g = new WeightedGraph(n);
-
-        for (int i=0; i<n; ++i) {
-            g.setLabel(townLookup.get(i));
-        }
-
-        for (int i=0; i<infra.size(); ++i) {
-            for (int j=0; j<infra.get(i).size(); ++j) {
-                g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
-            }
-        }
-
-        //g.print();
-        return bid;
     }*/
 
     // Thanks Sidhi!

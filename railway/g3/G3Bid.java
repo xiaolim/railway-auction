@@ -15,13 +15,10 @@ public class G3Bid extends Bid {
 
 	// minimum bid that could ever win the link
 	public double min_bid;
-<<<<<<< HEAD
 
 	public G3Bid() {
 		town_id1 = -1;
 		town_id2 = -1;
 		town_id3 = -1;
 	}
-=======
->>>>>>> 51928a424bd95fbd5ddd6bbed7d17c0408e8b16b
 }
