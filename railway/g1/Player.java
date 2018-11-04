@@ -1,6 +1,7 @@
 package railway.g1;
 
 import java.io.Serializable;
+import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -347,25 +348,50 @@ public class Player implements railway.sim.Player {
     		updateStatus(lastRoundMaxBid);
     		newTournament = false;
     	}
-        
+    	
     	
     	/*
-    	Map<Integer, Double> heatmap = predictHeatMap(null, name);
+    	Map<Integer, Double> ourMap = predictHeatMap(null, name);
     	
-    	// Sort the heatmap
+    	List<Map<Integer, Double>> heatmaps = new ArrayList<Map<Integer, Double>>();
+    	for (String p : budgets.keySet())
+    		if (p != name)
+    			heatmaps.add(predictHeatMap(null, p));
+    	
+    	// Runtime O(cn)
+    	// Find the difference between our expected traffic and maximum traffic of other players
+    	Map<Integer, Double> mapDiff = new HashMap<Integer, Double>();
+    	for (int i = 0; i < allLinks.size(); ++i) {
+    		double max = -Double.MAX_VALUE;
+    		for (int pindex = 0; pindex < heatmaps.size(); ++pindex) {
+    			double temp;
+    			if ((temp = heatmaps.get(pindex).get(Integer.valueOf(i))) > max)
+    				max = temp;
+    		}
+    		mapDiff.put(Integer.valueOf(i), ourMap.get(Integer.valueOf(i)) - max);
+    	}
+    	
+    	
+    	// Sort the heatmap difference
     	@SuppressWarnings("unused")
-		List<Map.Entry<Integer, Double>> sortedMap = new ArrayList<>(heatmap.entrySet());
-    	Collections.sort(sortedMap, Collections.reverseOrder((x, y) -> Double.compare(x.getValue(), y.getValue())));
+		List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<>(mapDiff.entrySet());
+    	Collections.sort(sortedDiff, Collections.reverseOrder((x, y) -> {
+    		if (allLinks.get(x.getKey()).owner == null)
+    			return 1;
+    		if (allLinks.get(y.getKey()).owner == null)
+    			return -1;
+    		return Double.compare(x.getValue(), y.getValue());
+    	}));
     	
-    	for (Map.Entry<Integer, Double> link : sortedMap) {
+    	for (Map.Entry<Integer, Double> link : sortedDiff) {
     		if (link.getKey() != null)
     			continue;
     		
-    		
-    		if (link.getValue() < lastRoundMaxBid.amount)
+    		if (ourMap.get(link.getKey()) < lastRoundMaxBid.amount)
     			return null;
     	}
-    	 */
+    	*/
+    	 
     	
     	
     	
