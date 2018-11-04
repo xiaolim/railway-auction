@@ -6,14 +6,21 @@ import java.util.List;
 import java.util.Random;
 
 
-
 // To access data classes.
 import railway.sim.utils.*;
 
+// Thanks Sidhi!
+class LinkInfo {
+    public int town1;
+    public int town2;
+
+    public double distance;
+}
+
 public class Player implements railway.sim.Player {
     // Random seed of 42.
-    // private int seed = 42;
-    // private Random rand;
+    private int seed = 42;
+    private Random rand;
 
     private double budget; // amount to spend at auction
 
@@ -21,19 +28,24 @@ public class Player implements railway.sim.Player {
     private ArrayList<String> townLookup; // city names
     private List<List<Integer>> infra; // graph edges
     private int[][] transit; // travel along paths
-    
-    //private BidInfo the_bid;
 
     private double[][] revenue; // price to travel along paths
     private int[] connections; // number of connections for links
 
-    private boolean[][] ownership; // which links we own
     private List<G3Bid> availableBids = new ArrayList<G3Bid>();
 
     public Player() {
         //rand = new Random();
     }
 
+    // Initialization function.
+    // name: name of current player.
+    // budget: maximum amount allocated for bidding.
+    // geo: Town indices and their coordinates.
+    // infra: Town indices and other towns they are connected to.
+    // transit: Town indices and the number of passengers between them.
+    // townLookup: Town indices and names of towns.
+    // allBids: list of all available bids and their minimum amount.
     public void init(
         String name,
         double budget,
@@ -43,29 +55,144 @@ public class Player implements railway.sim.Player {
         List<String> townLookup,
         List<BidInfo> allBids) {
 
-    	System.err.println("Starting");
+        System.err.println("Starting");
 
         this.budget = budget;
         this.townLookup = (ArrayList)townLookup;
         this.infra = infra;
         this.geo = geo;
         this.transit = transit;
-    	this.revenue = getRevenue();
-    	this.connections = getConnections();
+        this.revenue = getRevenue();
+        this.connections = getConnections();
 
-	    //ownership = new boolean[transit.length][transit[0].length];
+        // Populate bid container data structure to hold all of our team's possible bids
+        //check running time...!!!
+        //also keep track of current bid that has been made on some link?
+
+        //HAVE TO MAKE SURE THAT "DIRECTIONALITY" OF LINKS DOES NOT MAKE A DIFFERENCE BUT MAKE SURE THERE ARE NO REPETITIONS...
+        //e.g. we need Chate-Michel-Invalid but don't want to also include Invalid-Michel-Chate
+        //so...this should be okay actually....
+        //maybe do some calculations to make sure that we have the correct total number of links
+        //test on simpler maps (like the random one, and like the random one with added complexity)
+
+        //maybe include a check to make sure t3!=t2 and t3!=t1 but why are we getting some links where this is true in the first place?
+        //think I fixed this duplicate problem above by making sure that I wasn't confusing indices with town id's
+        //in the for loops, i is the only index that corresponds to a town id
+
+        int id = 0;
+
+        for (int i=0; i < infra.size(); ++i) {
+            for (int j=0; j < infra.get(i).size(); ++j) {
+                G3Bid bi = new G3Bid();
+                bi.id1 = id;
+
+                int t1 = i;
+                int t2 = infra.get(i).get(j);
+                bi.town_id1 = t1;
+                bi.town_id2 = t2;
+                //System.err.println(bi.town1 + ": infra.get(i) size = " + infra.get(i).size());
+
+                bi.amount = transit[t1][t2] * getDistance(t1, t2) * 10;
+
+                List<G3Bid> dups =
+                    getDuplicateLinks(t1, t2, availableBids);
+                if (dups != null && dups.size() > 0) {
+                    //System.err.println("duplicate! >> " + dups.get(0).id);
+                    int c_size = dups.size();
+                    int new_size = c_size + 1;
+
+                    for (G3Bid d : dups) {
+                        d.amount = d.amount * c_size / new_size;
+                    }
+
+                    bi.amount /= new_size;
+                }
+
+                availableBids.add(bi);
+                id += 1;
+
+                // Create a new bid object for all possible pairs that contain this link between A and B and then all possible links between B and its neighbors
+                for (int k=0; k < infra.get(t2).size(); ++k) {
+                    G3Bid pairBid = new G3Bid();
+                    pairBid.id1 = id;
+                    pairBid.town_id1 = bi.town_id1;
+                    pairBid.town_id2 = bi.town_id2;
+                    pairBid.town_id3 = infra.get(t2).get(k);
+                    availableBids.add(pairBid);
+                    id += 1;
+                }
+            }
+        }
+
+        System.err.println("bids in availableBids");
+        for (G3Bid b : availableBids) {
+            int t_1 = b.town_id1;
+            int t_2 = b.town_id2;
+            if (b.town_id3 > 0) {
+                int t_3 = b.town_id3;
+                System.err.println(b.id1 + ": " + townLookup.get(t_1) + " to " + townLookup.get(t_2) + " to " + townLookup.get(t_3));
+            } else {
+                System.err.println(b.id1 + ": " + townLookup.get(t_1) + " to " + townLookup.get(t_2));
+            }
+        }
 
         System.err.println("Ending");
+    }
+
+
+    /* First version:
+    public void init(
+        String name,
+        double budget,
+        List<Coordinates> geo,
+        List<List<Integer>> infra,
+        int[][] transit,
+        List<String> townLookup) {
+
+        this.budget = budget;
+        this.townLookup = (ArrayList)townLookup;
+        this.infra = infra;
+
+        connections = new int[geo.size()];
+        for(int i = 0; i < connections.length; ++i) {
+            List<Integer> row = infra.get(i);
+            connections[i] += row.size();
+            for(int j = 0; j < row.size(); ++j) {
+                ++connections[row.get(j)];
+            }
+        }
+
+    }*/
+
+    // The bid placed for a round.
+    // Returns null if they don't want to place a bid.
+    // currentBids: bids being placed in this round in reverse order -
+    //   most recent bid is first.
+    // allBids: shows those bids available and bids owned by other players
+    //   i.e. the results of previous rounds.
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
+
+        System.err.println("!!not doing anything!!");
+
+        return null;
+
+        /*for (BidInfo bi : allBids) {
+            if (bi.owner == null) {
+                //...
+            }
+        }*/
+
 
     }
 
-    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
+    /* First version:
+    public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids) {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
-        // if (availableBids.size() != 0) {
-        //     return null;
-        // }
+        if (availableBids.size() != 0) {
+            return null;
+        }
 
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
@@ -77,53 +204,53 @@ public class Player implements railway.sim.Player {
             return null;
         }
 
-        // int max_connections = -1;
-        // BidInfo max_bid = null;
-        // for (BidInfo cur_bid : availableBids) {
-        //     String t1 = cur_bid.town1;
-        //     String t2 = cur_bid.town2;
-        //     int t1_i = townLookup.indexOf(t1);
-        //     int t2_i = townLookup.indexOf(t2);
+        int max_connections = -1;
+        BidInfo max_bid = null;
+        for (BidInfo cur_bid : availableBids) {
+            String t1 = cur_bid.town1;
+            String t2 = cur_bid.town2;
+            int t1_i = townLookup.indexOf(t1);
+            int t2_i = townLookup.indexOf(t2);
+            //System.out.println("towns " + t1 + ", " + t2);
 
-        //     int num_connections = connections[t1_i] + connections[t2_i];
-        //     if (num_connections > max_connections) {
-        //         max_connections = num_connections;
-        //         max_bid = cur_bid;
-        //     }
+            int num_connections = connections[t1_i] + connections[t2_i];
+            //System.out.println("num_connections = " + num_connections);
+            if (num_connections > max_connections) {
+                max_connections = num_connections;
+                max_bid = cur_bid;
+            }
 
-        // }
-        
-        //double amount = max_bid.amount;
-
-        double max_profit = 0;
-        G3Bid best = null;
-        
-        for(G3Bid cur_bid : availableBids) {
-        	if (cur_bid.town_id3 == -1) { 
-        		// check single links
-        		int t1_i = cur_bid.town_id1;
-            	int t2_i = cur_bid.town_id2;
-            	double cur_rev = (t1_i < t2_i) ? (revenue[t1_i][t2_i]) : (revenue[t2_i][t1_i]);
-        		double cur_profit = cur_bid.amount - cur_rev;
-
-	        	if (cur_profit >= max_profit) {
-	        		max_profit = cur_profit;
-	        		best = cur_bid;
-	        	}
-        	} else {
-        		// ignore double links for now
-        	}
-            
-            
         }
+        //BidInfo randomBid = availableBids.get(rand.nextInt(availableBids.size()));
+        
+        double amount = max_bid.amount;
 
-        // Don't bid if it's more profitable not to buy, or we don't have enough to afford
-        if (best == null || budget - best.amount < 0.) { 
+        //System.out.println("OWNER: " + max_bid.owner);
+        // Don't bid if the random bid turns out to be beyond our budget.
+        if (budget - amount < 0.) { 
             return null;
         }
 
-        return best;
-    }
+        // Check if another player has made a bid for this link.
+        for (Bid b : currentBids) {
+            if (b.id1 == max_bid.id || b.id2 == max_bid.id) {
+                if (budget - b.amount - 10000 < 0.) {
+                    return null;
+                }
+                else {
+                    amount = b.amount + 10000;
+                }
+
+                break;
+            }
+        }
+
+        Bid bid = new Bid();
+        bid.amount = amount;
+        bid.id1 = max_bid.id;
+
+        return bid;
+    }*/
 
     // Thanks Sidhi!
     private double[][] getRevenue() {
@@ -173,18 +300,31 @@ public class Player implements railway.sim.Player {
     }
 
     private int[] getConnections() {
-    	int[] connections = new int[geo.size()];
-	    for(int i = 0; i < connections.length; ++i) {
-	        List<Integer> row = infra.get(i);
-	        connections[i] += row.size();
-	        for(int j = 0; j < row.size(); ++j) {
-	            ++connections[row.get(j)];
-	        }
-	    }
+        int[] connections = new int[geo.size()];
+        for(int i = 0; i < connections.length; ++i) {
+            List<Integer> row = infra.get(i);
+            connections[i] += row.size();
+            for(int j = 0; j < row.size(); ++j) {
+                ++connections[row.get(j)];
+            }
+        }
 
-	    return connections;
+        return connections;
     }
 
+    private static List<G3Bid> getDuplicateLinks(int t1, int t2, List<G3Bid> allBids) {
+        List<G3Bid> dups = new ArrayList<>();
+        for (G3Bid a : allBids) {
+            if (a.town_id1 == t1 && a.town_id2 == t2) {
+                dups.add(a);
+            }
+        }
+
+        return dups;
+    }
+
+    // Indicates to the player whether they have won the previous bid of link/pair of links.
+    // A null bid indicates that they did not win their bid.
     public void updateBudget(Bid bid) {
         if (bid != null) {
             budget -= bid.amount;
