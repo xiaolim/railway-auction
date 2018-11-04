@@ -19,8 +19,8 @@ class LinkInfo {
 
 public class Player implements railway.sim.Player {
     // Random seed of 42.
-    private int seed = 42;
-    private Random rand;
+    // private int seed = 42;
+    // private Random rand;
 
     private double budget; // amount to spend at auction
 
@@ -147,20 +147,22 @@ public class Player implements railway.sim.Player {
         List<Coordinates> geo,
         List<List<Integer>> infra,
         int[][] transit,
-        List<String> townLookup) {
+        List<String> townLookup,
+        List<BidInfo> allBids) {
+
+    	System.err.println("Starting");
 
         this.budget = budget;
         this.townLookup = (ArrayList)townLookup;
         this.infra = infra;
+        this.geo = geo;
+        this.transit = transit;
+    	this.revenue = getRevenue();
+    	this.connections = getConnections();
 
-        connections = new int[geo.size()];
-        for(int i = 0; i < connections.length; ++i) {
-            List<Integer> row = infra.get(i);
-            connections[i] += row.size();
-            for(int j = 0; j < row.size(); ++j) {
-                ++connections[row.get(j)];
-            }
-        }
+	    //ownership = new boolean[transit.length][transit[0].length];
+
+        System.err.println("Ending");
 
     }*/
 
@@ -190,9 +192,9 @@ public class Player implements railway.sim.Player {
         // The random player bids only once in a round.
         // This checks whether we are in the same round.
         // Random player doesn't care about bids made by other players.
-        if (availableBids.size() != 0) {
-            return null;
-        }
+        // if (availableBids.size() != 0) {
+        //     return null;
+        // }
 
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
@@ -204,51 +206,72 @@ public class Player implements railway.sim.Player {
             return null;
         }
 
-        int max_connections = -1;
-        BidInfo max_bid = null;
-        for (BidInfo cur_bid : availableBids) {
-            String t1 = cur_bid.town1;
-            String t2 = cur_bid.town2;
-            int t1_i = townLookup.indexOf(t1);
-            int t2_i = townLookup.indexOf(t2);
-            //System.out.println("towns " + t1 + ", " + t2);
+        // int max_connections = -1;
+        // BidInfo max_bid = null;
+        // for (BidInfo cur_bid : availableBids) {
+        //     String t1 = cur_bid.town1;
+        //     String t2 = cur_bid.town2;
+        //     int t1_i = townLookup.indexOf(t1);
+        //     int t2_i = townLookup.indexOf(t2);
 
-            int num_connections = connections[t1_i] + connections[t2_i];
-            //System.out.println("num_connections = " + num_connections);
-            if (num_connections > max_connections) {
-                max_connections = num_connections;
-                max_bid = cur_bid;
-            }
+        //     int num_connections = connections[t1_i] + connections[t2_i];
+        //     if (num_connections > max_connections) {
+        //         max_connections = num_connections;
+        //         max_bid = cur_bid;
+        //     }
 
-        }
-        //BidInfo randomBid = availableBids.get(rand.nextInt(availableBids.size()));
+        // }
         
-        double amount = max_bid.amount;
+        //double amount = max_bid.amount;
 
-        //System.out.println("OWNER: " + max_bid.owner);
-        // Don't bid if the random bid turns out to be beyond our budget.
-        if (budget - amount < 0.) { 
+        double max_profit = 0;
+        G3Bid best = null;
+        
+        for(G3Bid cur_bid : availableBids) {
+        	if (cur_bid.town_id3 == -1) { 
+        		// check single links
+        		int t1_i = cur_bid.town_id1;
+            	int t2_i = cur_bid.town_id2;
+            	double cur_rev = (t1_i < t2_i) ? (revenue[t1_i][t2_i]) : (revenue[t2_i][t1_i]);
+        		double cur_profit = cur_bid.amount - cur_rev;
+
+	        	if (cur_profit >= max_profit) {
+	        		max_profit = cur_profit;
+	        		best = cur_bid;
+	        	}
+        	} else {
+        		// ignore double links for now
+        	}
+            
+            
+        }
+
+        // Don't bid if it's more profitable not to buy, or we don't have enough to afford
+        if (best == null || budget - best.amount < 0.) { 
             return null;
         }
 
-        // Check if another player has made a bid for this link.
-        for (Bid b : currentBids) {
-            if (b.id1 == max_bid.id || b.id2 == max_bid.id) {
-                if (budget - b.amount - 10000 < 0.) {
-                    return null;
-                }
-                else {
-                    amount = b.amount + 10000;
-                }
+        return best;
+    }
 
-                break;
+    // Thanks Sidhi!
+    private double[][] getRevenue() {
+        final int n = geo.size();
+
+        // Create the graph.
+        WeightedGraph g = new WeightedGraph(n);
+
+        for (int i=0; i<n; ++i) {
+            g.setLabel(townLookup.get(i));
+        }
+
+        for (int i=0; i<infra.size(); ++i) {
+            for (int j=0; j<infra.get(i).size(); ++j) {
+                g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
             }
         }
 
-        Bid bid = new Bid();
-        bid.amount = amount;
-        bid.id1 = max_bid.id;
-
+        //g.print();
         return bid;
     }*/
 
