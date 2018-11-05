@@ -226,12 +226,13 @@ public class Player implements railway.sim.Player {
         double bid = bidIdMinBid.get(id);
         int traffic = bidIdTraffic.get(id);
         double dist = bidDistance.get(id);
-        float percent = ((float) traffic / (float) totalTraffic);
+        int n = infra.size();
+        float percent = ((float) n*traffic / (float) totalTraffic);
         //System.out.println("Traffic: " + traffic + " totalTraffic: " + totalTraffic + " percent: " + percent); 
-        double fractionOfBudget = (double) (budget * percent);
-        bid += (10 * dist * fractionOfBudget) / totalDistance;
+        double fractionOfBudget = (double) (n*dist * percent)/totalDistance;
+        bid *= (3+fractionOfBudget);
 
-        //System.out.println("New bid: " + bid + " our addition: " + (.1 * fractionOfBudget));
+        System.out.println("New bid: " + bidIdMinBid.get(id) + " our addition: " + bid);
         if (bid < budget) {
             return bid;
         } else {
@@ -268,20 +269,23 @@ public class Player implements railway.sim.Player {
         double max = 0.0;
         // Check if another player has made a bid for this link.
         for (Bid b : currentBids) {
-            if (b.amount / bidDistance.get(b.id1) > max) {
-                max = b.amount / bidDistance.get(b.id1);
-                if (max > cashMoney / bidDistance.get(bid.id1)) {
-                    lastBid = -1;
-                    return null;
-                } else if (budget - max * bidDistance.get(bid.id1) - 10000 < 0.) {
-                    lastBid = -1;
-                    return null;
-                } else {
-                    if (max * bidDistance.get(bid.id1) + 10000>bidIdMinBid.get(bid.id1))
-                    bid.amount = max * bidDistance.get(bid.id1) + 10000;
+            if (b.id2 == -1){
+                if (b.amount / bidDistance.get(b.id1) > max) {
+                    max = b.amount / bidDistance.get(b.id1);
+                    if (max > cashMoney / bidDistance.get(bid.id1)) {
+                        lastBid = -1;
+                        return null;
+                    } else if (budget - max * bidDistance.get(bid.id1) - 10000 < 0.) {
+                        if (max*bidDistance.get(bid.id1) == lastBid) return null;
+                        lastBid = -1;
+                        return null;
+                    } else {
+                        if (max * bidDistance.get(bid.id1) + 10000>bidIdMinBid.get(bid.id1))
+                        bid.amount = max * bidDistance.get(bid.id1) + 10000;
+                    }
                 }
             }
-            if (b.id2 != -1) {
+            else {
                 if (b.amount / (bidDistance.get(b.id1)+bidDistance.get(b.id2)) > max) {
                     max = b.amount / (bidDistance.get(b.id1)+bidDistance.get(b.id2));
                     if (max > cashMoney / bidDistance.get(bid.id1)) {
@@ -297,10 +301,11 @@ public class Player implements railway.sim.Player {
                 }
             }
         }
+        if (bid.amount == lastBid + 10000) return null;
         if (bid.amount > budget) {
+            lastBid = -1;
             return null;
         }
-        if (bid.amount == lastBid + 10000) return null;
         lastBid = bid.amount;
         return bid;
     }
