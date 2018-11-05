@@ -1,6 +1,5 @@
 package railway.g8;
 
-import org.jetbrains.annotations.NotNull;
 import railway.sim.utils.BidInfo;
 import railway.sim.utils.Coordinates;
 
@@ -124,7 +123,7 @@ public class GraphUtility {
         }
     }
 
-    private List<Integer> pathTrace(int i, int j, @NotNull int[][] next) {
+    private List<Integer> pathTrace(int i, int j, int[][] next) {
         List<Integer> ret = new ArrayList<>();
         if (next[i][j] == -1) return ret;
         ret.add(i);

@@ -30,9 +30,8 @@ public class Player implements railway.sim.Player {
     private Random rand;
     private double totalDistance = 0;
     private double budget;
-
     private List<BidInfo> availableBids = new ArrayList<>();
-
+    private double lastBid;
     private List<List<Integer>> infra;
     private int[][] transit;
 
@@ -70,6 +69,7 @@ public class Player implements railway.sim.Player {
         this.transit = transit;
         this.infra = infra;
         GraphUtility gu = new GraphUtility(geo, infra, transit, townLookup);
+        lastBid = -1;
         // System.out.println("DEBUGGGGG ////////");
         // System.out.println(townLookup.get(0));
         // System.out.println(townLookup.get(1));
@@ -240,11 +240,11 @@ public class Player implements railway.sim.Player {
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
-
+        /*
         if (availableBids.size() != 0) {
             return null;
         }
-
+        */
         //adding all available bids and adding to hashmap of bid id to minimum bid
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
@@ -261,11 +261,9 @@ public class Player implements railway.sim.Player {
         int bidID = highestTrafficEdgeWeight();
         //int bidID = calculateHighestTraffic();
         double cashMoney = calculateBid(bidID);
-
         Bid bid = new Bid();
         bid.id1 = bidID;
-        bid.amount = 0.05 * totalDistance * cashMoney / (10 * bidDistance.get(bidID));
-
+        bid.amount = bidIdMinBid.get(bidID);
         //System.out.println("Bid before checking other playerse: " + cashMoney + "  " + bid.amount);
         double max = 0.0;
         // Check if another player has made a bid for this link.
@@ -273,32 +271,37 @@ public class Player implements railway.sim.Player {
             if (b.amount / bidDistance.get(b.id1) > max) {
                 max = b.amount / bidDistance.get(b.id1);
                 if (max > cashMoney / bidDistance.get(bid.id1)) {
+                    lastBid = -1;
                     return null;
                 } else if (budget - max * bidDistance.get(bid.id1) - 10000 < 0.) {
+                    lastBid = -1;
                     return null;
                 } else {
+                    if (max * bidDistance.get(bid.id1) + 10000>bidIdMinBid.get(bid.id1))
                     bid.amount = max * bidDistance.get(bid.id1) + 10000;
                 }
             }
             if (b.id2 != -1) {
-                if (b.amount / bidDistance.get(b.id2) > max) {
-                    max = b.amount / bidDistance.get(b.id2);
+                if (b.amount / (bidDistance.get(b.id1)+bidDistance.get(b.id2)) > max) {
+                    max = b.amount / (bidDistance.get(b.id1)+bidDistance.get(b.id2));
                     if (max > cashMoney / bidDistance.get(bid.id1)) {
+                        lastBid = -1;
                         return null;
                     } else if (budget - max * bidDistance.get(bid.id1) - 10000 < 0.) {
+                        lastBid = -1;
                         return null;
                     } else {
+                        if (max * bidDistance.get(bid.id1) + 10000>bidIdMinBid.get(bid.id1))
                         bid.amount = max * bidDistance.get(bid.id1) + 10000;
                     }
                 }
             }
         }
-
-        //System.out.println("Bid amount: " + bid.amount + " Current budget " + budget);
         if (bid.amount > budget) {
             return null;
         }
-
+        if (bid.amount == lastBid + 10000) return null;
+        lastBid = bid.amount;
         return bid;
     }
 
