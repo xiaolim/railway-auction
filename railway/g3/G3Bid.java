@@ -5,7 +5,7 @@ import railway.sim.utils.*;
 
 import java.util.Arrays;
 
-public class G3Bid extends Bid {
+public class G3Bid extends Bid implements Comparable<Bid> {
 	// id of first town
 	public int town_id1;
 
@@ -43,5 +43,10 @@ public class G3Bid extends Bid {
 		}
 		return false;
 
+	}
+
+	@Override
+	public int compareTo(Bid other) {
+		return (int)Math.signum(this.amount - other.amount);
 	}
 }

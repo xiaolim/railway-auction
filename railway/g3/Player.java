@@ -35,6 +35,8 @@ public class Player implements railway.sim.Player {
     private boolean[][] ownership; // which links we own
     private List<G3Bid> availableBids = new ArrayList<G3Bid>();
 
+    
+
     public Player() {
         //rand = new Random();
     }
