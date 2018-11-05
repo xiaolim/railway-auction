@@ -19,8 +19,8 @@ class LinkInfo {
 
 public class Player implements railway.sim.Player {
     // Random seed of 42.
-    // private int seed = 42;
-    // private Random rand;
+    private int seed = 42;
+    private Random rand;
 
     private double budget; // amount to spend at auction
 
@@ -35,8 +35,10 @@ public class Player implements railway.sim.Player {
     private boolean[][] ownership; // which links we own
     private List<G3Bid> availableBids = new ArrayList<G3Bid>();
 
+    private boolean needsUpdate;
+
     public Player() {
-        //rand = new Random();
+        rand = new Random();
     }
 
     // Initialization function.
@@ -63,6 +65,7 @@ public class Player implements railway.sim.Player {
         this.transit = transit;
         this.revenue = getRevenue();
         this.connections = getConnections();
+        this.needsUpdate = false;
 
         // create all single link bids
         for(BidInfo bi: allBids) {
@@ -91,17 +94,10 @@ public class Player implements railway.sim.Player {
         }
         availableBids.addAll(pairs);
 
-        // System.err.println("bids in availableBids");
-        // for (G3Bid b : availableBids) {
-        //     int t_1 = b.town_id1;
-        //     int t_2 = b.town_id2;
-        //     if (b.town_id3 > -1) {
-        //         int t_3 = b.town_id3;
-        //         System.err.println(b.id1 + "," + b.id2 + ": " + townLookup.get(t_1) + " to " + townLookup.get(t_2) + " to " + townLookup.get(t_3));
-        //     } else {
-        //         System.err.println(b.id1 + "," + b.id2 + ": " + townLookup.get(t_1) + " to " + townLookup.get(t_2));
-        //     }
-        // }
+        System.err.println("bids in availableBids");
+        for (G3Bid b : availableBids) {
+            printBid(b);
+        }
 
         // System.err.println("testing error in number of bids");
         // for (G3Bid b : availableBids) {
@@ -140,6 +136,18 @@ public class Player implements railway.sim.Player {
     //   i.e. the results of previous rounds.
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
 
+    	// if(needsUpdate) {
+    	// 	// remove owned links from the possible bids
+    	// 	List<G3Bid> toKeep = new ArrayList(availableBids.size());
+    	// 	for(G3Bid bid: availableBids) {
+    	// 		if(!bid.overlapsWith(lastRoundMaxBid)) {
+    	// 			toKeep.add(bid);
+    	// 		}
+    	// 	}
+
+    	// 	availableBids = toKeep;
+    	// }
+
     	// get the price-per-distance of the maximum bid so far in this round
     	Bid maxBid;
     	double maxBidAmt;
@@ -157,16 +165,19 @@ public class Player implements railway.sim.Player {
     		for(int i = 0; i < availableBids.size(); ++i) {
     			G3Bid cur = availableBids.get(i);
     			updateBid(cur, maxBid, maxBidAmt);
+    			printBid(cur);
     		}
 
     		// evaluate the bid scores
+
+    		return availableBids.get(rand.nextInt(availableBids.size()));
     	}
 
-        return null;
+    	return null;
     }
 
     private void updateBid(G3Bid bid, Bid highest, double maxBidAmt) {
-    	double a = highest.amount + 10000.0;
+    	double a = bid.amount + 10000.0;
     	double dist = Simulator.getDistance(bid);
     	double b = Math.floor(1.0 + dist*maxBidAmt);
     	bid.amount = Math.max(a,b);
@@ -232,15 +243,15 @@ public class Player implements railway.sim.Player {
         return connections;
     }
 
-    private static List<G3Bid> getDuplicateLinks(int t1, int t2, List<G3Bid> allBids) {
-        List<G3Bid> dups = new ArrayList<>();
-        for (G3Bid a : allBids) {
-            if (a.town_id1 == t1 && a.town_id2 == t2) {
-                dups.add(a);
-            }
+    private void printBid(G3Bid b) {
+    	int t_1 = b.town_id1;
+        int t_2 = b.town_id2;
+        if (b.town_id3 > -1) {
+            int t_3 = b.town_id3;
+            System.err.println(b.id1 + "," + b.id2 + ": " + townLookup.get(t_1) + " to " + townLookup.get(t_2) + " to " + townLookup.get(t_3) + " for " + b.amount);
+        } else {
+            System.err.println(b.id1 + "," + b.id2 + ": " + townLookup.get(t_1) + " to " + townLookup.get(t_2) + " for " + b.amount);
         }
-
-        return dups;
     }
 
     // Indicates to the player whether they have won the previous bid of link/pair of links.
@@ -248,6 +259,13 @@ public class Player implements railway.sim.Player {
     public void updateBudget(Bid bid) {
         if (bid != null) {
             budget -= bid.amount;
+        }
+        // needsUpdate = true;
+
+        // reset all the bids at the end of the round
+        for(int i = 0; i < availableBids.size(); ++i) {
+        	G3Bid cur = availableBids.get(i);
+        	cur.amount = cur.min_bid;
         }
     }
 }
