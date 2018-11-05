@@ -109,6 +109,7 @@ public class Player implements railway.sim.Player {
                     bi.amount /= new_size;
                 }
 
+                System.out.println("from 1st >> " + bi.id1 + ": " + townLookup.get(bi.town_id1) + " to " + townLookup.get(bi.town_id2));
                 availableBids.add(bi);
                 id += 1;
 
@@ -119,9 +120,128 @@ public class Player implements railway.sim.Player {
                     pairBid.town_id1 = bi.town_id1;
                     pairBid.town_id2 = bi.town_id2;
                     pairBid.town_id3 = infra.get(t2).get(k);
-                    availableBids.add(pairBid);
-                    id += 1;
+
+                    // if these three towns are form a tricycle, then handle all 3 pair-links that can be formed from these towns
+                    if (isTricycle(pairBid.town_id1, pairBid.town_id2, pairBid.town_id3) && (!availableBids.contains(pairBid))) {
+                        System.out.println("from 2nd (cycle) >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                        availableBids.add(pairBid);
+                        id += 1;
+
+                        pairBid = new G3Bid();
+                        pairBid.id1 = id;
+                        pairBid.town_id1 = infra.get(t2).get(k);
+                        pairBid.town_id2 = bi.town_id1;
+                        pairBid.town_id3 = bi.town_id2;
+                        System.out.println("from 2nd (cycle) >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                        availableBids.add(pairBid);
+                        id += 1;
+                        
+                        pairBid = new G3Bid();
+                        pairBid.id1 = id;
+                        pairBid.town_id1 = bi.town_id2;
+                        pairBid.town_id2 = infra.get(t2).get(k);
+                        pairBid.town_id3 = bi.town_id1;
+                        System.out.println("from 2nd (cycle) >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                        availableBids.add(pairBid);
+                        id += 1;
+                        
+                    } else {
+                        if (!availableBids.contains(pairBid)) {
+                            System.out.println("from 2nd >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                            availableBids.add(pairBid);
+                            id += 1;
+                        }
+                    }
+                    
                 }
+
+                // Also search for the neighbors of B which contain B in their infra list (infra file contains C-B but not B-C)
+                for (int c=0; c < infra.size(); ++c) {
+                    if (c != bi.town_id1 && infra.get(c).contains(bi.town_id2)) {
+                        G3Bid pairBid = new G3Bid();
+                        pairBid.id1 = id;
+                        pairBid.town_id1 = bi.town_id1;
+                        pairBid.town_id2 = bi.town_id2;
+                        pairBid.town_id3 = c;
+                        // if these three towns are form a tricycle, then handle all 3 pair-links that can be formed from these towns
+                        if (isTricycle(pairBid.town_id1, pairBid.town_id2, pairBid.town_id3) && (!availableBids.contains(pairBid))) {
+                            System.out.println("from 3rd (cycle) >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                            availableBids.add(pairBid);
+                            id += 1;
+
+                            pairBid = new G3Bid();
+                            pairBid.id1 = id;
+                            pairBid.town_id1 = c;
+                            pairBid.town_id2 = bi.town_id1;
+                            pairBid.town_id3 = bi.town_id2;
+                            System.out.println("from 3rd (cycle) >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                            availableBids.add(pairBid);
+                            id += 1;
+                            
+                            pairBid = new G3Bid();
+                            pairBid.id1 = id;
+                            pairBid.town_id1 = bi.town_id2;
+                            pairBid.town_id2 = c;
+                            pairBid.town_id3 = bi.town_id1;
+                            System.out.println("from 3rd (cycle) >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                            availableBids.add(pairBid);
+                            id += 1;
+                            
+                        } else {
+                            if (!availableBids.contains(pairBid)) {
+                                System.out.println("from 3rd >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                                availableBids.add(pairBid);
+                                id += 1;
+                            }
+                        }
+                    }
+                }
+
+                // Also search for neighbors of A which are connected to some other link and link to B
+                System.err.println("town i: " + townLookup.get(i));
+                System.err.println("neighbor B: " + townLookup.get(bi.town_id2));
+                for (int z=0; z < infra.get(bi.town_id1).size(); ++z) {
+                    System.err.println("neighbor Z: " + townLookup.get(infra.get(bi.town_id1).get(z)));
+                    if (infra.get(bi.town_id1).get(z) != bi.town_id2) {
+                        G3Bid pairBid = new G3Bid();
+                        pairBid.id1 = id;
+                        pairBid.town_id1 = infra.get(bi.town_id1).get(z);
+                        pairBid.town_id2 = bi.town_id1;
+                        pairBid.town_id3 = bi.town_id2;
+                        // if these three towns are form a tricycle, then handle all 3 pair-links that can be formed from these towns
+                        if (isTricycle(pairBid.town_id1, pairBid.town_id2, pairBid.town_id3) && (!availableBids.contains(pairBid))) {
+                            System.out.println("from 4th (cycle) >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                            availableBids.add(pairBid);
+                            id += 1;
+
+                            pairBid = new G3Bid();
+                            pairBid.id1 = id;
+                            pairBid.town_id1 = bi.town_id2;
+                            pairBid.town_id2 = bi.town_id1;
+                            pairBid.town_id3 = infra.get(bi.town_id1).get(z);
+                            System.out.println("from 4th (cycle) >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                            availableBids.add(pairBid);
+                            id += 1;
+                            
+                            pairBid = new G3Bid();
+                            pairBid.id1 = id;
+                            pairBid.town_id1 = bi.town_id2;
+                            pairBid.town_id2 = infra.get(bi.town_id1).get(z);
+                            pairBid.town_id3 = bi.town_id1;
+                            System.out.println("from 4th (cycle) >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                            availableBids.add(pairBid);
+                            id += 1;
+                            
+                        } else {
+                            if (!availableBids.contains(pairBid)) {
+                                System.out.println("from 4th >> " + pairBid.id1 + ": " + townLookup.get(pairBid.town_id1) + " to " + townLookup.get(pairBid.town_id2) + " to " + townLookup.get(pairBid.town_id3));
+                                availableBids.add(pairBid);
+                                id += 1;
+                            }
+                        }
+                    }
+                }
+                // we do not want triplet links with the same 3 towns UNLESS they form a cycle
             }
         }
 
@@ -129,11 +249,23 @@ public class Player implements railway.sim.Player {
         for (G3Bid b : availableBids) {
             int t_1 = b.town_id1;
             int t_2 = b.town_id2;
-            if (b.town_id3 > 0) {
+            if (b.town_id3 > -1) {
                 int t_3 = b.town_id3;
                 System.err.println(b.id1 + ": " + townLookup.get(t_1) + " to " + townLookup.get(t_2) + " to " + townLookup.get(t_3));
             } else {
                 System.err.println(b.id1 + ": " + townLookup.get(t_1) + " to " + townLookup.get(t_2));
+            }
+        }
+
+        System.err.println("testing error in number of bids");
+        for (G3Bid b : availableBids) {
+            int t_1 = b.town_id1;
+            int t_2 = b.town_id2;
+            if (b.town_id3 > -1) {
+                int t_3 = b.town_id3;
+                if (isTricycle(t_1, t_2, t_3)) {
+                    System.out.println("CYCLE!!! : " + townLookup.get(t_1) + ", " + townLookup.get(t_2) + ", " + townLookup.get(t_3));
+                }
             }
         }
 
@@ -324,6 +456,21 @@ public class Player implements railway.sim.Player {
         }
 
         return dups;
+    }
+
+    private boolean isTricycle(int t1, int t2, int t3) {
+        // checks if these three cities form a cycle
+        if (infra.get(t1).contains(t2) && infra.get(t1).contains(t3) && (infra.get(t2).contains(t3) || infra.get(t3).contains(t2))) {
+            return true;
+        }
+        if (infra.get(t2).contains(t1) && infra.get(t2).contains(t3) && (infra.get(t1).contains(t3) || infra.get(t3).contains(t1))) {
+            return true;
+        }
+        if (infra.get(t3).contains(t1) && infra.get(t3).contains(t2) && (infra.get(t1).contains(t2) || infra.get(t2).contains(t1))) {
+            return true;
+        }
+        return false;
+
     }
 
     // Indicates to the player whether they have won the previous bid of link/pair of links.
