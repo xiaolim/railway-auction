@@ -479,7 +479,5 @@ public class Player implements railway.sim.Player {
         if (bid != null) {
             budget -= bid.amount;
         }
-
-        availableBids = new ArrayList<>();
     }
 }
