@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-
+import railway.sim.Simulator;
 
 // To access data classes.
 import railway.sim.utils.*;
@@ -34,8 +34,6 @@ public class Player implements railway.sim.Player {
 
     private boolean[][] ownership; // which links we own
     private List<G3Bid> availableBids = new ArrayList<G3Bid>();
-
-    
 
     public Player() {
         //rand = new Random();
@@ -309,7 +307,17 @@ public class Player implements railway.sim.Player {
     //   i.e. the results of previous rounds.
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
 
-        System.err.println("!!not doing anything!!");
+    	// get the price/distance of the maximum bid so far in this round
+    	Bid maxBid;
+    	double maxBidAmt;
+    	if (currentBids.size() > 0) {
+    		maxBid = Simulator.getMaxBid(currentBids, allBids);
+    		maxBidAmt = maxBid.amount/Simulator.getDistance(maxBid);
+    		System.err.println("max bid: " + maxBid.id1 + ", " + maxBid.id2 + " -- amount = " + maxBidAmt);
+    	} else {
+    		maxBid = null;
+    		maxBidAmt = 0;
+    	}        
 
         return null;
 
