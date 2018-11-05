@@ -19,8 +19,8 @@ class LinkInfo {
 
 public class Player implements railway.sim.Player {
     // Random seed of 42.
-    private int seed = 42;
-    private Random rand;
+    //private int seed = 42;
+    //private Random rand;
 
     private double budget; // amount to spend at auction
 
@@ -36,11 +36,10 @@ public class Player implements railway.sim.Player {
     private List<G3Bid> availableBids = new ArrayList<G3Bid>();
 
     private List<BidInfo> allBids;
-
-    private boolean needsUpdate;
+    private int bidsThisRound;
 
     public Player() {
-        rand = new Random();
+        //rand = new Random();
     }
 
     // Initialization function.
@@ -67,7 +66,7 @@ public class Player implements railway.sim.Player {
         this.transit = transit;
         this.revenue = getRevenue();
         this.connections = getConnections();
-        this.needsUpdate = false;
+        this.bidsThisRound = 0;
 
         // create all single link bids
         for(BidInfo bi: allBids) {
@@ -96,10 +95,10 @@ public class Player implements railway.sim.Player {
         }
         availableBids.addAll(pairs);
 
-        System.err.println("bids in availableBids");
-        for (G3Bid b : availableBids) {
-            printBid(b);
-        }
+        // System.err.println("bids in availableBids");
+        // for (G3Bid b : availableBids) {
+        //     printBid(b);
+        // }
 
         // System.err.println("testing error in number of bids");
         // for (G3Bid b : availableBids) {
@@ -137,53 +136,79 @@ public class Player implements railway.sim.Player {
     // allBids: shows those bids available and bids owned by other players
     //   i.e. the results of previous rounds.
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
-
-    	// if(needsUpdate) {
-    	// 	// remove owned links from the possible bids
-    	// 	List<G3Bid> toKeep = new ArrayList(availableBids.size());
-    	// 	for(G3Bid bid: availableBids) {
-    	// 		if(!bid.overlapsWith(lastRoundMaxBid)) {
-    	// 			toKeep.add(bid);
-    	// 		}
-    	// 	}
-
-    	// 	availableBids = toKeep;
-    	// }
-
         this.allBids = allBids;
+
+        // update possible bids according to max bids
+        for (int i = 0; i < currentBids.size()-bidsThisRound; ++i) {
+        	Bid b1 = currentBids.get(i);
+        	for (int j = 0; j < availableBids.size(); ++j) {
+        		Bid b2 = availableBids.get(j);
+        		if(b1.id1==b2.id1 && b1.id2==b2.id2 || b1.id1==b2.id2 && b1.id2==b2.id1) {
+        			if(b1.amount + 10000 > b2.amount) {
+        				b2.amount = b1.amount + 10000;
+        			}
+        			break;
+        		}
+        	}
+        }
+        bidsThisRound = currentBids.size();
+
     	// get the price-per-distance of the maximum bid so far in this round
     	Bid maxBid;
     	double maxBidAmt;
     	if (currentBids.size() > 0) {
     		maxBid = Simulator.getMaxBid(currentBids, allBids);
     		maxBidAmt = maxBid.amount/Simulator.getDistance(maxBid);
-    		System.err.println("max bid: " + maxBid.id1 + ", " + maxBid.id2 + " -- amount = " + maxBidAmt);
+    		//System.err.println("max bid: " + maxBid.id1 + ", " + maxBid.id2 + " -- amount = " + maxBidAmt);
     	} else {
     		maxBid = null;
     		maxBidAmt = 0;
     	}
 
-    	if(maxBid!=null && !maxBid.bidder.equals("g3")) {
-    		// update all the possible bids to cost what is needed to secure them this round
-    		for(int i = 0; i < availableBids.size(); ++i) {
-    			G3Bid cur = availableBids.get(i);
-    			updateBid(cur, maxBid, maxBidAmt);
-    			printBid(cur);
-    		}
+    	if(maxBid==null) {
+    		// evaluate bid scores
 
-    		// evaluate the bid scores
-
-    		return availableBids.get(rand.nextInt(availableBids.size()));
+    		// sort by score and return the best we can afford
+    		G3Bid best = getBestAffordableBid(availableBids);
+    		return (best!=null && best.score >= 0) ? best : null;
     	}
 
-    	return null;
+    	if(maxBid.bidder.equals("g3")) {
+    		// already own the winning bid
+    		return null;
+    	}
+
+    	// past here means another player has the winning bid right now...
+
+		// update all the possible bids to cost what is needed to secure them this round
+		for(int i = 0; i < availableBids.size(); ++i) {
+			G3Bid cur = availableBids.get(i);
+			updateBid(cur, maxBid, maxBidAmt);
+			//printBid(cur);
+		}
+
+		// evaluate the bid scores
+
+		// sort by score and return the best we can afford
+		G3Bid best = getBestAffordableBid(availableBids);
+		return (best!=null && best.score >= 0) ? best : null;
     }
 
     private void updateBid(G3Bid bid, Bid highest, double maxBidAmt) {
-    	double a = bid.amount + 10000.0;
+    	double a = bid.amount;
     	double dist = Simulator.getDistance(bid);
     	double b = Math.floor(1.0 + dist*maxBidAmt);
     	bid.amount = Math.max(a,b);
+    }
+
+    private G3Bid getBestAffordableBid(List<G3Bid> availableBids) {
+    	Collections.sort(availableBids);
+    	for(G3Bid bid: availableBids) {
+    		if(bid.amount < this.budget) {
+    			return bid;
+    		}
+    	}
+    	return null; // can't afford any
     }
 
     // Thanks Sidhi!
@@ -306,5 +331,7 @@ public class Player implements railway.sim.Player {
         	G3Bid cur = availableBids.get(i);
         	cur.amount = cur.min_bid;
         }
+
+        bidsThisRound = 0;
     }
 }
