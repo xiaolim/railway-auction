@@ -5,7 +5,7 @@ import railway.sim.utils.*;
 
 import java.util.Arrays;
 
-public class G3Bid extends Bid {
+public class G3Bid extends Bid implements Comparable<G3Bid> {
 	// id of first town
 	public int town_id1;
 
@@ -18,30 +18,61 @@ public class G3Bid extends Bid {
 	// minimum bid that could ever win the link
 	public double min_bid;
 
+	// expected amount of profit from winning the bid
+	public double score;
+
 	public G3Bid() {
+		super();
 		town_id1 = -1;
 		town_id2 = -1;
 		town_id3 = -1;
 	}
 
+	// single link bid
+	public G3Bid(int town_id1, int town_id2, int link, double amount) {
+		this.town_id1 = town_id1;
+		this.town_id2 = town_id2;
+		this.town_id3 = -1;
+		this.id1 = link;
+		this.id2 = -1;
+		this.min_bid = this.amount = amount;
+		this.score = -Double.MAX_VALUE;
+	}
+
+	// double link bid
+	public G3Bid(G3Bid b1, G3Bid b2) throws Exception {
+		int town_id1, town_id2, town_id3;
+		if (b1.town_id1==b2.town_id1) {
+			town_id1 = b1.town_id2;
+			town_id2 = b1.town_id1;
+			town_id3 = b2.town_id2;
+		} else if(b1.town_id1==b2.town_id2) {
+			town_id1 = b1.town_id2;
+			town_id2 = b1.town_id1;
+			town_id3 = b2.town_id1;
+		} else if(b1.town_id2==b2.town_id1) {
+			town_id1 = b1.town_id1;
+			town_id2 = b1.town_id2;
+			town_id3 = b2.town_id2;
+		} else if(b1.town_id2==b2.town_id2) {
+			town_id1 = b1.town_id1;
+			town_id2 = b1.town_id2;
+			town_id3 = b2.town_id1;
+		} else {
+			throw new Exception("must pass valid pair of bids");
+		}
+
+		this.town_id1 = town_id1;
+		this.town_id2 = town_id2;
+		this.town_id3 = town_id3;
+		this.id1 = b1.id1;
+		this.id2 = b2.id1;
+		this.min_bid = this.amount = b1.amount+b2.amount;
+		this.score = -Double.MAX_VALUE;
+	}
+
 	@Override
-	public boolean equals(Object o) {
-
-		if (o == null) {
-			return false;
-		}
-		G3Bid otherBid = (G3Bid) o;
-		if ((otherBid.town_id3 < -1 && this.town_id3 > -1) || (otherBid.town_id3 > -1 && this.town_id3 < -1)) {
-			return false;
-		}
-		int[] otherIDs = {otherBid.town_id1, otherBid.town_id2, otherBid.town_id3};
-		int[] thisIDs = {this.town_id1, this.town_id2, this.town_id3};
-		Arrays.sort(otherIDs);
-		Arrays.sort(thisIDs);
-		if (Arrays.equals(otherIDs, thisIDs)) {
-			return true;
-		}
-		return false;
-
+	public int compareTo(G3Bid other) {
+		return (int)Math.signum(this.score - other.score);
 	}
 }
