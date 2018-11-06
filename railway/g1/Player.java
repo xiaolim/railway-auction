@@ -201,6 +201,7 @@ public class Player implements railway.sim.Player {
                     break;
                 }
             }
+
         }
 
         System.out.println("done: "+kpaths.size());
@@ -224,7 +225,14 @@ public class Player implements railway.sim.Player {
                 if(transit[i][j]==0) {
                     continue;
                 }
-                yenKSPaths(g,i,j,k);
+                try {
+                    yenKSPaths(g,i,j,k);
+                    Thread.sleep(1000000);
+
+                }
+                catch(InterruptedException e) {
+                    System.out.println("timeout");
+                }
             }
             break;
         }
