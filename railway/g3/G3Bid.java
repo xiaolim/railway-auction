@@ -36,7 +36,8 @@ public class G3Bid extends Bid implements Comparable<G3Bid> {
 		this.id1 = link;
 		this.id2 = -1;
 		this.min_bid = this.amount = amount;
-		this.score = -Double.MAX_VALUE;
+		//this.score = -Double.MAX_VALUE;
+		this.score = 0;
 	}
 
 	// double link bid
@@ -68,7 +69,8 @@ public class G3Bid extends Bid implements Comparable<G3Bid> {
 		this.id1 = b1.id1;
 		this.id2 = b2.id1;
 		this.min_bid = this.amount = b1.amount+b2.amount;
-		this.score = -Double.MAX_VALUE;
+		//this.score = -Double.MAX_VALUE;
+		this.score = 0;
 	}
 
 	@Override
