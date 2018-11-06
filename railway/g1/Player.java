@@ -117,11 +117,11 @@ public class Player implements railway.sim.Player {
         List<List<Integer>> allP = Dijkstra.getPaths(g,prev,sink);
         List<List<Integer>> kpaths = new ArrayList<>(allP);
 
-        for(int a = 0;a<allP.size();a++) {
+        /*for(int a = 0;a<allP.size();a++) {
             for (int b = 0;b<allP.get(a).size();b++) {
                 System.out.println("a: "+a+", b: "+b+" path: "+allP.get(a).get(b));
             }
-        }
+        }*/
 
         if (kpaths.size() < k) {
             List<List<Integer>> potential = new ArrayList<>();
@@ -138,16 +138,16 @@ public class Player implements railway.sim.Player {
 
                     //get spur node
                     int spur = kpaths.get(i).get(j);
-                    System.out.println("spur:"+spur);
+                    //System.out.println("spur:"+spur);
                     List<Integer> rootpath = new ArrayList<Integer>();
                     for(int a=0;a<j+1;a++) {
                         rootpath.add(kpaths.get(i).get(a));
                     } // 0, 8
                     for (List<Integer> path: kpaths) {
                         List<Integer> temp = new ArrayList<Integer>(path.subList(0,j+1));
-                        System.out.println(temp.equals(rootpath));
+                        //System.out.println(temp.equals(rootpath));
                         if (temp.equals(rootpath)) {
-                            System.out.println("removed "+path.get(j)+" "+path.get(j+1));
+                            //System.out.println("removed "+path.get(j)+" "+path.get(j+1));
                             gtemp.removeEdge(path.get(j),path.get(j+1));
                         }
                     }
@@ -156,21 +156,22 @@ public class Player implements railway.sim.Player {
                     /*for(int a=0;a<rootpath.size()-1;a++) {
                         g.remove()
                     }*/
+                    
                     int[][] spurprev = Dijkstra.dijkstra(gtemp, spur);
                     List<List<Integer>> spurPaths = Dijkstra.getPaths(gtemp,spurprev,sink);
-                    System.out.println("spurpath");
                     for(int a = 0;a<spurPaths.size();a++) {
                         List<Integer> totalPath = new ArrayList<>(rootpath);
-                        totalPath.addAll(spurPaths.get(a));
-                        potential.add(totalPath);
 
-                        for (int b = 0;b<spurPaths.get(a).size();b++) {
-                            System.out.println("a: "+a+", b: "+b+" path: "+spurPaths.get(a).get(b));
+                        totalPath.addAll(spurPaths.get(a).subList(1,spurPaths.get(a).size()));
+                        potential.add(totalPath);
+                        System.out.println("total+spur");
+                        for (int b = 0;b<totalPath.size();b++) {
+                            System.out.println("a: "+a+", b: "+b+" path: "+totalPath.get(b));
                         }
                     }
                 }
 
-                System.out.println("potential:"+potential.size());
+                //System.out.println("potential:"+potential.size());
                 if (potential.size() == 0) {
                     break;
                 }
@@ -197,6 +198,7 @@ public class Player implements railway.sim.Player {
                     kpaths.add(potential.get(a));
                     potential.remove(a);
                 }
+                System.out.println("current size: "+kpaths.size());
                 if (kpaths.size() >= k) {
                     break;
                 }
