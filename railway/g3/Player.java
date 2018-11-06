@@ -35,6 +35,8 @@ public class Player implements railway.sim.Player {
     private boolean[][] ownership; // which links we own
     private List<G3Bid> availableBids = new ArrayList<G3Bid>();
 
+    private List<BidInfo> allBids;
+
     private boolean needsUpdate;
 
     public Player() {
@@ -148,6 +150,7 @@ public class Player implements railway.sim.Player {
     	// 	availableBids = toKeep;
     	// }
 
+        this.allBids = allBids;
     	// get the price-per-distance of the maximum bid so far in this round
     	Bid maxBid;
     	double maxBidAmt;
@@ -257,8 +260,44 @@ public class Player implements railway.sim.Player {
     // Indicates to the player whether they have won the previous bid of link/pair of links.
     // A null bid indicates that they did not win their bid.
     public void updateBudget(Bid bid) {
+        ArrayList<G3Bid> availableBids_copy = new ArrayList<G3Bid>();
+        availableBids_copy.addAll(availableBids);
+        availableBids = new ArrayList<G3Bid>();
         if (bid != null) {
             budget -= bid.amount;
+
+            if (bid.id2 == -1) {
+                //a single link has been awarded--remove this single link and any pair links that contain this single link
+                for (G3Bid g3bid : availableBids_copy) {
+                    if (!(g3bid.id1 == bid.id1 || g3bid.id2 == bid.id1)) {
+                        availableBids.add(g3bid);
+                    }
+                }
+            } else {
+                //a pair link has been awarded--remove this double link, any double links that contain any of these single links, and the single links
+                for (G3Bid g3bid : availableBids_copy) {
+                    if (!(g3bid.id1 == bid.id1 || g3bid.id1 == bid.id2 || g3bid.id2 == bid.id1 || g3bid.id2 == bid.id2)) {
+                        availableBids.add(g3bid);
+                    }
+                }
+            }
+        } else {
+            for (G3Bid g3bid : availableBids_copy) {
+                if (g3bid.id2 == -1) {
+                    // this is a single link so we just need to check if its single link is owned
+                    if (!(this.allBids.get(g3bid.id1).owner != null)) {
+                        availableBids.add(g3bid);
+                    }
+                } else {
+                    //this is a double link so we need to check if both its links are owned or if just one of them is owned
+                    if (!(this.allBids.get(g3bid.id1).owner != null)) {
+                        availableBids.add(g3bid);
+                    }
+                    if (!(this.allBids.get(g3bid.id2).owner != null)) {
+                        availableBids.add(g3bid);
+                    }
+                }
+            }
         }
         // needsUpdate = true;
 
