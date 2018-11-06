@@ -26,6 +26,7 @@ public class Player implements railway.sim.Player
     private List<List<Integer>> infra;
     private int [][] transit;
     private int total_profit = 0; 
+    private int total_budget = 0;
     private String name;
     private static int NUM_STATIONS;
     private ArrayList<Integer>[] adjList; 
@@ -93,6 +94,7 @@ public class Player implements railway.sim.Player
 
 
     public void update_flow(){
+        total_profit = 0;
         flow = new HashMap<Integer, Integer>();
         for (int i = 0; i< transit.length; i++){
             for (int j=0; j<transit[i].length; j++){
@@ -192,7 +194,6 @@ public class Player implements railway.sim.Player
 
         // this update the flow every iteration
         update_flow();
-
 
         for (int i=0; i<availableBids.size();i++)
         {
@@ -310,12 +311,12 @@ public class Player implements railway.sim.Player
             if (flow.containsKey(hash(from, to))){
                 revenue = flow.get(hash(from, to))*20*getDistance(from,to);
             }
-            
+            /*
             System.out.printf("revenue for %s to %s :%f\n",bi.town1, bi.town2, revenue);
             System.out.printf("price : %f\n",winning_price);
             System.out.printf("Profit : %f\n",revenue-winning_price);
             System.out.printf("total profit left this round: %d\n",total_profit);
-            
+            */
             
             if (winning_price < revenue)
             {
@@ -355,8 +356,8 @@ public class Player implements railway.sim.Player
         }
         if (b.id1 == -1)
         {
-            System.out.println("Not worth it");
-            System.out.println(this.budget);
+            //System.out.println("Not worth it");
+            //System.out.println(this.budget);
             
             return null;
         }
@@ -376,7 +377,7 @@ public class Player implements railway.sim.Player
     // determine if we want to keep bidding, 0 if not, 1 if yes
     public int stop_criterian(double cost, double revenue, double total_profit)
     {
-        if (8*(revenue - cost)*this.budget < cost*total_profit)
+        if (8*(revenue - cost)*this.total_budget < cost*total_profit)
         {
             return 0;
         }
