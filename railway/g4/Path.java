@@ -11,46 +11,42 @@ import java.lang.Math;
 // To access data classes.
 import railway.sim.utils.*;
 
-public class Path implements Comparable<Path>
-{
-	public final static int PENALTY = 200;
+public class Path implements Comparable<Path>{
 	public List<Integer> path = new ArrayList<Integer>(); // One Path
+	public double min_distance = 0;
+	public double max_distance = 0;
 	public double distance = 0;
-	
+	public int from = 0;
+	public int to = 0;
+
 	// Store data about paths
 	public Path()
 	{
 		
 	}
-	
-	// Only use for two adjacent
-	private static double getDistance(int from_station, int to_station)
+
+	public Path(int from, int to, List<Integer> lst, double max, double min)
 	{
-		return Math.pow(Math.pow(geo.get(a).x - geo.get(b).x, 2) + Math.pow(geo.get(a).y - geo.get(b).y, 2), 0.5);
+		this.from = from;
+		this.to = to;
+		this.min_distance = min;
+		this.max_distance = max;
+		for (int i:lst){
+			path.add(i);
+		}
 	}
-	
-	// Sum distance of a whole path...
-    public double distance_of_links(List<Integer> list_of_stations)
-    {
-    	double distance = 0;
-        // [0, 1, 2, 5]
-        // get distance of (0, 1) + (1, 2) + (2, 5)
-        for(int i = 0; i < list_of_stations.size(); i++)
-        {
-        	// Check if there is a jump in ownder
-        	if()
-        	{
-        		distance += PENALTY;
-        	}
-            distance += getDistance(i, i+1);
-        }
-        return profit;
-    }
-    
-    public void update()
-    {
-    	// call distance_of_links...
-    }
+
+	public void print(){
+	    System.out.println();
+	    System.out.printf("Path from %d to %d\n",from, to);
+		for (int i: path){
+			System.out.printf("%d ",i);
+		}
+		System.out.println(min_distance);
+		System.out.println(max_distance);
+		System.out.printf(" with distance %f\n",min_distance);
+        System.out.println("====================");
+	}
     
     // Easy to get minimum path
 	public int compareTo(Path other)
