@@ -96,6 +96,13 @@ public class Player implements railway.sim.Player {
         }
         availableBids.addAll(pairs);
 
+        for (double[] row: revenue) {
+        	for (double d: row) {
+        		System.err.print(d + " ");
+        	}
+        	System.err.println();
+        }
+
         /*System.out.println("Bids in availableBids:");
         for (G3Bid bid : availableBids) {
             printBid(bid);
@@ -174,6 +181,11 @@ public class Player implements railway.sim.Player {
 
     	if(maxBid==null) {
     		// evaluate bid scores
+    		for(int i = 0; i < availableBids.size(); ++i) {
+				G3Bid cur = availableBids.get(i);
+				evaluateBid(cur);
+				//printBid(cur);
+			}
 
     		// sort by score and return the best we can afford
     		G3Bid best = getBestAffordableBid(availableBids);
@@ -195,6 +207,11 @@ public class Player implements railway.sim.Player {
 		}
 
 		// evaluate the bid scores
+		for(int i = 0; i < availableBids.size(); ++i) {
+			G3Bid cur = availableBids.get(i);
+			evaluateBid(cur);
+			//printBid(cur);
+		}
 
 		// sort by score and return the best we can afford
 		G3Bid best = getBestAffordableBid(availableBids);
@@ -206,6 +223,26 @@ public class Player implements railway.sim.Player {
     	double dist = Simulator.getDistance(bid);
     	double b = Math.floor(1.0 + dist*maxBidAmt);
     	bid.amount = Math.max(a,b);
+    }
+
+    private void evaluateBid(G3Bid bid) {
+    	// really basic right now -- just computes profit from direct traffic
+    	double revenue = 0;
+    	if (bid.id2 == -1) {
+    		// single link
+    		revenue += this.revenue[bid.town_id1][bid.town_id2];
+    		revenue += this.revenue[bid.town_id2][bid.town_id1];
+    	} else {
+    		// pair link
+    		revenue += this.revenue[bid.town_id1][bid.town_id2];
+    		revenue += this.revenue[bid.town_id2][bid.town_id1];
+    		revenue += this.revenue[bid.town_id2][bid.town_id3];
+    		revenue += this.revenue[bid.town_id3][bid.town_id2];
+    		revenue += this.revenue[bid.town_id1][bid.town_id3];
+    		revenue += this.revenue[bid.town_id3][bid.town_id1];
+    	}
+
+    	bid.score = revenue - bid.amount;
     }
 
     private G3Bid getBestAffordableBid(List<G3Bid> availableBids) {

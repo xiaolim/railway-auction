@@ -75,6 +75,6 @@ public class G3Bid extends Bid implements Comparable<G3Bid> {
 
 	@Override
 	public int compareTo(G3Bid other) {
-		return (int)Math.signum(this.score - other.score);
+		return (int)Math.signum(other.score - this.score);
 	}
 }
