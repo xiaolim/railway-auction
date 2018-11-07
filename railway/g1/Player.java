@@ -1,6 +1,7 @@
 package railway.g1;
 
 import java.io.Serializable;
+import java.nio.channels.FileChannel.MapMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
 import railway.sim.utils.*;
 // To access data classes.
 
@@ -47,11 +50,12 @@ public class Player implements railway.sim.Player {
     
     private Map<String, Double> budgets = new HashMap<String, Double>();
 	private Object Pair;
-    //use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
-    //This can be done in O(n).If you want the paths to contain to links(etc. (a,b), (c,d)), you can just
+	
+    // Use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
+    // This can be done in O(n).If you want the paths to contain to links(etc. (a,b), (c,d)), you can just
     // use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)).retainAll(contain-paths.get(c,d)) which can also be done in O(n)
 	// With the paths you get, you can easily change the heatmap  weight in O(n).
-    //Alsp you can use contain_paths.get(a,b).retainAll(sour_dest_paths.get(i,j)) to get paths contain (a,b) and start i, end j;
+    // Also you can use contain_paths.get(a,b).retainAll(sour_dest_paths.get(i,j)) to get paths contain (a,b) and start i, end j;
     private Map<Pair, List<List<Integer>>> sour_dest_paths; //paths start from Pair.i1 and end in Pair.i2
     private Map<Pair, List<List<Integer>>> contain_paths;//paths that contains link (Pair.i1, Pair.i2)
 
@@ -68,12 +72,9 @@ public class Player implements railway.sim.Player {
     	//implement compareTo to make sure the hashmap can work well because JAVA are Object-Orientied
         @Override
         public int compareTo(Pair other){
-    	    if(this.i1==other.i1 && this.i2==other.i2){
-    	        return 0;
-            }else{
-    	        return this.i1*this.i1+this.i2*this.i2-other.i1*other.i1-other.i2*other.i2;
-            }
+    	    return Integer.compare(hashCode(), other.hashCode());
         }
+        
     	@Override
         public boolean equals(Object o) {
     		try {
@@ -149,6 +150,12 @@ public class Player implements railway.sim.Player {
 
     public Player() {
         rand = new Random();
+        /*try {
+			TimeUnit.SECONDS.sleep(10);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
     }
 
     public void init(String name, double budget, List<Coordinates> geo, List<List<Integer>> infra, 
@@ -196,7 +203,7 @@ public class Player implements railway.sim.Player {
     public void updateStatus(Bid lastRoundMaxBid) {
     	if (lastRoundMaxBid != null) {
     		BidInfo b1 = allLinks.get(lastRoundMaxBid.id1);
-    		double budget = budgets.getOrDefault(b1.owner, START_BUDGET);
+    		double budget = budgets.getOrDefault(lastRoundMaxBid.bidder, START_BUDGET);
     		budgets.put(lastRoundMaxBid.bidder, budget - lastRoundMaxBid.amount);
     		b1.owner = lastRoundMaxBid.bidder;
     		b1.amount = lastRoundMaxBid.amount;
@@ -320,9 +327,9 @@ public class Player implements railway.sim.Player {
     	return heatmap;
     }
 
-    public Map<Pair, Double> predictHeatMap(List<BidInfo> hypotheticalState, String player) {
+    public Map<Integer, Double> predictHeatMap(List<BidInfo> hypotheticalState, String player) {
         // heatmap is current heatmap
-        Map<Pair, Double> newmap = new HashMap<Pair, Double>();
+        Map<Integer, Double> newmap = new HashMap<Integer, Double>();
 
 
         return newmap;
@@ -330,7 +337,7 @@ public class Player implements railway.sim.Player {
 
 
 
-    //This is to Query the info of according bid
+    // This is to Query the info of according bid
     private BidInfo QBidInfo(Bid bid, List<BidInfo> allBids){
         for(BidInfo bi : allBids){
             if(bi.id == bid.id1){
@@ -339,6 +346,7 @@ public class Player implements railway.sim.Player {
         }
         return null;
     }
+    
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
     	// TODO Find a way such that we bid on a link that gives us 0 benefit externally (?)
     	// while giving other links that we owned higher traffics. I am not sure how to do this right now.
@@ -348,13 +356,55 @@ public class Player implements railway.sim.Player {
     		updateStatus(lastRoundMaxBid);
     		newTournament = false;
     	}
-        //getHeatMap(playerOwnedLinks,"g1");
-        
-    	// Random player code below
     	
-    	// The random player bids only once in a round.
-        // This checks whether we are in the same round.
-        // Random player doesn't care about bids made by other players.
+    	
+    	/*
+    	Map<Integer, Double> ourMap = predictHeatMap(null, name);
+    	
+    	List<Map<Integer, Double>> heatmaps = new ArrayList<Map<Integer, Double>>();
+    	for (String p : budgets.keySet())
+    		if (p != name)
+    			heatmaps.add(predictHeatMap(null, p));
+    	
+    	// Runtime O(cn)
+    	// Find the difference between our expected traffic and maximum traffic of other players
+    	Map<Integer, Double> mapDiff = new HashMap<Integer, Double>();
+    	for (int i = 0; i < allLinks.size(); ++i) {
+    		double max = -Double.MAX_VALUE;
+    		for (int pindex = 0; pindex < heatmaps.size(); ++pindex) {
+    			double temp;
+    			if ((temp = heatmaps.get(pindex).get(Integer.valueOf(i))) > max)
+    				max = temp;
+    		}
+    		mapDiff.put(Integer.valueOf(i), ourMap.get(Integer.valueOf(i)) - max);
+    	}
+    	
+    	
+    	// Sort the heatmap difference
+    	@SuppressWarnings("unused")
+		List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<>(mapDiff.entrySet());
+    	Collections.sort(sortedDiff, Collections.reverseOrder((x, y) -> {
+    		if (allLinks.get(x.getKey()).owner == null)
+    			return 1;
+    		if (allLinks.get(y.getKey()).owner == null)
+    			return -1;
+    		return Double.compare(x.getValue(), y.getValue());
+    	}));
+    	
+    	for (Map.Entry<Integer, Double> link : sortedDiff) {
+    		if (link.getKey() != null)
+    			continue;
+    		// Make purchases here
+    		if (ourMap.get(link.getKey()) < lastRoundMaxBid.amount)
+    			continue;
+    		if (link.getValue() < 0.0D)
+    			return null;
+    	}
+    	*/
+    	 
+    	
+    	
+    	
     	
     	
         double amount = -1;
@@ -367,6 +417,7 @@ public class Player implements railway.sim.Player {
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
                 if(ourlinks.size()==0){
+                	//if (predictHeatMap(null, name).get(new Pair(map.get(bi.town1), map.get(bi.town2))) == 10) {
                     if(min_path[map.get(bi.town1)][map.get(bi.town2)]!=1){
                         continue;
                     }
@@ -412,7 +463,6 @@ public class Player implements railway.sim.Player {
 
         }
 
-        //System.out.println(maxamount+" "+maxid);
         if (availableBids.size() == 0) {
             return null;
         }
@@ -421,22 +471,32 @@ public class Player implements railway.sim.Player {
 
 //        BidInfo randomBid = availableBids.get(rand.nextInt(availableBids.size()));
 
-        // Don't bid if the random bid turns out to be beyond our budget.
-        //System.err.println(budgets.get(name));
-        if (budgets.get(name) - maxamount < 0) {
-            return null;
-        }
+
 
         // Check if another player has made a bid for this link.
 //
 //        for (BidInfo bi : currentBids) {
 //
 //        }
-
+        
+        double historyMax = -1;
+        for (Bid b: currentBids) {
+        	if ((b.id1 == maxid) || (b.id2 == maxid))
+        		historyMax = Double.max(historyMax, b.amount);
+        }
+        
+        
         Bid bid = new Bid();
-        bid.amount = maxamount;
+        bid.amount = Double.max(maxamount, historyMax + 10000.0D);
         bid.id1 = maxid;
-
+        
+        // Don't bid if the random bid turns out to be beyond our budget.
+        System.err.println(budgets.get(name));
+        System.err.println(bid.amount+" "+maxid);
+        if (budgets.get(name) - bid.amount < 0) {
+            return null;
+        }
+        
         return bid;
     }
 
