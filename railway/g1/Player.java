@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
 import railway.sim.utils.*;
 // To access data classes.
 
@@ -315,6 +317,12 @@ public class Player implements railway.sim.Player {
 
     public Player() {
         rand = new Random();
+        /*try {
+			TimeUnit.SECONDS.sleep(10);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
     }
 
     public void init(String name, double budget, List<Coordinates> geo, List<List<Integer>> infra, 
