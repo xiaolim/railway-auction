@@ -1310,16 +1310,16 @@ public class Player implements railway.sim.Player {
     }
 
     private void getUncontestableRoute() {
-        System.out.println("getUncontestableRoute started");
+        // System.out.println("getUncontestableRoute started");
         WeightedGraph g = buildGraph();
         for (int s = 0; s < transit.length; s++) {
             for (int t = s + 1; t < transit[s].length; t++) {
-                System.out.println("source: " + s + ", target: " + t);
+                // System.out.println("source: " + s + ", target: " + t);
                 List<List<Integer>> links = getLinks(g, s, t);
                 int num = Integer.MAX_VALUE;
                 int index = 0;
                 for (int i = 0; i < links.size(); i++) {
-                    System.out.println("links.get(i).size(): " + links.get(i).size() + ", index is: " + i);
+                    // System.out.println("links.get(i).size(): " + links.get(i).size() + ", index is: " + i);
                     if (links.get(i).size() == 2) {
                         num = 2;
                         index = i;
@@ -1336,8 +1336,8 @@ public class Player implements railway.sim.Player {
                 } 
 
                 int switches = links.get(index).size() - 2;
-                System.out.println("switches: " + switches);
-                System.out.println("***************links.get(index).size(): " + links.get(index).size());
+                // System.out.println("switches: " + switches);
+                // System.out.println("***************links.get(index).size(): " + links.get(index).size());
                 // double addedWeight = switches * 200 / (links.get(index).size() - 1);
                 List<Double> weights = new ArrayList<Double>();
                 for (int i = 0; i < links.get(index).size() - 1; i++) {
@@ -1350,7 +1350,7 @@ public class Player implements railway.sim.Player {
                     weights.add(weight);
                     g.removeEdge(source, target);
                     g.removeEdge(target, source);
-                    System.out.println("edge removed: " + new Link(source, target));
+                    // System.out.println("edge removed: " + new Link(source, target));
                     // g.addEdge(links.get(index).get(i), links.get(index).get(i + 1), weight + addedWeight);
                 }
                 // g.print();
@@ -1358,7 +1358,7 @@ public class Player implements railway.sim.Player {
                 List<List<Integer>> newLinks = getLinks(g, s, t);
                 int distance = 0;
                 for (int i = 0; i < newLinks.get(0).size() - 1; i++) {
-                    System.out.println(new Link(newLinks.get(0).get(i), newLinks.get(0).get(i + 1)));
+                    // System.out.println(new Link(newLinks.get(0).get(i), newLinks.get(0).get(i + 1)));
                     distance += g.getWeight(newLinks.get(0).get(i), newLinks.get(0).get(i + 1));
                 }
                 // if (distance <= shortestPaths[s][t] + switches * 200) {
@@ -1378,7 +1378,7 @@ public class Player implements railway.sim.Player {
                     g.addEdge(source, target, weights.get(n));
                     n++;
                 }
-                System.out.println("new distance: " + distance + ", old distance: " + routeTable[s][t].getDistance());
+                // System.out.println("new distance: " + distance + ", old distance: " + routeTable[s][t].getDistance());
                 if (distance - 0.1 <= routeTable[s][t].getDistance() + switches * 200) {
                     continue;
                 }
@@ -1397,7 +1397,7 @@ public class Player implements railway.sim.Player {
                     // g.addEdge(source, target, weight - addedWeight);
                     Link link = new Link(source, target);
                     if (bridges.contains(link)) {
-                        System.out.println("bridge not updated: " + link.toString());
+                        // System.out.println("bridge not updated: " + link.toString());
                         continue;
                     }
                     double originalValue = linkToValue.get(link);
@@ -1407,15 +1407,15 @@ public class Player implements railway.sim.Player {
                         // do not update the value of the bridges, since their values are accurate, updating is double counting
                         // continue;
                         valueToLink.remove(originalValue);
-                        System.out.println(link);
-                        System.out.println("###################value updated!!!");
+                        // System.out.println(link);
+                        // System.out.println("###################value updated!!!");
                         
                     }
                     valueToLink.put(originalValue + increment, link);
                 }
             }
         }
-        System.out.println("getUncontestableRoute ended");
+        // System.out.println("getUncontestableRoute ended");
     }
 
     private WeightedGraph buildGraph() {
@@ -1449,7 +1449,7 @@ public class Player implements railway.sim.Player {
             idToLinkInfo.put(binfo.id, new LinkInfo(new Link(i, j), binfo.amount, binfo.owner));
             // System.out.println("owner: " + binfo.owner);
         }
-        System.out.println("linkTable finished");
+        // System.out.println("linkTable finished");
     }
 
     private double calcEuclideanDistance(Coordinates a, Coordinates b) {
@@ -1497,7 +1497,7 @@ public class Player implements railway.sim.Player {
         int linkID = -1;
         double value = 0;
         if (valueToLink.size() == 0) {
-            System.out.println("no bridge");
+            // System.out.println("no bridge");
             return getRandomBid(currentBids, allBids, lastRoundMaxBid);
         }
         for (Map.Entry<Double, Link> entry: valueToLink.entrySet()) {
@@ -1538,9 +1538,9 @@ public class Player implements railway.sim.Player {
 
         Link bridge = idToLink.get(linkID);
         double distance = bridge.getDistance();
-        System.out.println("max bidder: " + bidder);
-        if (bidder.equals("g7") || max * distance > value * 10) {
-            System.out.println("we are the highest price already, or the current price is too high");
+        // System.out.println("max bidder: " + bidder);
+        if (bidder.equals("g7") || max * distance > value * 5) {
+            // System.out.println("we are the highest price already, or the current price is too high");
             return null;
         }
 
@@ -1549,19 +1549,19 @@ public class Player implements railway.sim.Player {
         LinkInfo li = idToLinkInfo.get(linkID);
         if (li.getAmount() - 0.005 > max * distance) {
             if (budget < li.getAmount()) {
-                System.out.println("budget smaller than minimum bid, budget: " + budget + ", min: " + li.getAmount());
+                // System.out.println("budget smaller than minimum bid, budget: " + budget + ", min: " + li.getAmount());
                 return null;
             }
             ourBid.amount = li.getAmount();
-            System.out.println("we bid the minimum amount: " + li.getAmount());
+            // System.out.println("we bid the minimum amount: " + li.getAmount());
         }
         else {
             if (budget < max * distance + 10000) {
-                System.out.println("budget smaller than max * distance + 10000, budget: " + budget + ", bid required: " + Double.toString(max * distance + 10000));
+                // System.out.println("budget smaller than max * distance + 10000, budget: " + budget + ", bid required: " + Double.toString(max * distance + 10000));
                 return null;
             }
             ourBid.amount = max * distance + 10000 + 0.005;
-            System.out.println("we increased the max bid by 10000: " + ourBid.amount);
+            // System.out.println("we increased the max bid by 10000: " + ourBid.amount);
         }
 
         return ourBid;
@@ -1617,12 +1617,12 @@ public class Player implements railway.sim.Player {
         }
 
         Link lastAwardedLink = idToLink.get(lastRoundMaxBid.id1);
-        System.out.println(lastAwardedLink);
+        // System.out.println(lastAwardedLink);
         linkToID.remove(lastAwardedLink);
         double value = linkToValue.get(lastAwardedLink);
         if (valueToLink.containsKey(value)) {
             valueToLink.remove(value);
-            System.out.println(lastAwardedLink.toString() + ", has been removed from valueToLink");
+            // System.out.println(lastAwardedLink.toString() + ", has been removed from valueToLink");
         }
         if (lastRoundMaxBid.id2 == -1) {
             return;
@@ -1961,9 +1961,9 @@ public class Player implements railway.sim.Player {
         // }
 
         private void buildBridgeMap() {
-            System.out.println(Thread.currentThread().getId());
-            System.out.println(ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId()));
-            System.out.println("buildBridgeMap started");
+            // System.out.println(Thread.currentThread().getId());
+            // System.out.println(ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId()));
+            // System.out.println("buildBridgeMap started");
             // valueToBridge = new TreeMap<Double, Link>(Collections.reverseOrder());
             for (int i = 0; i < infra.size(); i++) {
                 for (int j = 0; j < infra.get(i).size(); j++) {
@@ -2008,11 +2008,11 @@ public class Player implements railway.sim.Player {
                     linkToValue.put(lv, value);
                     valueToLink.put(value, lv);
                     bridges.add(lv);
-                    System.out.println(ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId()));
+                    // System.out.println(ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId()));
                 }
             }
-            System.out.println("buildBridgeMap ended");
-            System.out.println(ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId()));
+            // System.out.println("buildBridgeMap ended");
+            // System.out.println(ManagementFactory.getThreadMXBean().getThreadCpuTime(Thread.currentThread().getId()));
         }
     }
 
