@@ -113,9 +113,13 @@ public class Player implements railway.sim.Player {
 
     //return links along ksp
     private List<List<Integer>> yenKSPaths(WeightedGraph g, int source, int sink, int k) {
+        System.out.println("source"+source+" sink"+sink);
         int[][] prev = Dijkstra.dijkstra(g, source);
         List<List<Integer>> allP = Dijkstra.getPaths(g,prev,sink);
         List<List<Integer>> kpaths = new ArrayList<>(allP);
+        if(allP.get(0).size()==2) {
+            return allP;
+        }
 
         /*for(int a = 0;a<allP.size();a++) {
             for (int b = 0;b<allP.get(a).size();b++) {
@@ -127,8 +131,8 @@ public class Player implements railway.sim.Player {
             List<List<Integer>> potential = new ArrayList<>();
             //rest of Yen's algo
             for (int i=kpaths.size()-1;i<k-1;i++) { // index 3 - 9 (k=10)
-                System.out.println("I: "+i);
-                for(int j = 1;j<=kpaths.get(i).size()-2;j++) { //size of path = 5, (1,2)
+                //System.out.println("I: "+i);
+                for(int j = 1;j<kpaths.get(i).size()-2;j++) { //size of path = 5, (1,2)
                     WeightedGraph gtemp = new WeightedGraph(geo.size());
                     for (int a=0; a<infra.size(); ++a) {
                         for (int b=0; b<infra.get(a).size(); ++b) {
@@ -144,18 +148,41 @@ public class Player implements railway.sim.Player {
                         rootpath.add(kpaths.get(i).get(a));
                     } // 0, 8
                     for (List<Integer> path: kpaths) {
-                        List<Integer> temp = new ArrayList<Integer>(path.subList(0,j+1));
-                        //System.out.println(temp.equals(rootpath));
-                        if (temp.equals(rootpath)) {
-                            //System.out.println("removed "+path.get(j)+" "+path.get(j+1));
-                            gtemp.removeEdge(path.get(j),path.get(j+1));
+                        if(path.size() > j) {
+                        
+                            List<Integer> temp = new ArrayList<Integer>(path.subList(0,j+1));
+                            //System.out.println(temp.equals(rootpath));
+                            if (temp.equals(rootpath)) {
+                                //System.out.println("j"+j);
+                                System.out.println(path.size());
+                                if(j!=path.size()-1) {
+                                    System.out.println("removed "+path.get(j)+" "+path.get(j+1));
+
+                                    gtemp.removeEdge(path.get(j),path.get(j+1));
+
+                                }
+                            }
+                        }
+                        else {
+                            System.out.println("kpaths:");
+                            for(List<Integer> p:kpaths) {
+                                System.out.println("line:");
+                                for (int m=0;m<p.size();m++) {
+                                    System.out.println(m+":"+p.get(m));
+                                }
+                            }
                         }
                     }
 
                     //TODO remove notes on rootpath except spurnode
-                    /*for(int a=0;a<rootpath.size()-1;a++) {
-                        g.remove()
-                    }*/
+                    for(int a=0;a<rootpath.size()-1;a++) {
+                        int[] neighbors = g.neighbors(rootpath.get(a));
+                        for(int b=0;b<neighbors.length;b++) {
+
+                            g.removeEdge(rootpath.get(a),neighbors[b]);
+                            g.removeEdge(neighbors[b],rootpath.get(a));
+                        }
+                    }
                     
                     int[][] spurprev = Dijkstra.dijkstra(gtemp, spur);
                     List<List<Integer>> spurPaths = Dijkstra.getPaths(gtemp,spurprev,sink);
@@ -164,10 +191,6 @@ public class Player implements railway.sim.Player {
 
                         totalPath.addAll(spurPaths.get(a).subList(1,spurPaths.get(a).size()));
                         potential.add(totalPath);
-                        System.out.println("total+spur");
-                        for (int b = 0;b<totalPath.size();b++) {
-                            System.out.println("a: "+a+", b: "+b+" path: "+totalPath.get(b));
-                        }
                     }
                 }
 
@@ -181,12 +204,11 @@ public class Player implements railway.sim.Player {
                 List<Integer> minindxs = new ArrayList<Integer>();
                 for(int a=0;a<potential.size();a++) {
                     double temp = pathDistance(potential.get(a));
-                    System.out.println("distance:"+temp);
+                    //System.out.println("distance:"+temp);
                     if(temp < min) {
                         min = temp;
                         if(minindxs.size() > 0) {
                             minindxs.clear();
-
                         }
                         minindxs.add(a);
                     } 
@@ -194,16 +216,18 @@ public class Player implements railway.sim.Player {
                         minindxs.add(a);
                     }
                 }
-                System.out.println("DEBUG:"+minindxs.size());
+                //System.out.println(minindxs.size());
+                //System.out.println(potential.size());
                 Collections.sort(minindxs,Collections.reverseOrder());
 
-
                 for(int a=0;a<minindxs.size();a++) {
-                    kpaths.add(potential.get(minindxs.get(a)));
-                    System.out.println(minindxs.get(a));
-                    potential.remove(minindxs.get(a));
+                    //System.out.println("hi");
+                    kpaths.add(potential.get((int)minindxs.get(a)));
+                    //System.out.println(minindxs.get(a));
+                    potential.remove((int)minindxs.get(a));
                 }
-                System.out.println("current size: "+kpaths.size());
+                //System.out.println(potential.size());
+                //System.out.println("current size: "+kpaths.size());
                 if (kpaths.size() >= k) {
                     break;
                 }
@@ -211,7 +235,12 @@ public class Player implements railway.sim.Player {
 
         }
 
-        System.out.println("done: "+kpaths.size());
+        //System.out.println("done: "+kpaths.size());
+        /*for(int a=0;a<kpaths.size();a++) {
+            for(int b=0;b<kpaths.get(a).size();b++) {
+                System.out.println("a: "+a+", b: "+b+", path:"+kpaths.get(a).get(b));
+            }
+        }*/
         return kpaths;
     }
 
@@ -228,13 +257,13 @@ public class Player implements railway.sim.Player {
             }
         }
         for (int i=0;i<transit.length;i++) {
-            for (int j=4;j<5;j++) { //int j=0;j<transit[i].length;j++
+            for (int j=0;j<transit[i].length;j++) { //int j=0;j<transit[i].length;j++
                 if(transit[i][j]==0) {
                     continue;
                 }
                 yenKSPaths(g,i,j,k);
             }
-            break;
+            //break;
         }
 
     }
@@ -461,7 +490,7 @@ public class Player implements railway.sim.Player {
     }
 
     public Map<Integer, Double> predictHeatMap(List<BidInfo> hypotheticalState, String player) {
-        // heatmap is current heatmap
+        // map for each bid info an expected traffic
         Map<Integer, Double> newmap = new HashMap<Integer, Double>();
 
 
