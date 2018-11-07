@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import railway.sim.Simulator;
+import java.util.HashSet;
 
 // To access data classes.
 import railway.sim.utils.*;
@@ -94,6 +95,12 @@ public class Player implements railway.sim.Player {
         	}
         }
         availableBids.addAll(pairs);
+
+        /*System.out.println("Bids in availableBids:");
+        for (G3Bid bid : availableBids) {
+            printBid(bid);
+        }
+        System.out.println("number of links left = " + availableBids.size());*/
 
         // System.err.println("bids in availableBids");
         // for (G3Bid b : availableBids) {
@@ -282,27 +289,120 @@ public class Player implements railway.sim.Player {
         }
     }
 
-    // Indicates to the player whether they have won the previous bid of link/pair of links.
+    /*// Indicates to the player whether they have won the previous bid of link/pair of links.
     // A null bid indicates that they did not win their bid.
     public void updateBudget(Bid bid) {
+        
         ArrayList<G3Bid> availableBids_copy = new ArrayList<G3Bid>();
         availableBids_copy.addAll(availableBids);
         availableBids = new ArrayList<G3Bid>();
+        
         if (bid != null) {
             budget -= bid.amount;
+        }
+        
+        System.out.println("someone won a link!!...");
+        
+        for (G3Bid g3bid : availableBids_copy) {
+            printBid(g3bid);
+            if (g3bid.id2 == -1) {
+                // this is a single link so we just need to check if its single link is owned
+                System.out.println("single link");
+                if (this.allBids.get(g3bid.id1).owner == null) {
+                    System.out.println("null");
+                } else {
+                    System.out.println("not null");
+                }
+                System.out.println("OWNER: " + this.allBids.get(g3bid.id1).owner);
+                if (!(this.allBids.get(g3bid.id1).owner != null)) {
+                    availableBids.add(g3bid);
+                } else {
+                    System.out.println("...removing related link");
+                    printBid(g3bid);
+                }
+            } else {
+                //this is a double link so we need to check if both its links are owned or if just one of them is owned
+                System.out.println("pair link");
+                if (!(this.allBids.get(g3bid.id1).owner != null) || !(this.allBids.get(g3bid.id2).owner != null)) {
+                    availableBids.add(g3bid);
+                } else {
+                    System.out.println("...removing related link");
+                    printBid(g3bid);
+                }
+            }
+        }
+        // needsUpdate = true;
 
-            if (bid.id2 == -1) {
-                //a single link has been awarded--remove this single link and any pair links that contain this single link
+        // reset all the bids at the end of the round
+        for(int i = 0; i < availableBids.size(); ++i) {
+            G3Bid cur = availableBids.get(i);
+            cur.amount = cur.min_bid;
+        }
+
+        bidsThisRound = 0;
+    }*/
+
+    // Indicates to the player whether they have won the previous bid of link/pair of links.
+    // A null bid indicates that they did not win their bid.
+    public void updateBudget(Bid bid) {
+        
+        ArrayList<G3Bid> availableBids_copy = new ArrayList<G3Bid>();
+        availableBids_copy.addAll(availableBids);
+        //System.out.println("size of availableBids_copy = " + availableBids_copy.size());
+        
+        availableBids = new ArrayList<G3Bid>();
+        if (bid != null) {
+            budget -= bid.amount;
+            BidInfo ourbid = this.allBids.get(bid.id1);
+            String t_1 = ourbid.town1;
+            String t_2 = ourbid.town2;
+            String t_3; String t_4;
+            HashSet<String> ourBidtowns = new HashSet<String>();
+            ourBidtowns.add(t_1);
+            ourBidtowns.add(t_2);
+            
+            if (bid.id2 != -1) {                
+                BidInfo ourbid2 = this.allBids.get(bid.id2);
+                t_3 = ourbid2.town1;
+                t_4 = ourbid2.town2;
+                ourBidtowns.add(t_3);
+                ourBidtowns.add(t_4);
+
                 for (G3Bid g3bid : availableBids_copy) {
-                    if (!(g3bid.id1 == bid.id1 || g3bid.id2 == bid.id1)) {
+                    ArrayList<String> theseTowns = new ArrayList<String>();
+                    ArrayList<String> theseTowns2 = new ArrayList<String>();
+                    theseTowns.add(townLookup.get(g3bid.town_id1));
+                    theseTowns.add(townLookup.get(g3bid.town_id2));
+
+                    if (!(theseTowns.contains(t_1) && theseTowns.contains(t_2)) && !(theseTowns.contains(t_3) && theseTowns.contains(t_4))) {
                         availableBids.add(g3bid);
+                        continue;
+                    }
+                    if (g3bid.id2 != -1) {
+                        // the g3bid is also a paired link so we need to check that neither of our paired links match its neither of its paired links
+                        theseTowns2.add(townLookup.get(g3bid.town_id2));
+                        theseTowns2.add(townLookup.get(g3bid.town_id3));
+
+                        if (!(theseTowns2.contains(t_1) && theseTowns2.contains(t_2)) && !(theseTowns2.contains(t_3) && theseTowns2.contains(t_4))) {
+                            availableBids.add(g3bid);
+                        }
                     }
                 }
             } else {
-                //a pair link has been awarded--remove this double link, any double links that contain any of these single links, and the single links
                 for (G3Bid g3bid : availableBids_copy) {
-                    if (!(g3bid.id1 == bid.id1 || g3bid.id1 == bid.id2 || g3bid.id2 == bid.id1 || g3bid.id2 == bid.id2)) {
+                    ArrayList<String> theseTowns = new ArrayList<String>();
+                    theseTowns.add(townLookup.get(g3bid.town_id1));
+                    theseTowns.add(townLookup.get(g3bid.town_id2));
+                    if (!(theseTowns.contains(t_1) && theseTowns.contains(t_2))) {
                         availableBids.add(g3bid);
+                        continue;
+                    }
+                    if (g3bid.id2 != -1) {
+                        theseTowns.remove(townLookup.get(g3bid.town_id1));
+                        theseTowns.add(townLookup.get(g3bid.town_id3));
+                        if (!(theseTowns.contains(t_1) && theseTowns.contains(t_2))) {
+                            availableBids.add(g3bid);
+                        }
                     }
                 }
             }
@@ -314,16 +414,14 @@ public class Player implements railway.sim.Player {
                         availableBids.add(g3bid);
                     }
                 } else {
-                    //this is a double link so we need to check if both its links are owned or if just one of them is owned
-                    if (!(this.allBids.get(g3bid.id1).owner != null)) {
-                        availableBids.add(g3bid);
-                    }
-                    if (!(this.allBids.get(g3bid.id2).owner != null)) {
+        
+                    if ((this.allBids.get(g3bid.id1).owner == null) && (this.allBids.get(g3bid.id2).owner == null)) {
                         availableBids.add(g3bid);
                     }
                 }
             }
         }
+        //System.out.println("number of links left = " + availableBids.size());
         // needsUpdate = true;
 
         // reset all the bids at the end of the round
