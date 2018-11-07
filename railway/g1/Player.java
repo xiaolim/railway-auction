@@ -543,8 +543,7 @@ public class Player implements railway.sim.Player {
     	
     	
     	// Sort the heatmap difference
-    	@SuppressWarnings("unused")
-		List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<>(mapDiff.entrySet());
+	List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<Map.Entry<Integer, Double>>(mapDiff.entrySet());
     	Collections.sort(sortedDiff, Collections.reverseOrder((x, y) -> {
     		if (allLinks.get(x.getKey()).owner == null)
     			return 1;
@@ -553,13 +552,30 @@ public class Player implements railway.sim.Player {
     		return Double.compare(x.getValue(), y.getValue());
     	}));
     	
+	Bid makeBid = new Bid();
     	for (Map.Entry<Integer, Double> link : sortedDiff) {
-    		if (link.getKey() != null)
+		if (link.getKey() != null)
     			continue;
-    		
     		if (ourMap.get(link.getKey()) < lastRoundMaxBid.amount)
+    			continue;
+		// Make a bid
+		double historyMax = -1.0D;
+	    	for (Bid b: currentBids) {
+            		if ((b.id1 == link.getKey()) || (b.id2 == link.getKey()))
+            			historyMax = Double.max(historyMax, b.amount);
+            	}
+
+		makeBid.id1 = link.getKey();
+		makeBid.amount = Double.max(ourMap.get(link.getKey()), historyMax + 10000.0D);
+    		
+    		if (link.getValue() < 0)
     			return null;
     	}
+    	
+        if (budgets.get(name) - makeBid.amount < 0) {
+            return null;
+        }
+    	
     	*/
     	 
     	
