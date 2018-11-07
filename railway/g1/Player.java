@@ -186,17 +186,22 @@ public class Player implements railway.sim.Player {
                         min = temp;
                         if(minindxs.size() > 0) {
                             minindxs.clear();
+
                         }
-                        else {
-                            minindxs.add(a);
-                        }
-                    } else if (temp == min) {
+                        minindxs.add(a);
+                    } 
+                    else if (temp == min) {
                         minindxs.add(a);
                     }
                 }
+                System.out.println("DEBUG:"+minindxs.size());
+                Collections.sort(minindxs,Collections.reverseOrder());
+
+
                 for(int a=0;a<minindxs.size();a++) {
-                    kpaths.add(potential.get(a));
-                    potential.remove(a);
+                    kpaths.add(potential.get(minindxs.get(a)));
+                    System.out.println(minindxs.get(a));
+                    potential.remove(minindxs.get(a));
                 }
                 System.out.println("current size: "+kpaths.size());
                 if (kpaths.size() >= k) {
@@ -227,14 +232,7 @@ public class Player implements railway.sim.Player {
                 if(transit[i][j]==0) {
                     continue;
                 }
-                try {
-                    yenKSPaths(g,i,j,k);
-                    Thread.sleep(1000000);
-
-                }
-                catch(InterruptedException e) {
-                    System.out.println("timeout");
-                }
+                yenKSPaths(g,i,j,k);
             }
             break;
         }
