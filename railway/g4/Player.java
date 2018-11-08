@@ -26,7 +26,7 @@ public class Player implements railway.sim.Player
     private List<List<Integer>> infra;
     private int [][] transit;
     private int total_profit = 0; 
-    private int total_budget = 0;
+    private double total_budget = 0;
     private String name;
     private static int NUM_STATIONS;
     private ArrayList<Integer>[] adjList; 
@@ -57,12 +57,8 @@ public class Player implements railway.sim.Player
         this.budget = budget;
         this.infra = infra;
         this.transit = transit;
-
-
+        this.total_budget = budget;
         this.NUM_STATIONS = geo.size();
-        this.geo = geo;
-        this.infra = infra;
-        this.transit = transit;
         // Build a Naive List Containing all paths.
         // 1- Use DFS
         
@@ -311,46 +307,31 @@ public class Player implements railway.sim.Player
             if (flow.containsKey(hash(from, to))){
                 revenue = flow.get(hash(from, to))*20*getDistance(from,to);
             }
-            /*
-            System.out.printf("revenue for %s to %s :%f\n",bi.town1, bi.town2, revenue);
-            System.out.printf("price : %f\n",winning_price);
-            System.out.printf("Profit : %f\n",revenue-winning_price);
-            System.out.printf("total profit left this round: %d\n",total_profit);
-            */
             
             if (winning_price < revenue)
             {
                 if (profit < revenue - winning_price)
                 {
-                    if (winning_price > budget)
+                    if (winning_price > budget || revenue*0.8 < winning_price)
                     {
                         continue;
                     }
-                    if (stop_criterian(winning_price, revenue,total_profit)==0)
-                    {
-                        continue;
-                    }
+                    
                     b.id1 = i;
                     b.amount = winning_price;
                     profit = revenue - winning_price;
                     //System.out.println(bi.town1+ " to "+bi.town2 + " : "+String.valueOf(profit));
                 }
-                if (winning_price+b.amount > budget)
-                {
-                    continue;
-                }
-                if (stop_criterian(winning_price, revenue, total_profit)==0)
-                {
-                    continue;
-                }
-                if (b.id1 == -1 || b.id1 == i)
-                {
-                    continue;
-                }
-                if (bi.town1 == availableBids.get(b.id1).town1 || bi.town1 == availableBids.get(b.id1).town2 || bi.town2 == availableBids.get(b.id1).town1 || bi.town2 == availableBids.get(b.id1).town2){
-                    b.id2 = i;
-                    b.amount += winning_price;
-                    profit += revenue - winning_price;
+                else{
+                    if (b.id1 == -1 || b.id1 == i || revenue*0.8 < winning_price || winning_price+b.amount > budget)
+                    {
+                        continue;
+                    }
+                    if (bi.town1 == availableBids.get(b.id1).town1 || bi.town1 == availableBids.get(b.id1).town2 || bi.town2 == availableBids.get(b.id1).town1 || bi.town2 == availableBids.get(b.id1).town2){
+                        b.id2 = i;
+                        b.amount += winning_price;
+                        profit += revenue - winning_price;
+                    }
                 }
             }    
         }
@@ -377,39 +358,14 @@ public class Player implements railway.sim.Player
     // determine if we want to keep bidding, 0 if not, 1 if yes
     public int stop_criterian(double cost, double revenue, double total_profit)
     {
+
+
         if (8*(revenue - cost)*this.total_budget < cost*total_profit)
         {
             return 0;
         }
         return 1;
     }
-    /*
-     *  Method, get cost of a whole link:
-     *  Example, if you have A -> B -> C
-     *  A -> B has profit of $10,000
-     *  A -> C has profit of $10,000
-     *  B -> C has profot of $10,000
-     *  Profit(A, B) = 10,000
-     *  Profit(A, C) = 30,000
-     *  
-     *  Input: Two train stations.
-     */
-    
-    // Using the Path Link and Transit Adjacency List, Get the Profit!
-    public int profit_of_links()
-    {
-        int profit = 0;
-        // [0, 1, 2, 5]
-        // get profit of (0, 1) + (1, 2) + (2, 5)
-        for(int i = 0; i < pathList.size(); i++)
-        {
-            profit += transit[i][i+1];
-        }
-        return profit;
-    }
-    
-    
-
 
     public void findAllPaths(int s, int d){
         List<Integer> nodes = new ArrayList<Integer>();
