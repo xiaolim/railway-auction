@@ -531,6 +531,21 @@ public class Player implements railway.sim.Player {
         return newmap;
     }
 
+    public Map<String, Map<Integer, Double>> predictHeatMaps(List<BidInfo> allBids){
+        Map<String, Map<Integer, Double>> predictHeatMaps = new HashMap<>();
+        for(BidInfo b: allBids){
+            if (b.owner!=null){
+                for(String p : budgets.keySet()){
+                    Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(p)?predictHeatMaps.containsKey(p):convertedHeatMap();
+                    if(b.owner!=p){   //may need modification later
+
+                    }
+                }
+            }
+        }
+
+    }
+
 
     // This is to Query the info of according bid
     private BidInfo QBidInfo(Bid bid, List<BidInfo> allBids){
