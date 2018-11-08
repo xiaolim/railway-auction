@@ -51,7 +51,6 @@ public class Player implements railway.sim.Player {
     List<BidInfo> allLinks;
     
     private Map<String, Double> budgets = new HashMap<String, Double>();
-	private Object Pair;
 	private int num_players;
 
     // Use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
@@ -547,6 +546,7 @@ public class Player implements railway.sim.Player {
     	// TODO Find a way such that we bid on a link that gives us 0 benefit externally (?)
     	// while giving other links that we owned higher traffics. I am not sure how to do this right now.
     	
+
     	// Update status & heat map
     	if (newTournament) {
     		updateStatus(lastRoundMaxBid);
