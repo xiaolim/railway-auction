@@ -520,72 +520,71 @@ public class Player implements railway.sim.Player {
     	// TODO Find a way such that we bid on a link that gives us 0 benefit externally (?)
     	// while giving other links that we owned higher traffics. I am not sure how to do this right now.
     	
-//    	// Update status & heat map
-//    	if (newTournament) {
-//    		updateStatus(lastRoundMaxBid);
-//    		newTournament = false;
-//    	}
-//    	
-//    	
-//    	
-//    	Map<Integer, Double> ourMap = predictHeatMap(null, name);
-//    	
-//    	List<Map<Integer, Double>> heatmaps = new ArrayList<Map<Integer, Double>>();
-//    	for (String p : budgets.keySet())
-//    		if (p != name)
-//    			heatmaps.add(predictHeatMap(null, p));
-//    	
-//    	// Runtime O(cn)
-//    	// Find the difference between our expected traffic and maximum traffic of other players
-//    	Map<Integer, Double> mapDiff = new HashMap<Integer, Double>();
-//    	for (int i = 0; i < allLinks.size(); ++i) {
-//    		double max = -Double.MAX_VALUE;
-//    		for (int pindex = 0; pindex < heatmaps.size(); ++pindex) {
-//    			double temp;
-//    			if ((temp = heatmaps.get(pindex).get(Integer.valueOf(i))) > max)
-//    				max = temp;
-//    		}
-//    		mapDiff.put(Integer.valueOf(i), ourMap.get(Integer.valueOf(i)) - max);
-//    	}
-//    	
-//    	
-//    	// Sort the heatmap difference
-//    	List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<Map.Entry<Integer, Double>>(mapDiff.entrySet());
-//    	Collections.sort(sortedDiff, Collections.reverseOrder((x, y) -> {
-//    		if (allLinks.get(x.getKey()).owner == null)
-//    			return 1;
-//    		if (allLinks.get(y.getKey()).owner == null)
-//    			return -1;
-//    		return Double.compare(x.getValue(), y.getValue());
-//    	}));
-//    	
-//    	Bid makeBid = new Bid();
-//    	for (Map.Entry<Integer, Double> link : sortedDiff) {
-//    		if (link.getKey() != null)
-//    			continue;
-//    		if (ourMap.get(link.getKey()) < lastRoundMaxBid.amount)
-//    			continue;
-//    		// Make a bid
-//    		double historyMax = -1.0D;
-//    		for (Bid b: currentBids) {
-//    			if ((b.id1 == link.getKey()) || (b.id2 == link.getKey()))
-//    				historyMax = Double.max(historyMax, b.amount);
-//    		}
-//
-//    		makeBid.id1 = link.getKey();
-//    		makeBid.amount = Double.max(ourMap.get(link.getKey()), historyMax + 10000.0D);
-//    		
-//    		if (link.getValue() < 0)
-//    			return null;
-//    	}
-//    
-//        if (budgets.get(name) - makeBid.amount < 0) {
-//            return null;
-//        }
-//        
-//        return makeBid;
-//    	
-//    	
+
+    	// Update status & heat map
+    	if (newTournament) {
+    		updateStatus(lastRoundMaxBid);
+    		newTournament = false;
+    	}
+    	
+    	
+    	/*
+    	Map<Integer, Double> ourMap = predictHeatMap(null, name);
+    	
+    	List<Map<Integer, Double>> heatmaps = new ArrayList<Map<Integer, Double>>();
+    	for (String p : budgets.keySet())
+    		if (p != name)
+    			heatmaps.add(predictHeatMap(null, p));
+    	
+    	// Runtime O(cn)
+    	// Find the difference between our expected traffic and maximum traffic of other players
+    	Map<Integer, Double> mapDiff = new HashMap<Integer, Double>();
+    	for (int i = 0; i < allLinks.size(); ++i) {
+    		double max = -Double.MAX_VALUE;
+    		for (int pindex = 0; pindex < heatmaps.size(); ++pindex) {
+    			double temp;
+    			if ((temp = heatmaps.get(pindex).get(Integer.valueOf(i))) > max)
+    				max = temp;
+    		}
+    		mapDiff.put(Integer.valueOf(i), ourMap.get(Integer.valueOf(i)) - max);
+    	}
+    	
+    	
+    	// Sort the heatmap difference
+	List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<Map.Entry<Integer, Double>>(mapDiff.entrySet());
+    	Collections.sort(sortedDiff, Collections.reverseOrder((x, y) -> {
+    		if (allLinks.get(x.getKey()).owner == null)
+    			return 1;
+    		if (allLinks.get(y.getKey()).owner == null)
+    			return -1;
+    		return Double.compare(x.getValue(), y.getValue());
+    	}));
+    	
+	Bid makeBid = new Bid();
+    	for (Map.Entry<Integer, Double> link : sortedDiff) {
+		if (link.getKey() != null)
+    			continue;
+    		if (ourMap.get(link.getKey()) < lastRoundMaxBid.amount)
+    			continue;
+		// Make a bid
+		double historyMax = -1.0D;
+	    	for (Bid b: currentBids) {
+            		if ((b.id1 == link.getKey()) || (b.id2 == link.getKey()))
+            			historyMax = Double.max(historyMax, b.amount);
+            	}
+
+		makeBid.id1 = link.getKey();
+		makeBid.amount = Double.max(ourMap.get(link.getKey()), historyMax + 10000.0D);
+    		
+    		if (link.getValue() < 0)
+    			return null;
+    	}
+    	
+        if (budgets.get(name) - makeBid.amount < 0) {
+            return null;
+        }
+    	
+    	*/
     	 
     	
     	
