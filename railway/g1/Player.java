@@ -22,6 +22,8 @@ public class Player implements railway.sim.Player {
     private Random rand = new Random(seed);
     private double START_BUDGET;
     
+    private static final int NUM_SHORTEST_PATH = 10;
+    
     public String name;
     
     private double[][] min_price; //minimum price to buy  link i,j
@@ -38,7 +40,7 @@ public class Player implements railway.sim.Player {
     int[][] transit;
 
     Map<Pair, Double> heatmap;
-    
+    Map<Integer, Double> convertedHeatMap;
     List<BidInfo> ourlinks = new ArrayList<BidInfo>();
     
     // Keep track of player owned links. It maps a link infra.get(i).get(j), denoted by an integer 
@@ -114,12 +116,13 @@ public class Player implements railway.sim.Player {
     }
 
     //return links along ksp
-    private List<List<Integer>> yenKSPaths(WeightedGraph g, int source, int sink, int k) {
-        System.out.println("source"+source+" sink"+sink);
+    private List<List<Integer>> yenKSPaths(WeightedGraph g, int source, int sink) {
+        //System.out.println("source"+source+" sink"+sink);
         int[][] prev = Dijkstra.dijkstra(g, source);
         List<List<Integer>> allP = Dijkstra.getPaths(g,prev,sink);
         List<List<Integer>> kpaths = new ArrayList<>(allP);
         if(allP.get(0).size()==2) {
+        	System.out.println(source + " " + sink);
             return allP;
         }
 
@@ -129,10 +132,10 @@ public class Player implements railway.sim.Player {
             }
         }*/
 
-        if (kpaths.size() < k) {
+        if (kpaths.size() < NUM_SHORTEST_PATH) {
             List<List<Integer>> potential = new ArrayList<>();
             //rest of Yen's algo
-            for (int i=kpaths.size()-1;i<k-1;i++) { // index 3 - 9 (k=10)
+            for (int i=kpaths.size()-1;i<NUM_SHORTEST_PATH-1;i++) { // index 3 - 9 (k=10)
                 //System.out.println("I: "+i);
                 for(int j = 1;j<kpaths.get(i).size()-2;j++) { //size of path = 5, (1,2)
                     WeightedGraph gtemp = new WeightedGraph(geo.size());
@@ -156,16 +159,16 @@ public class Player implements railway.sim.Player {
                             //System.out.println(temp.equals(rootpath));
                             if (temp.equals(rootpath)) {
                                 //System.out.println("j"+j);
-                                System.out.println(path.size());
+                                //System.out.println(path.size());
                                 if(j!=path.size()-1) {
-                                    System.out.println("removed "+path.get(j)+" "+path.get(j+1));
+                                    //System.out.println("removed "+path.get(j)+" "+path.get(j+1));
 
                                     gtemp.removeEdge(path.get(j),path.get(j+1));
 
                                 }
                             }
                         }
-                        else {
+                        /*else {
                             System.out.println("kpaths:");
                             for(List<Integer> p:kpaths) {
                                 System.out.println("line:");
@@ -173,7 +176,7 @@ public class Player implements railway.sim.Player {
                                     System.out.println(m+":"+p.get(m));
                                 }
                             }
-                        }
+                        }*/
                     }
 
                     //TODO remove notes on rootpath except spurnode
@@ -230,7 +233,7 @@ public class Player implements railway.sim.Player {
                 }
                 //System.out.println(potential.size());
                 //System.out.println("current size: "+kpaths.size());
-                if (kpaths.size() >= k) {
+                if (kpaths.size() >= NUM_SHORTEST_PATH) {
                     break;
                 }
             }
@@ -248,10 +251,10 @@ public class Player implements railway.sim.Player {
 
 
 
-    private void yenKSP(int k) {
+    private void yenKSP() {
         // a list of integers is a path, list of a list of integers 
 
-        System.out.println("YENKSP");
+        //System.out.println("YENKSP");
         WeightedGraph g = new WeightedGraph(geo.size());
         for (int i=0; i<infra.size(); ++i) {
             for (int j=0; j<infra.get(i).size(); ++j) {
@@ -263,7 +266,7 @@ public class Player implements railway.sim.Player {
                 if(transit[i][j]==0) {
                     continue;
                 }
-                yenKSPaths(g,i,j,k);
+                sour_dest_paths.put(new Pair(i, j), yenKSPaths(g,i,j));
             }
             //break;
         }
@@ -361,8 +364,9 @@ public class Player implements railway.sim.Player {
         }*/
         num_players = 3;
         heatmap = createHeatMap();
+        convertHeatMap();
 
-        yenKSP(10);
+        //EyenKSP();
 
     }
 
@@ -441,8 +445,9 @@ public class Player implements railway.sim.Player {
                     continue;
                 }
                 double totaltransit = transit[i][j];
-                int[][] prev = Dijkstra.dijkstra(g, i);
-                List<List<Integer>> allP = Dijkstra.getPaths(g,prev,j);
+                //int[][] prev = Dijkstra.dijkstra(g, i);
+                //List<List<Integer>> allP = Dijkstra.getPaths(g,prev,j);
+                List<List<Integer>> allP = yenKSPaths(g,i,j);
                 sour_dest_paths.put(new Pair(i,j), allP);
                 int pathnum = allP.size();
                 double transitpp = totaltransit / pathnum; 
@@ -493,18 +498,39 @@ public class Player implements railway.sim.Player {
         for (Pair p:heatmap.keySet()) {
             System.out.println("t1: "+p.i1+", t2: "+p.i2+", traffic: "+heatmap.get(p));
         }
-
+        
     	return heatmap;
     }
 
+    private void convertHeatMap() {
+    	HashMap<Pair, List<Integer>> linkMapping = new HashMap<Pair, List<Integer>>();
+    	for (BidInfo link : allLinks) {
+    		Pair p = new Pair(map.get(link.town1), map.get(link.town2));
+    		linkMapping.putIfAbsent(p, new LinkedList<Integer>());
+    		List<Integer> list = linkMapping.get(p);
+    		list.add(link.id);
+    	}
+    	
+    	convertedHeatMap = new HashMap<Integer, Double>();
+    	
+    	for (Map.Entry<Pair, List<Integer>> entry : linkMapping.entrySet()) {
+    		for(Integer index:entry.getValue()) {
+    			System.out.println(entry.getKey());
+        		System.out.println(entry.getValue().size());
+        		System.out.println(heatmap.get(entry.getKey()));
+        		
+    			convertedHeatMap.put(index, heatmap.get(entry.getKey())/entry.getValue().size());
+    		}
+    	}
+    	
+    }
+    
     public Map<Integer, Double> predictHeatMap(List<BidInfo> hypotheticalState, String player) {
         // map for each bid info an expected traffic
         Map<Integer, Double> newmap = new HashMap<Integer, Double>();
-
-
+        
         return newmap;
     }
-
 
 
     // This is to Query the info of according bid
@@ -528,7 +554,7 @@ public class Player implements railway.sim.Player {
     	}
     	
     	
-    	/*
+    	
     	Map<Integer, Double> ourMap = predictHeatMap(null, name);
     	
     	List<Map<Integer, Double>> heatmaps = new ArrayList<Map<Integer, Double>>();
@@ -551,7 +577,7 @@ public class Player implements railway.sim.Player {
     	
     	
     	// Sort the heatmap difference
-	List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<Map.Entry<Integer, Double>>(mapDiff.entrySet());
+		List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<Map.Entry<Integer, Double>>(mapDiff.entrySet());
     	Collections.sort(sortedDiff, Collections.reverseOrder((x, y) -> {
     		if (allLinks.get(x.getKey()).owner == null)
     			return 1;
@@ -560,21 +586,21 @@ public class Player implements railway.sim.Player {
     		return Double.compare(x.getValue(), y.getValue());
     	}));
     	
-	Bid makeBid = new Bid();
+		Bid makeBid = new Bid();
     	for (Map.Entry<Integer, Double> link : sortedDiff) {
-		if (link.getKey() != null)
+			if (link.getKey() != null)
     			continue;
     		if (ourMap.get(link.getKey()) < lastRoundMaxBid.amount)
     			continue;
-		// Make a bid
-		double historyMax = -1.0D;
+			// Make a bid
+			double historyMax = -1.0D;
 	    	for (Bid b: currentBids) {
             		if ((b.id1 == link.getKey()) || (b.id2 == link.getKey()))
             			historyMax = Double.max(historyMax, b.amount);
-            	}
+            }
 
-		makeBid.id1 = link.getKey();
-		makeBid.amount = Double.max(ourMap.get(link.getKey()), historyMax + 10000.0D);
+			makeBid.id1 = link.getKey();
+			makeBid.amount = Double.max(ourMap.get(link.getKey()), historyMax + 10000.0D);
     		
     		if (link.getValue() < 0)
     			return null;
@@ -584,13 +610,13 @@ public class Player implements railway.sim.Player {
             return null;
         }
     	
-    	*/
+    	return makeBid;
     	 
     	
     	
     	
     	
-    	
+    	/*
         double amount = -1;
         int id = -1;
         double maxamount = amount;
@@ -682,6 +708,7 @@ public class Player implements railway.sim.Player {
         }
         
         return bid;
+        */
     }
 
     public void updateBudget(Bid bid) {
