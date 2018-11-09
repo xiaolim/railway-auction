@@ -540,18 +540,24 @@ public class Player implements railway.sim.Player {
     }
 
     public Map<String, Map<Integer, Double>> predictHeatMaps(List<BidInfo> allBids){
-        Map<String, Map<Integer, Double>> predictHeatMaps = new HashMap<>();
+        Map<String, Map<Integer, Double>> predictHeatMaps = new HashMap<String, Map<Integer, Double>>();
         for(BidInfo b: allBids){
             if (b.owner!=null){
+            	List<List<Integer>> paths = contain_paths.get(new Pair(map.get(b.town1), map.get(b.town2)));
+            	//for (List<Integer> path : paths)
+            		
+            		
                 for(String p : budgets.keySet()){
-                    Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(p)?predictHeatMaps.containsKey(p):convertedHeatMap();
+                    Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(p) ? predictHeatMaps.get(p) : convertedHeatMap;
+                    
                     if(b.owner!=p){   //may need modification later
 
                     }
                 }
             }
         }
-
+        // TODO
+        return null;
     }
 
 
