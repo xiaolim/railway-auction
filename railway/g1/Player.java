@@ -38,7 +38,8 @@ public class Player implements railway.sim.Player {
     int[][] transit;
 
     Map<Pair, Double> heatmap;
-    
+    Map<Integer, Double> convertedHeatMap;
+    HashMap<Pair, List<Integer>> linkMapping;
     List<BidInfo> ourlinks = new ArrayList<BidInfo>();
     
     // Keep track of player owned links. It maps a link infra.get(i).get(j), denoted by an integer 
@@ -49,17 +50,21 @@ public class Player implements railway.sim.Player {
     List<BidInfo> allLinks;
     
     private Map<String, Double> budgets = new HashMap<String, Double>();
-	private Object Pair;
-	private int num_players;
 
-    // Use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
+    private double penalty = 150.0D;
+    private int yenK = 10;
+
+    // Use k_shortest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
     // This can be done in O(n).If you want the paths to contain to links(etc. (a,b), (c,d)), you can just
-    // use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)).retainAll(contain-paths.get(c,d)) which can also be done in O(n)
+    // use k_shortest_paths.get(i,j).retainAll(contain_paths.get(a,b)).retainAll(contain-paths.get(c,d)) which can also be done in O(n)
 	// With the paths you get, you can easily change the heatmap  weight in O(n).
-    // Also you can use contain_paths.get(a,b).retainAll(sour_dest_paths.get(i,j)) to get paths contain (a,b) and start i, end j;
-    private Map<Pair, List<List<Integer>>> sour_dest_paths; //paths start from Pair.i1 and end in Pair.i2
-    private Map<Pair, List<List<Integer>>> contain_paths; 
+    // Also you can use contain_paths.get(a,b).retainAll(k_shortest_paths.get(i,j)) to get paths contain (a,b) and start i, end j;
+
+    private Map<List<Integer>, Double> path_distance; // Path to distance
+    private Map<Pair, List<List<Integer>>> k_shortest_paths = new HashMap<>();//paths start from Pair.i1 and end in Pair.i2
+    private Map<Pair, List<List<Integer>>> contain_paths = new HashMap<>(); 
     //paths that contains link (Pair.i1, Pair.i2)
+
 
     public final class Pair implements Serializable, Comparable<Pair>{
 		private static final long serialVersionUID = 3520054221183875559L;
@@ -67,8 +72,14 @@ public class Player implements railway.sim.Player {
 		int i1;
     	int i2;
     	Pair(int i1, int i2){
-    		this.i1 = i1;
-    		this.i2 = i2;
+    		if (i1 < i2) {
+    			this.i1 = i2;
+    			this.i2 = i1;
+    		}
+    		else {
+    			this.i1 = i1;
+    			this.i2 = i2;
+    		}
     	}
     	
     	//implement compareTo to make sure the hashmap can work well because JAVA are Object-Orientied
@@ -114,23 +125,30 @@ public class Player implements railway.sim.Player {
     }
 
     //return links along ksp
-    private List<List<Integer>> yenKSPaths(WeightedGraph g, int source, int sink, int k) {
+    private List<List<Integer>> yenKSPaths(int source, int sink) {
+        WeightedGraph g = new WeightedGraph(geo.size());
+        for (int i=0; i<infra.size(); ++i) {
+            for (int j=0; j<infra.get(i).size(); ++j) {
+                g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
+            }
+        }
+        System.out.println("---------------------------");
+        System.out.println("source"+source+" sink"+sink);
         int[][] prev = Dijkstra.dijkstra(g, source);
         List<List<Integer>> allP = Dijkstra.getPaths(g,prev,sink);
         List<List<Integer>> kpaths = new ArrayList<>(allP);
+        if(allP.get(0).size()==2) {
+            //System.out.println("direct");
+            return allP;
+        }
 
-        /*for(int a = 0;a<allP.size();a++) {
-            for (int b = 0;b<allP.get(a).size();b++) {
-                System.out.println("a: "+a+", b: "+b+" path: "+allP.get(a).get(b));
-            }
-        }*/
-
-        if (kpaths.size() < k) {
+        if (kpaths.size() < yenK) {
             List<List<Integer>> potential = new ArrayList<>();
             //rest of Yen's algo
-            for (int i=kpaths.size()-1;i<k-1;i++) { // index 3 - 9 (k=10)
-                System.out.println("I: "+i);
-                for(int j = 1;j<=kpaths.get(i).size()-2;j++) { //size of path = 5, (1,2)
+            int i = kpaths.size();
+            while(i <= yenK) {
+                //System.out.println("I: "+i);
+                for(int j = 0;j<=kpaths.get(i-1).size()-2;j++) { //size of path = 5, (1,2)
                     WeightedGraph gtemp = new WeightedGraph(geo.size());
                     for (int a=0; a<infra.size(); ++a) {
                         for (int b=0; b<infra.get(a).size(); ++b) {
@@ -139,36 +157,49 @@ public class Player implements railway.sim.Player {
                     }
 
                     //get spur node
-                    int spur = kpaths.get(i).get(j);
-                    //System.out.println("spur:"+spur);
+                    int spur = kpaths.get(i-1).get(j);
+                    //System.out.println("spur node:"+spur);
                     List<Integer> rootpath = new ArrayList<Integer>();
-                    for(int a=0;a<j+1;a++) {
-                        rootpath.add(kpaths.get(i).get(a));
+                    for(int a=0;a<=j;a++) {
+                        rootpath.add(kpaths.get(i-1).get(a));
                     } // 0, 8
                     for (List<Integer> path: kpaths) {
-                        List<Integer> temp = new ArrayList<Integer>(path.subList(0,j+1));
-                        //System.out.println(temp.equals(rootpath));
-                        if (temp.equals(rootpath)) {
-                            //System.out.println("removed "+path.get(j)+" "+path.get(j+1));
-                            gtemp.removeEdge(path.get(j),path.get(j+1));
+                        if(path.size() > j+1) { 
+                            List<Integer> temp = new ArrayList<Integer>(path.subList(0,j+1));
+                            if (temp.equals(rootpath)) {
+                                gtemp.removeEdge(path.get(j),path.get(j+1));
+                                gtemp.removeEdge(path.get(j+1),path.get(j));
+                                //System.out.println("removing: "+path.get(j)+" - "+path.get(j+1));
+                            }
                         }
                     }
 
-                    //TODO remove notes on rootpath except spurnode
-                    /*for(int a=0;a<rootpath.size()-1;a++) {
-                        g.remove()
-                    }*/
+                    // remove nodes on rootpath except spurnode
+                    for(int a=0;a<rootpath.size()-1;a++) {
+                        int[] neighbors = gtemp.neighbors(rootpath.get(a));
+                        for(int b=0;b<neighbors.length;b++) {
+                            gtemp.removeEdge(rootpath.get(a),neighbors[b]);
+                            gtemp.removeEdge(neighbors[b],rootpath.get(a));
+                        }
+                    }
                     
                     int[][] spurprev = Dijkstra.dijkstra(gtemp, spur);
                     List<List<Integer>> spurPaths = Dijkstra.getPaths(gtemp,spurprev,sink);
+                    /*System.out.println("DEBUG:"+spurPaths.size());
                     for(int a = 0;a<spurPaths.size();a++) {
-                        List<Integer> totalPath = new ArrayList<>(rootpath);
+                        System.out.println("a: "+a+" asize: "+spurPaths.get(a).size());
+                    }*/
 
-                        totalPath.addAll(spurPaths.get(a).subList(1,spurPaths.get(a).size()));
-                        potential.add(totalPath);
-                        System.out.println("total+spur");
-                        for (int b = 0;b<totalPath.size();b++) {
-                            System.out.println("a: "+a+", b: "+b+" path: "+totalPath.get(b));
+
+                    if(spurPaths.get(0).size()>1) {
+                        for(int a = 0;a<spurPaths.size();a++) {
+                            List<Integer> totalPath = new ArrayList<>(rootpath);
+                            totalPath.addAll(spurPaths.get(a).subList(1,spurPaths.get(a).size()));
+                            /*System.out.println("POTENTIAL");
+                            for (int b=0;b<totalPath.size();b++) {
+                                System.out.println(totalPath.get(b));
+                            }*/
+                            potential.add(totalPath);
                         }
                     }
                 }
@@ -183,12 +214,11 @@ public class Player implements railway.sim.Player {
                 List<Integer> minindxs = new ArrayList<Integer>();
                 for(int a=0;a<potential.size();a++) {
                     double temp = pathDistance(potential.get(a));
-                    System.out.println("distance:"+temp);
+                    //System.out.println("distance:"+temp);
                     if(temp < min) {
                         min = temp;
                         if(minindxs.size() > 0) {
                             minindxs.clear();
-
                         }
                         minindxs.add(a);
                     } 
@@ -196,50 +226,32 @@ public class Player implements railway.sim.Player {
                         minindxs.add(a);
                     }
                 }
-                System.out.println("DEBUG:"+minindxs.size());
                 Collections.sort(minindxs,Collections.reverseOrder());
-
-
                 for(int a=0;a<minindxs.size();a++) {
-                    kpaths.add(potential.get(minindxs.get(a)));
-                    System.out.println(minindxs.get(a));
-                    potential.remove(minindxs.get(a));
+                    kpaths.add(potential.get((int)minindxs.get(a)));
+                    //System.out.println(minindxs.get(a));
+                    potential.remove((int)minindxs.get(a));
                 }
-                System.out.println("current size: "+kpaths.size());
-                if (kpaths.size() >= k) {
-                    break;
-                }
+                //System.out.println(potential.size());
+                /*System.out.println("CURRENT size: "+kpaths.size());
+                for(int a=0;a<kpaths.size();a++) {
+                    for(int b=0;b<kpaths.get(a).size();b++) {
+                        System.out.println("a: "+a+", b: "+b+", path:"+kpaths.get(a).get(b));
+                    }
+                }*/
+                i = kpaths.size();
             }
-
         }
 
-        System.out.println("done: "+kpaths.size());
+        System.out.println("DONE: "+kpaths.size());
+        /*for(int a=0;a<kpaths.size();a++) {
+            for(int b=0;b<kpaths.get(a).size();b++) {
+                System.out.println("a: "+a+", b: "+b+", path:"+kpaths.get(a).get(b));
+            }
+        }*/
         return kpaths;
     }
 
-
-
-    private void yenKSP(int k) {
-        // a list of integers is a path, list of a list of integers 
-
-        System.out.println("YENKSP");
-        WeightedGraph g = new WeightedGraph(geo.size());
-        for (int i=0; i<infra.size(); ++i) {
-            for (int j=0; j<infra.get(i).size(); ++j) {
-                g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
-            }
-        }
-        for (int i=0;i<transit.length;i++) {
-            for (int j=4;j<5;j++) { //int j=0;j<transit[i].length;j++
-                if(transit[i][j]==0) {
-                    continue;
-                }
-                yenKSPaths(g,i,j,k);
-            }
-            break;
-        }
-
-    }
 
     /**
      * This function will generate a revenue matrix for the problem
@@ -285,13 +297,43 @@ public class Player implements railway.sim.Player {
         return revenue;
     }
 
+    public double[] softmaxDistance(double[] distances) {
+    	double expSum = 0.0D;
+    	double[] softmax = new double[distances.length];
+    	for (int i = 0; i < distances.length; i++)
+    		expSum += (softmax[i] = Math.exp(distances[i]));
+    	for (int i = 0; i < distances.length; i++)
+    		softmax[i] /= expSum;
+    	return softmax;
+    }
 
+    public  Map<Integer, Double> softmaxDistance(Map<Integer, Double> weights) {
+        Double expSum = 0.0;
+        Map<Integer, Double> softmax = new HashMap<Integer, Double>();
+        for (Integer i: weights.keySet()) {
+            Double temp = Math.exp(-1*weights.get(i));
+            softmax.put(i,temp);
+            expSum += temp;
+            //System.out.println("in loop expsum" + expSum);
+        }
+        
+        Double check = 0.0;
+        for (Integer i: weights.keySet()) {
+            Double temp = softmax.get(i);
+            softmax.put(i, temp/= expSum);
+            check += temp;
+
+        }
+        System.out.println("sanity check: "+check);
+        return softmax;
+    }
+
+    
     public Player() {
         rand = new Random();
         /*try {
 			TimeUnit.SECONDS.sleep(10);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}*/
     }
@@ -330,11 +372,13 @@ public class Player implements railway.sim.Player {
         		System.out.print((s==null));
         	System.out.println();
         }*/
-        num_players = 3;
+        
+       
         heatmap = createHeatMap();
+        System.out.println("ksp size:"+k_shortest_paths.size());
+        //convertHeatMap();
 
-        yenKSP(10);
-
+        //EyenKSP();
     }
 
     
@@ -389,8 +433,9 @@ public class Player implements railway.sim.Player {
 
 
     public Map<Pair, Double> createHeatMap() {
-        sour_dest_paths = new HashMap<Pair, List<List<Integer>>>();
-        contain_paths =  new HashMap<Pair, List<List<Integer>>>();
+
+        //k_shortest_paths = new HashMap<Pair, List<List<Integer>>>();
+        //contain_paths =  new HashMap<Pair, List<List<Integer>>>();
     	Map<Pair, Double> heatmap = new HashMap<Pair, Double>();
         for(int i=0;i<infra.size();i++) {
             for(int j=0;j<infra.get(i).size();j++) {
@@ -398,13 +443,6 @@ public class Player implements railway.sim.Player {
             }
         }
     	// init - nothing is owned, info only from transit and infra
-        int n=geo.size();
-        WeightedGraph g = new WeightedGraph(n);
-        for (int i=0; i<infra.size(); ++i) {
-            for (int j=0; j<infra.get(i).size(); ++j) {
-                g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
-            }
-        }
 
         for (int i=0;i<transit.length;i++) {
             for (int j=0;j<transit[i].length;j++) { //int j=0;j<transit[i].length;j++
@@ -412,12 +450,40 @@ public class Player implements railway.sim.Player {
                     continue;
                 }
                 double totaltransit = transit[i][j];
-                int[][] prev = Dijkstra.dijkstra(g, i);
-                List<List<Integer>> allP = Dijkstra.getPaths(g,prev,j);
-                sour_dest_paths.put(new Pair(i,j), allP);
-                int pathnum = allP.size();
-                double transitpp = totaltransit / pathnum; 
-                //System.out.println("transitpp: "+transitpp);
+                //int[][] prev = Dijkstra.dijkstra(g, i);
+                //List<List<Integer>> allP = Dijkstra.getPaths(g,prev,j);
+                //List<List<Integer>> allP = yenKSPaths(i,j);
+                //k_shortest_paths.put(new Pair(i,j), allP);
+
+                List<List<Integer>> allP = yenKSPaths(i,j);
+                k_shortest_paths.put(new Pair(i,j),allP);
+                //calculate distance for each path, map index in allP (refers to a path) to its weight
+                Map<Integer, Double> weights = new HashMap<Integer, Double>();
+                Map<Integer, Double> distances = new HashMap<Integer, Double>();
+            
+                //System.out.println("DISTANCES"); 
+                Double maxdistance = -1.0D;
+                for(int a=0;a<allP.size();a++) {
+                    Double temp = pathDistance(allP.get(a));
+                    distances.put(a,temp);
+                    //System.out.println("index: " + a + " distance: "+distances.get(a));
+                    if(temp > maxdistance) {
+                        maxdistance = temp;
+                    }
+                }
+
+
+                //System.out.println("BEFORE SOFTMAX");
+                for(Integer a:distances.keySet()) {
+                    weights.put(a,distances.get(a)/maxdistance); //scale so everything is under 1
+                    //System.out.println("index: " + a + "weight: "+weights.get(a));
+                }
+
+                Map<Integer, Double> softmaxWeights = softmaxDistance(weights);
+                System.out.println("AFTER SOFTMAX");
+                for(Integer a:softmaxWeights.keySet()) {
+                    System.out.println("index: " + a + " distance: "+softmaxWeights.get(a));
+                }
 
                 for(int a=0;a<allP.size();a++) {
                     for(int b=0;b<allP.get(a).size();b++) {
@@ -454,28 +520,143 @@ public class Player implements railway.sim.Player {
                                     }
                                 }
                             }
-                            heatmap.put(link,heatmap.get(link)+transitpp/num_players);
+                            heatmap.put(link,heatmap.get(link)+distances.get(a)*softmaxWeights.get(a));
                         }
                     }
                 }
             }
+            //break;
         }
-
-        for (Pair p:heatmap.keySet()) {
+        for (Pair p : heatmap.keySet()) {
             System.out.println("t1: "+p.i1+", t2: "+p.i2+", traffic: "+heatmap.get(p));
         }
-
-    	return heatmap;
+    	  return heatmap;
     }
 
-    public Map<Integer, Double> predictHeatMap(List<BidInfo> hypotheticalState, String player) {
-        // heatmap is current heatmap
-        Map<Integer, Double> newmap = new HashMap<Integer, Double>();
+    private void convertHeatMap() {
+    	linkMapping = new HashMap<Pair, List<Integer>>();
+    	for (BidInfo link : allLinks) {
+    		Pair p = new Pair(map.get(link.town1), map.get(link.town2));
+    		linkMapping.putIfAbsent(p, new LinkedList<Integer>());
+    		List<Integer> list = linkMapping.get(p);
+    		list.add(link.id);
+    	}
+    	
+    	convertedHeatMap = new HashMap<Integer, Double>();
+    	
+    	for (Map.Entry<Pair, List<Integer>> entry : linkMapping.entrySet()) {
+    		for(Integer index:entry.getValue()) {
+    			System.out.println(entry.getKey());
+        		System.out.println(entry.getValue().size());
+        		System.out.println(heatmap.get(entry.getKey()));
+        		
+    			convertedHeatMap.put(index, heatmap.get(entry.getKey())/entry.getValue().size());
+    		}
+    	}
+    	
+    }
+    
 
-
-        return newmap;
+    
+    public void updateHeatMap(List<BidInfo> lastRoundBids) {
+        for(BidInfo b: lastRoundBids){
+            if (b.owner!=null){
+            	List<List<Integer>> paths = contain_paths.get(new Pair(map.get(b.town1), map.get(b.town2)));
+            	for (List<Integer> path : paths) {
+            		Pair link1 = null, link2 = null;
+            		for (int i = 0; i<path.size();i++) {
+            			if(path.get(i) == map.get(b.town1) || path.get(i)== map.get(b.town2)) {
+            				link1 = new Pair(path.get(i), i-1>=0 ? path.get(i-1) : -1);
+            				link2 = new Pair(i+2 < path.size() ? path.get(i + 2) : -1, path.get(i + 1));
+            				break;
+            			}
+            		}
+            		
+            		boolean flagLink = false;
+            		
+            		//TODO is list hashable?
+            		double distance = path_distance.get(path);
+        			
+            		if (link1.i1 != -1) {
+            			List<Integer> prevIDs = linkMapping.get(link1);
+            			for (int prevID : prevIDs) {
+            				if (allLinks.get(prevID).owner == b.owner)
+            					flagLink = true; 
+            			}
+            			distance = distance - penalty + (flagLink ? 0 : 200);
+            		}
+            		
+            		if (link2.i1 != -1) {
+            			List<Integer> prevIDs = linkMapping.get(link2);
+            			for (int prevID : prevIDs) {
+            				if (allLinks.get(prevID).owner == b.owner)
+            					flagLink = true; 
+            			}
+            			distance = distance - penalty + (flagLink ? 0 : 200);
+            		}
+            		path_distance.put(path, distance);
+            	}
+            }
+        }
     }
 
+    public Map<Integer, Double> predictHeatMap(String player){
+    	Map<List<Integer>, Double> player_path_distance = new HashMap<List<Integer>, Double>(path_distance);
+        for(BidInfo b: allLinks){
+            if (b.owner == null) {
+            	//Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(player) ? predictHeatMaps.get(player) : convertedHeatMap;
+                    
+                // Assume the player owns b
+                List<List<Integer>> paths = contain_paths.get(new Pair(map.get(b.town1), map.get(b.town2)));
+                for (List<Integer> path : paths) {
+                	Pair link1 = null, link2 = null;
+                	for (int i = 0; i<path.size();i++) {
+                		if(path.get(i) == map.get(b.town1) || path.get(i)== map.get(b.town2)) {
+                			link1 = new Pair(path.get(i), i-1>=0 ? path.get(i-1) : -1);
+                			link2 = new Pair(i+2 < path.size() ? path.get(i + 2) : -1, path.get(i + 1));
+                			break;
+                		}
+                	}
+                		
+                boolean flagLink = false;
+                		
+                //TODO is list hashable?
+                double distance = path_distance.get(path);
+            			
+                if (link1.i1 != -1) {
+                	List<Integer> prevIDs = linkMapping.get(link1);
+                	for (int prevID : prevIDs) {
+                		if (allLinks.get(prevID).owner == player)
+                			flagLink = true; 
+                	}
+                	distance = distance - penalty + (flagLink ? 0 : 200);
+                }
+                		
+                if (link2.i1 != -1) {
+                	List<Integer> prevIDs = linkMapping.get(link2);
+                	for (int prevID : prevIDs) {
+                		if (allLinks.get(prevID).owner == player)
+                			flagLink = true; 
+                		}
+                	distance = distance - penalty + (flagLink ? 0 : 200);
+               	}
+               	player_path_distance.put(path, distance);
+            }
+        }
+    }
+        
+        // create heat map, TODO Wanlin
+        for (Map.Entry<Pair, List<List<Integer>>> entry : k_shortest_paths.entrySet()) {
+        	List<Double> distances = new ArrayList<Double>();
+        	for (List<Integer> path : entry.getValue()) {
+        		distances.add(player_path_distance.get(path));
+        	}
+        	for (List<Integer> path : entry.getValue()) {
+        		// TODO
+        	}
+        }
+        return null;
+    }
 
 
     // This is to Query the info of according bid
@@ -492,6 +673,7 @@ public class Player implements railway.sim.Player {
     	// TODO Find a way such that we bid on a link that gives us 0 benefit externally (?)
     	// while giving other links that we owned higher traffics. I am not sure how to do this right now.
     	
+
     	// Update status & heat map
     	if (newTournament) {
     		updateStatus(lastRoundMaxBid);
@@ -499,13 +681,13 @@ public class Player implements railway.sim.Player {
     	}
     	
     	
-    	/*
-    	Map<Integer, Double> ourMap = predictHeatMap(null, name);
+    	
+    	Map<Integer, Double> ourMap = predictHeatMap(name);
     	
     	List<Map<Integer, Double>> heatmaps = new ArrayList<Map<Integer, Double>>();
     	for (String p : budgets.keySet())
     		if (p != name)
-    			heatmaps.add(predictHeatMap(null, p));
+    			heatmaps.add(predictHeatMap(p));
     	
     	// Runtime O(cn)
     	// Find the difference between our expected traffic and maximum traffic of other players
@@ -522,8 +704,7 @@ public class Player implements railway.sim.Player {
     	
     	
     	// Sort the heatmap difference
-    	@SuppressWarnings("unused")
-		List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<>(mapDiff.entrySet());
+		List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<Map.Entry<Integer, Double>>(mapDiff.entrySet());
     	Collections.sort(sortedDiff, Collections.reverseOrder((x, y) -> {
     		if (allLinks.get(x.getKey()).owner == null)
     			return 1;
@@ -532,22 +713,37 @@ public class Player implements railway.sim.Player {
     		return Double.compare(x.getValue(), y.getValue());
     	}));
     	
+		Bid makeBid = new Bid();
     	for (Map.Entry<Integer, Double> link : sortedDiff) {
-    		if (link.getKey() != null)
+			if (link.getKey() != null)
     			continue;
-    		// Make purchases here
     		if (ourMap.get(link.getKey()) < lastRoundMaxBid.amount)
     			continue;
-    		if (link.getValue() < 0.0D)
+			// Make a bid
+			double historyMax = -1.0D;
+	    	for (Bid b: currentBids) {
+            		if ((b.id1 == link.getKey()) || (b.id2 == link.getKey()))
+            			historyMax = Double.max(historyMax, b.amount);
+            }
+
+			makeBid.id1 = link.getKey();
+			makeBid.amount = Double.max(ourMap.get(link.getKey()), historyMax + 10000.0D);
+    		
+    		if (link.getValue() < 0)
     			return null;
     	}
-    	*/
+    	
+        if (budgets.get(name) - makeBid.amount < 0) {
+            return null;
+        }
+    	
+    	return makeBid;
     	 
     	
     	
     	
     	
-    	
+    	/*
         double amount = -1;
         int id = -1;
         double maxamount = amount;
@@ -639,6 +835,7 @@ public class Player implements railway.sim.Player {
         }
         
         return bid;
+        */
     }
 
     public void updateBudget(Bid bid) {

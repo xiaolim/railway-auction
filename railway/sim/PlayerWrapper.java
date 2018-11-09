@@ -58,6 +58,7 @@ public class PlayerWrapper {
         }
         catch (Exception ex) {
             System.out.println("Player " + this.name + " has possibly timed out.");
+            ex.printStackTrace();
             throw ex;
         }       
     }
@@ -106,7 +107,7 @@ public class PlayerWrapper {
         }
 
         bid.bidder = this.name;
-        return bid;
+        return new Bid(bid);
     }
 
     public void updateBudget(Bid bid) {
