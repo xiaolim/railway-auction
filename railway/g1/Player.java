@@ -538,6 +538,10 @@ public class Player implements railway.sim.Player {
         
         return newmap;
     }
+    
+    public void updateHeatMap(List<BidInfo> lastRoundBids) {
+    	
+    }
 
     public Map<String, Map<Integer, Double>> predictHeatMaps(List<BidInfo> allBids){
         Map<String, Map<Integer, Double>> predictHeatMaps = new HashMap<String, Map<Integer, Double>>();
@@ -578,9 +582,11 @@ public class Player implements railway.sim.Player {
             		}
             		path_distance.put(path, distance);
             	}
-            	
+            }
+            else {
                 for(String p : budgets.keySet()){
                     Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(p) ? predictHeatMaps.get(p) : convertedHeatMap;
+                    // Assume the player owns b
                     
                     if(b.owner!=p){   //may need modification later
                     	
@@ -589,12 +595,12 @@ public class Player implements railway.sim.Player {
             }
         }
         
+        // create heat map, TODO Wanlin
         for (Map.Entry<Pair, List<List<Integer>>> entry : sour_dest_paths.entrySet()) {
         	List<Double> distances = new ArrayList<Double>();
         	for (List<Integer> path : entry.getValue()) {
         		distances.add(path_distance.get(path));
         	}
-        	// TODO Change distances to probabilities
         	for (List<Integer> path : entry.getValue()) {
         		// TODO
         	}
