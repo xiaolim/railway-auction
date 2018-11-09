@@ -303,13 +303,21 @@ public class Player implements railway.sim.Player {
         return revenue;
     }
 
-
+    public double[] softmaxDistance(double[] distances) {
+    	double expSum = 0.0D;
+    	double[] softmax = new double[distances.length];
+    	for (int i = 0; i < distances.length; i++)
+    		expSum += (softmax[i] = Math.exp(distances[i]));
+    	for (int i = 0; i < distances.length; i++)
+    		softmax[i] /= expSum;
+    	return softmax;
+    }
+    
     public Player() {
         rand = new Random();
         /*try {
 			TimeUnit.SECONDS.sleep(10);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}*/
     }
@@ -524,10 +532,10 @@ public class Player implements railway.sim.Player {
     }
 
     public Map<String, Map<Integer, Double>> predictHeatMaps(List<BidInfo> allBids){
-        Map<String, Map<Integer, Double>> predictHeatMaps = new HashMap<>();
+        Map<String, Map<Integer, Double>> predictHeatMaps = new HashMap<String, Map<Integer, Double>>();
         for(BidInfo b: allBids){
             if (b.owner!=null){
-                List<List<Integer>> paths = contain_paths.get(new Pair(map.get(b.town1), map.get(b.town2)));
+            	List<List<Integer>> paths = contain_paths.get(new Pair(map.get(b.town1), map.get(b.town2)));
                 for(String p : budgets.keySet()){
                     Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(p) ? predictHeatMaps.get(p) : convertedHeatMap;
                     if(b.owner!=p){   //may need modification later
