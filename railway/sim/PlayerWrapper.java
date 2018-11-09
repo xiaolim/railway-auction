@@ -58,6 +58,7 @@ public class PlayerWrapper {
         }
         catch (Exception ex) {
             System.out.println("Player " + this.name + " has possibly timed out.");
+            ex.printStackTrace();
             throw ex;
         }       
     }

@@ -107,6 +107,7 @@ public class Simulator {
             }
         } catch (Exception ex) {
             System.out.println("Unable to load players. " + ex.getMessage());
+            ex.printStackTrace();
             System.exit(0);
         }
 
@@ -124,6 +125,7 @@ public class Simulator {
             catch(Exception ex) {
                 System.out.println("Exception in initializing player " +
                     pw.getName() + " " + ex.getMessage());
+                ex.printStackTrace();
                 updates.remove(pw);
             }
         }
@@ -172,7 +174,7 @@ public class Simulator {
                     catch (Exception ex) {
                         // This should be an exception only from getBid function.
                         System.out.println("Uh-oh! " + ex.getMessage());
-                        // ex.printStackTrace();
+                        ex.printStackTrace();
                         updates.remove(pw);
                     }
 

@@ -54,17 +54,17 @@ public class Player implements railway.sim.Player {
     private double penalty = 150.0D;
     private int yenK = 10;
 
-    // Use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
+    // Use k_shortest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
     // This can be done in O(n).If you want the paths to contain to links(etc. (a,b), (c,d)), you can just
-    // use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)).retainAll(contain-paths.get(c,d)) which can also be done in O(n)
+    // use k_shortest_paths.get(i,j).retainAll(contain_paths.get(a,b)).retainAll(contain-paths.get(c,d)) which can also be done in O(n)
 	// With the paths you get, you can easily change the heatmap  weight in O(n).
-    // Also you can use contain_paths.get(a,b).retainAll(sour_dest_paths.get(i,j)) to get paths contain (a,b) and start i, end j;
-    private Map<Pair, List<List<Integer>>> sour_dest_paths; //paths start from Pair.i1 and end in Pair.i2
-    private Map<Pair, List<List<Integer>>> contain_paths; 
+    // Also you can use contain_paths.get(a,b).retainAll(k_shortest_paths.get(i,j)) to get paths contain (a,b) and start i, end j;
+
     private Map<List<Integer>, Double> path_distance; // Path to distance
+    private Map<Pair, List<List<Integer>>> k_shortest_paths = new HashMap<>();//paths start from Pair.i1 and end in Pair.i2
+    private Map<Pair, List<List<Integer>>> contain_paths = new HashMap<>(); 
     //paths that contains link (Pair.i1, Pair.i2)
 
-    private Map<Pair, List<List<Integer>>> k_shortest_paths = new HashMap<>();
 
     public final class Pair implements Serializable, Comparable<Pair>{
 		private static final long serialVersionUID = 3520054221183875559L;
@@ -132,8 +132,8 @@ public class Player implements railway.sim.Player {
                 g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
             }
         }
-        //System.out.println("---------------------------");
-        //System.out.println("source"+source+" sink"+sink);
+        System.out.println("---------------------------");
+        System.out.println("source"+source+" sink"+sink);
         int[][] prev = Dijkstra.dijkstra(g, source);
         List<List<Integer>> allP = Dijkstra.getPaths(g,prev,sink);
         List<List<Integer>> kpaths = new ArrayList<>(allP);
@@ -243,8 +243,8 @@ public class Player implements railway.sim.Player {
             }
         }
 
-        /*System.out.println("DONE: "+kpaths.size());
-        for(int a=0;a<kpaths.size();a++) {
+        System.out.println("DONE: "+kpaths.size());
+        /*for(int a=0;a<kpaths.size();a++) {
             for(int b=0;b<kpaths.get(a).size();b++) {
                 System.out.println("a: "+a+", b: "+b+", path:"+kpaths.get(a).get(b));
             }
@@ -252,20 +252,6 @@ public class Player implements railway.sim.Player {
         return kpaths;
     }
 
-
-
-    private void yenKSP() {
-        System.out.println("YENKSP");
-        for (int i=0;i<transit.length;i++) {
-            for (int j=0;j<transit[i].length;j++) { //int j=0;j<transit[i].length;j++
-                if(transit[i][j]==0) {
-                    continue;
-                }
-                k_shortest_paths.put(new Pair(i,j),yenKSPaths(i,j));
-            }
-            //break;
-        }
-    }
 
     /**
      * This function will generate a revenue matrix for the problem
@@ -320,6 +306,28 @@ public class Player implements railway.sim.Player {
     		softmax[i] /= expSum;
     	return softmax;
     }
+
+    public  Map<Integer, Double> softmaxDistance(Map<Integer, Double> weights) {
+        Double expSum = 0.0;
+        Map<Integer, Double> softmax = new HashMap<Integer, Double>();
+        for (Integer i: weights.keySet()) {
+            Double temp = Math.exp(-1*weights.get(i));
+            softmax.put(i,temp);
+            expSum += temp;
+            //System.out.println("in loop expsum" + expSum);
+        }
+        
+        Double check = 0.0;
+        for (Integer i: weights.keySet()) {
+            Double temp = softmax.get(i);
+            softmax.put(i, temp/= expSum);
+            check += temp;
+
+        }
+        System.out.println("sanity check: "+check);
+        return softmax;
+    }
+
     
     public Player() {
         rand = new Random();
@@ -365,9 +373,9 @@ public class Player implements railway.sim.Player {
         	System.out.println();
         }*/
         
-        yenKSP();
-        System.out.println(k_shortest_paths.size());
-        //heatmap = createHeatMap();
+       
+        heatmap = createHeatMap();
+        System.out.println("ksp size:"+k_shortest_paths.size());
         //convertHeatMap();
 
         //EyenKSP();
@@ -426,8 +434,8 @@ public class Player implements railway.sim.Player {
 
     public Map<Pair, Double> createHeatMap() {
 
-        sour_dest_paths = new HashMap<Pair, List<List<Integer>>>();
-        contain_paths =  new HashMap<Pair, List<List<Integer>>>();
+        //k_shortest_paths = new HashMap<Pair, List<List<Integer>>>();
+        //contain_paths =  new HashMap<Pair, List<List<Integer>>>();
     	Map<Pair, Double> heatmap = new HashMap<Pair, Double>();
         for(int i=0;i<infra.size();i++) {
             for(int j=0;j<infra.get(i).size();j++) {
@@ -444,22 +452,38 @@ public class Player implements railway.sim.Player {
                 double totaltransit = transit[i][j];
                 //int[][] prev = Dijkstra.dijkstra(g, i);
                 //List<List<Integer>> allP = Dijkstra.getPaths(g,prev,j);
+                //List<List<Integer>> allP = yenKSPaths(i,j);
+                //k_shortest_paths.put(new Pair(i,j), allP);
+
                 List<List<Integer>> allP = yenKSPaths(i,j);
-                sour_dest_paths.put(new Pair(i,j), allP);
-                int pathnum = allP.size();
-                System.out.println("path num: "+pathnum);
+                k_shortest_paths.put(new Pair(i,j),allP);
                 //calculate distance for each path, map index in allP (refers to a path) to its weight
                 Map<Integer, Double> weights = new HashMap<Integer, Double>();
-                double sumdistance = 0.0;
-                for(int a=0;a<allP.size();a++) {
-                    double temp = pathDistance(allP.get(a));
-                    sumdistance += temp;
-                    weights.put(a,temp);
-                    System.out.println("index: " + a + " distance: "+temp);
-                }
-                //System.out.println("totaldistance: "+sumdistance);
-                double transitpp = totaltransit / pathnum; 
+                Map<Integer, Double> distances = new HashMap<Integer, Double>();
             
+                //System.out.println("DISTANCES"); 
+                Double maxdistance = -1.0D;
+                for(int a=0;a<allP.size();a++) {
+                    Double temp = pathDistance(allP.get(a));
+                    distances.put(a,temp);
+                    //System.out.println("index: " + a + " distance: "+distances.get(a));
+                    if(temp > maxdistance) {
+                        maxdistance = temp;
+                    }
+                }
+
+
+                //System.out.println("BEFORE SOFTMAX");
+                for(Integer a:distances.keySet()) {
+                    weights.put(a,distances.get(a)/maxdistance); //scale so everything is under 1
+                    //System.out.println("index: " + a + "weight: "+weights.get(a));
+                }
+
+                Map<Integer, Double> softmaxWeights = softmaxDistance(weights);
+                System.out.println("AFTER SOFTMAX");
+                for(Integer a:softmaxWeights.keySet()) {
+                    System.out.println("index: " + a + " distance: "+softmaxWeights.get(a));
+                }
 
                 for(int a=0;a<allP.size();a++) {
                     for(int b=0;b<allP.get(a).size();b++) {
@@ -496,7 +520,7 @@ public class Player implements railway.sim.Player {
                                     }
                                 }
                             }
-                            heatmap.put(link,heatmap.get(link)+transitpp);
+                            heatmap.put(link,heatmap.get(link)+distances.get(a)*softmaxWeights.get(a));
                         }
                     }
                 }
@@ -596,7 +620,7 @@ public class Player implements railway.sim.Player {
         }
         
         // create heat map, TODO Wanlin
-        for (Map.Entry<Pair, List<List<Integer>>> entry : sour_dest_paths.entrySet()) {
+        for (Map.Entry<Pair, List<List<Integer>>> entry : k_shortest_paths.entrySet()) {
         	List<Double> distances = new ArrayList<Double>();
         	for (List<Integer> path : entry.getValue()) {
         		distances.add(path_distance.get(path));
