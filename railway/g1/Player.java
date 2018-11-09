@@ -124,13 +124,13 @@ public class Player implements railway.sim.Player {
                 g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
             }
         }
-        System.out.println("---------------------------");
-        System.out.println("source"+source+" sink"+sink);
+        //System.out.println("---------------------------");
+        //System.out.println("source"+source+" sink"+sink);
         int[][] prev = Dijkstra.dijkstra(g, source);
         List<List<Integer>> allP = Dijkstra.getPaths(g,prev,sink);
         List<List<Integer>> kpaths = new ArrayList<>(allP);
         if(allP.get(0).size()==2) {
-            System.out.println("direct");
+            //System.out.println("direct");
             return allP;
         }
 
@@ -235,12 +235,12 @@ public class Player implements railway.sim.Player {
             }
         }
 
-        System.out.println("DONE: "+kpaths.size());
+        /*System.out.println("DONE: "+kpaths.size());
         for(int a=0;a<kpaths.size();a++) {
             for(int b=0;b<kpaths.get(a).size();b++) {
                 System.out.println("a: "+a+", b: "+b+", path:"+kpaths.get(a).get(b));
             }
-        }
+        }*/
         return kpaths;
     }
 
@@ -485,7 +485,7 @@ public class Player implements railway.sim.Player {
                     }
                 }
             }
-            break;
+            //break;
         }
         for (Pair p:heatmap.keySet()) {
             System.out.println("t1: "+p.i1+", t2: "+p.i2+", traffic: "+heatmap.get(p));
@@ -527,15 +527,17 @@ public class Player implements railway.sim.Player {
         Map<String, Map<Integer, Double>> predictHeatMaps = new HashMap<>();
         for(BidInfo b: allBids){
             if (b.owner!=null){
+                List<List<Integer>> paths = contain_paths.get(new Pair(map.get(b.town1), map.get(b.town2)));
                 for(String p : budgets.keySet()){
-                    Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(p)?predictHeatMaps.containsKey(p):convertedHeatMap();
+                    Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(p) ? predictHeatMaps.get(p) : convertedHeatMap;
                     if(b.owner!=p){   //may need modification later
 
                     }
                 }
             }
         }
-
+        // TODO
+        return null;
     }
 
 
