@@ -41,6 +41,10 @@ public class Player implements railway.sim.Player{
     private Map<String, List<Integer>> connectedRails = new HashMap<String, List<Integer>>(); //stores rail ids connected to each city
     private Map<Integer, Double> railValues = new HashMap<Integer, Double>(); //this is the traffic/rails in metric, for min bid use minamounts
     private Map<Integer, Double> railDistance = new HashMap<Integer, Double>();
+
+    private List<List<Integer>> duplicateRails = new ArrayList<List<Integer>>();
+
+    
     public Player() {
         rand = new Random();
     }
@@ -57,7 +61,18 @@ public class Player implements railway.sim.Player{
         this.initBudget = budget;
 
         // Initialize availableLinks
-        for (BidInfo bi : allBids) {
+        for (int i=0; i<allBids.size(); i++) {
+	    BidInfo bi = allBids.get(i);
+	    for(int j=i+1; j<allBids.size(); j++){
+		BidInfo b2 = allBids.get(j);
+		if(bi.town1.equals(b2.town1) && bi.town2.equals(b2.town2) && bi.id != b2.id) {
+		    ArrayList<Integer> pair = new ArrayList<Integer>();
+		    pair.add(bi.id);
+		    pair.add(b2.id);
+		    duplicateRails.add(pair);
+		}
+	    }
+
 	  // System.out.println("===================ID " + bi.id + " " + bi.town1 + " " + bi.town2);
 	  List cities = new ArrayList<String>();
 	  cities.add(bi.town1);
@@ -84,7 +99,6 @@ public class Player implements railway.sim.Player{
 	    }
           }
         }
-	// System.out.println(railCities);
 
         Map<Integer, Integer> cityTraffic = new HashMap<Integer, Integer>();
         for (int m=0; m<geo.size(); m++){
@@ -130,8 +144,12 @@ public class Player implements railway.sim.Player{
 		Coordinates p2 = geo.get(infra.get(i).get(j));
 		//		System.out.printf("%f, %f and %f, %f\n", p1.x, p1.y, p2.x, p1.y);
 		double dist = Math.sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
-       		value = value*dist*10*2;
-		railValues.put(id, value);
+       		value = value*dist*10;
+		if( value < originalMins.get(id)){
+		    railValues.put(id, originalMins.get(id));
+		} else {
+		    railValues.put(id, value);
+		}
 		railDistance.put(id, dist);
 		id++;
 	    }
@@ -204,6 +222,20 @@ public class Player implements railway.sim.Player{
 	
 	    updatedRoundBudget = true;
           }
+
+	  if(lastWinner.bidder.equals("g5")){
+              for(List<Integer> pair : duplicateRails){
+		  if( pair.contains(lastWinner.id1) || pair.contains(lastWinner.id2) ) {
+		      for( Integer rail : pair){
+			  if(availableLinks.contains(rail)){
+        		      availableLinks.remove(rail);
+			  }
+		      }
+		  }
+	      }
+	  }
+
+	  
         }
 
         // Find the most valuable link for us
@@ -260,7 +292,10 @@ public class Player implements railway.sim.Player{
         if (maxUnit > unitPrice){
           double amount = unitPrice * railDistance.get(this.bestLink) + 1;
           if(amount < minAmounts.get(this.bestLink) + 10000){
+	      //are we checking that we only make this bid if its less than our maxAmount??
             amount = minAmounts.get(this.bestLink) + 10000; //increment
+	    //also, if this link has not been bid on this round wouldn't this bid 10000 over the minimum bid?
+	    //do we have a way to make the minimum bid if a rail hasn't been bid on?
           }
           if (amount < this.budget){
             Bid ourBid = new Bid();
