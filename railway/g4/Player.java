@@ -25,6 +25,7 @@ public class Player implements railway.sim.Player
     private List<String> townLookup;
     private List<List<Integer>> infra;
     private int [][] transit;
+    private double [][] flow;
     private int total_profit = 0; 
     private double total_budget = 0;
     private String name;
@@ -34,10 +35,7 @@ public class Player implements railway.sim.Player
     
     // For use with paths
     private ArrayList<Integer> pathList = new ArrayList<>(); 
-    
-    private HashMap<Integer, String> ownership = new HashMap<Integer, String>();
-    private HashMap<Integer, List<Path> > paths = new HashMap<Integer, List<Path> >();
-    private HashMap<Integer, Integer> flow = new HashMap<Integer, Integer>();
+
     public Player() 
     {
     }
@@ -77,75 +75,47 @@ public class Player implements railway.sim.Player
             adjList[i] = new ArrayList<>();
         }
 
-        
-        for (int i=0; i<infra.size(); i++){
-            for (int j=0; j<infra.get(i).size();j++){
-                adjList[i].add(infra.get(i).get(j));
-                adjList[infra.get(i).get(j)].add(i);
-            }
-        }
 
         update_flow(); 
     }
 
 
     public void update_flow(){
-        total_profit = 0;
-        flow = new HashMap<Integer, Integer>();
-        for (int i = 0; i< transit.length; i++){
-            for (int j=0; j<transit[i].length; j++){
-                if (transit[i][j]!=0){
-                    findAllPaths(i,j);
-                }
+        final int n = geo.size();
+
+        // Create the graph.
+        WeightedGraph g = new WeightedGraph(n);
+
+        for (int i=0; i<n; ++i) {
+            g.setLabel(townLookup.get(i));
+        }
+
+        for (int i=0; i<infra.size(); ++i) {
+            for (int j=0; j<infra.get(i).size(); ++j) {
+                g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
             }
         }
 
-        for (int i = 0; i< transit.length; i++){
-            for (int j=0; j<transit[i].length; j++){
-                if (transit[i][j]!=0){
-                    for (Path p : paths.get(hash(i,j))){
-                        int prev = -1;
-                        // System.out.printf("For Flow from %d to %d :%d\n",i,j,transit[i][j]);
-                        for (int node: p.path){
-                            if (prev != -1){
-                                if (flow.containsKey(hash(prev, node))){
-                                //    System.out.printf("Adding Flow from %d to %d : %d\n",prev,node, flow.get(hash(prev, node)) + transit[i][j]/paths.get(hash(i,j)).size());
-                                    flow.put(hash(prev,node), flow.get(hash(prev, node)) + transit[i][j]/paths.get(hash(i,j)).size());
-                                }
-                                else{
-                                //   System.out.printf("Final Flow from %d to %d : %d\n",prev,node, transit[i][j]/paths.get(hash(i,j)).size());
-                                    flow.put(hash(prev, node), transit[i][j]/paths.get(hash(i,j)).size());
-                                }
-                            }
-                            prev = node;
-                        }
+        //g.print();
+
+        // Compute the revenue between any two nodes.
+        flow = new double[n][n];
+
+        for (int i=0; i<n; ++i) {
+            int[][] prev = Dijkstra.dijkstra(g, i);
+            for (int j=i+1; j<n; ++j) {
+                List<List<Integer>> allPaths = Dijkstra.getPaths(g, prev, j);
+
+                for (int c = 0; c<allPaths.size();c++){
+                    for (int k=0; k<allPaths.get(c).size()-1; ++k) {
+                        flow[allPaths.get(c).get(k)][allPaths.get(c).get(k+1)] += transit[i][j]/allPaths.size();
+                        flow[allPaths.get(c).get(k+1)][allPaths.get(c).get(k)] += transit[i][j]/allPaths.size();
                     }
                 }
             }
         }
-
     }
 
-    // this function hashes a link to a unique integer
-    private int hash(int from, int to){
-        int temp = 0;
-        if (from > to){
-            temp = from;
-            from = to;
-            to = temp;
-        }
-        return from*2*NUM_STATIONS+to;
-    }
-
-    // this function hashes a link to a unique integer
-    private int hash(String from, String to){
-        int f = townLookup.indexOf(from);
-        int t = townLookup.indexOf(to);
-        if (f==-1 || t==-1){
-            System.out.println("city not found");
-        }
-        return hash(f,t);
-    }
 
     private double getDistance(Coordinates a, Coordinates b)
     {
@@ -158,30 +128,6 @@ public class Player implements railway.sim.Player
         return Math.pow(Math.pow(geo.get(a).x - geo.get(b).x, 2) + Math.pow(geo.get(a).y - geo.get(b).y, 2), 0.5);
     }
 
-    private double[] getDistance(List<Integer> lst)
-    {
-        int prev = lst.get(0);
-        String prev_owner = "";
-        double min_dist = 0.0;
-        double max_dist = 0.0;
-        for (int i=1; i<lst.size();i++){
-            min_dist += getDistance(prev, lst.get(i));
-            if (ownership.containsKey(hash(prev,i))){
-                if (prev_owner.equals(ownership.get(hash(prev,i))) == false){
-                    max_dist += 200;
-                }
-                prev_owner = ownership.get(hash(prev,i));
-            }
-            else{
-                max_dist+=200;
-            }
-            prev = lst.get(i);
-        }
-        double[] temp = new double[2];
-        temp[0]=max_dist;
-        temp[1]=min_dist;
-        return temp;
-    }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> availableBids, Bid lastRoundMaxBid) 
     {
@@ -200,12 +146,12 @@ public class Player implements railway.sim.Player
                 amounts.add((int)(bi.amount+10000));
                 // 
                 int from = townLookup.indexOf(bi.town1);
-                int to = townLookup.indexOf(bi.town2);     
-                total_profit += flow.get(hash(from, to))*20*getDistance(from,to) - bi.amount-10000;
+                int to = townLookup.indexOf(bi.town2);   
+
+                total_profit += flow[from][to]*20*getDistance(from,to) - bi.amount-10000;
             }
             else
             {
-                ownership.put(hash(bi.town1,bi.town2),bi.owner);
                 amounts.add(-1);
             }
         }
@@ -226,10 +172,8 @@ public class Player implements railway.sim.Player
 
             if (b.id2 == -1)
             {
-
                 if (townLookup.indexOf(availableBids.get(b.id1).town1) == -1 || townLookup.indexOf(availableBids.get(b.id1).town2) == -1)
                 {
-                   System.out.println("Town not found");
                    continue;
                 }
                 s = geo.get(townLookup.indexOf(availableBids.get(b.id1).town1));
@@ -303,16 +247,17 @@ public class Player implements railway.sim.Player
             }
             double win_bid = (double)(maxb*getDistance(geo.get(from),geo.get(to))+1);
             double winning_price = Math.max(amounts.get(i),win_bid);
-            double revenue = 0;
-            if (flow.containsKey(hash(from, to))){
-                revenue = flow.get(hash(from, to))*20*getDistance(from,to);
-            }
-            
+            double revenue = flow[from][to]*20*getDistance(from,to);
+/*            
+            System.out.printf("from %d to %d revenue: %f\n",from, to, revenue);
+            System.out.printf("price: %f budget: %f\n",winning_price, this.budget);
+*/
+
             if (winning_price < revenue)
             {
                 if (profit < revenue - winning_price)
                 {
-                    if (winning_price > budget || revenue*0.8 < winning_price)
+                    if (winning_price > budget )
                     {
                         continue;
                     }
@@ -321,17 +266,6 @@ public class Player implements railway.sim.Player
                     b.amount = winning_price;
                     profit = revenue - winning_price;
                     //System.out.println(bi.town1+ " to "+bi.town2 + " : "+String.valueOf(profit));
-                }
-                else{
-                    if (b.id1 == -1 || b.id1 == i || revenue*0.8 < winning_price || winning_price+b.amount > budget)
-                    {
-                        continue;
-                    }
-                    if (bi.town1 == availableBids.get(b.id1).town1 || bi.town1 == availableBids.get(b.id1).town2 || bi.town2 == availableBids.get(b.id1).town1 || bi.town2 == availableBids.get(b.id1).town2){
-                        b.id2 = i;
-                        b.amount += winning_price;
-                        profit += revenue - winning_price;
-                    }
                 }
             }    
         }
@@ -367,69 +301,6 @@ public class Player implements railway.sim.Player
         return 1;
     }
 
-    public void findAllPaths(int s, int d){
-        List<Integer> nodes = new ArrayList<Integer>();
-        List<Double> dist = new ArrayList<Double>();
-        List<Integer> isVisited = new ArrayList<Integer>();
-        HashMap<Integer, Integer > parents = new HashMap<Integer, Integer>();
-
-        nodes.add(s);
-        dist.add(0.0);
-        double min_dist = Double.POSITIVE_INFINITY;
-        while (nodes.size()!=0){
-            int cur = nodes.remove(0);
-            double td = dist.remove(0);
-            if (isVisited.contains(cur)){
-                continue;
-            }
-            if (td > min_dist){
-                continue;
-            }
-            if (d == cur){
-        
-                List<Integer> route = new ArrayList<Integer>();
-                int node = cur;
-                while (node != s){
-                    route.add(node);
-                    node = parents.get(node);
-                }
-                route.add(node);
-                double max_dist = td + 200*(route.size()-2);
-                if (paths.containsKey(hash(s, d))){
-                    paths.get(hash(s, d)).add(new Path(s, d, route, max_dist, td));
-                }
-                else{
-                    List<Path> lst = new ArrayList<Path>();
-                    lst.add(new Path(s, d, route, max_dist, td));
-                    paths.put(hash(s, d),lst);
-                }
-                min_dist = Math.min(td,min_dist);
-            }
-            for (Integer i:adjList[cur]){
-                if (!parents.containsKey(i)){
-                    parents.put(i,cur);
-                }
-                nodes.add(i);
-                
-                dist.add(td+getDistance(cur,i));
-            }
-
-            isVisited.add(cur);
-
-            for (int i=0;i<nodes.size();i++){
-                for (int j=i; j<nodes.size();j++){
-                    if (dist.get(i)>dist.get(j)){
-                        int temp = nodes.get(i);
-                        nodes.set(i,nodes.get(j));
-                        nodes.set(j,temp);
-                        double dis = dist.get(i);
-                        dist.set(i,dist.get(j));
-                        dist.set(j,dis);   
-                    }
-                }
-            }
-        }
-    }
     
     /*
      *  Purpose: Find your starting point
