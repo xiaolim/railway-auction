@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
 import railway.sim.utils.*;
 // To access data classes.
 
@@ -36,7 +38,7 @@ public class Player implements railway.sim.Player {
     int[][] transit;
 
     Map<Pair, Double> heatmap;
-    
+    Map<Integer, Double> convertedHeatMap;
     List<BidInfo> ourlinks = new ArrayList<BidInfo>();
     
     // Keep track of player owned links. It maps a link infra.get(i).get(j), denoted by an integer 
@@ -47,7 +49,6 @@ public class Player implements railway.sim.Player {
     List<BidInfo> allLinks;
     
     private Map<String, Double> budgets = new HashMap<String, Double>();
-	private Object Pair;
 
     private double penalty = 150;
     private int yenK = 10;
@@ -305,6 +306,12 @@ public class Player implements railway.sim.Player {
 
     public Player() {
         rand = new Random();
+        /*try {
+			TimeUnit.SECONDS.sleep(10);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
     }
 
     public void init(String name, double budget, List<Coordinates> geo, List<List<Integer>> infra, 
@@ -345,6 +352,9 @@ public class Player implements railway.sim.Player {
         yenKSP();
         System.out.println(k_shortest_paths.size());
         //heatmap = createHeatMap();
+        //convertHeatMap();
+
+        //EyenKSP();
     }
 
     
@@ -480,17 +490,53 @@ public class Player implements railway.sim.Player {
         for (Pair p:heatmap.keySet()) {
             System.out.println("t1: "+p.i1+", t2: "+p.i2+", traffic: "+heatmap.get(p));
         }
-    	return heatmap;
+    	  return heatmap;
     }
 
+    private void convertHeatMap() {
+    	HashMap<Pair, List<Integer>> linkMapping = new HashMap<Pair, List<Integer>>();
+    	for (BidInfo link : allLinks) {
+    		Pair p = new Pair(map.get(link.town1), map.get(link.town2));
+    		linkMapping.putIfAbsent(p, new LinkedList<Integer>());
+    		List<Integer> list = linkMapping.get(p);
+    		list.add(link.id);
+    	}
+    	
+    	convertedHeatMap = new HashMap<Integer, Double>();
+    	
+    	for (Map.Entry<Pair, List<Integer>> entry : linkMapping.entrySet()) {
+    		for(Integer index:entry.getValue()) {
+    			System.out.println(entry.getKey());
+        		System.out.println(entry.getValue().size());
+        		System.out.println(heatmap.get(entry.getKey()));
+        		
+    			convertedHeatMap.put(index, heatmap.get(entry.getKey())/entry.getValue().size());
+    		}
+    	}
+    	
+    }
+    
     public Map<Integer, Double> predictHeatMap(List<BidInfo> hypotheticalState, String player) {
         // map for each bid info an expected traffic
         Map<Integer, Double> newmap = new HashMap<Integer, Double>();
-
-
+        
         return newmap;
     }
 
+    public Map<String, Map<Integer, Double>> predictHeatMaps(List<BidInfo> allBids){
+        Map<String, Map<Integer, Double>> predictHeatMaps = new HashMap<>();
+        for(BidInfo b: allBids){
+            if (b.owner!=null){
+                for(String p : budgets.keySet()){
+                    Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(p)?predictHeatMaps.containsKey(p):convertedHeatMap();
+                    if(b.owner!=p){   //may need modification later
+
+                    }
+                }
+            }
+        }
+
+    }
 
 
     // This is to Query the info of according bid
@@ -507,6 +553,7 @@ public class Player implements railway.sim.Player {
     	// TODO Find a way such that we bid on a link that gives us 0 benefit externally (?)
     	// while giving other links that we owned higher traffics. I am not sure how to do this right now.
     	
+
     	// Update status & heat map
     	if (newTournament) {
     		updateStatus(lastRoundMaxBid);
@@ -514,7 +561,7 @@ public class Player implements railway.sim.Player {
     	}
     	
     	
-    	/*
+    	
     	Map<Integer, Double> ourMap = predictHeatMap(null, name);
     	
     	List<Map<Integer, Double>> heatmaps = new ArrayList<Map<Integer, Double>>();
@@ -537,8 +584,7 @@ public class Player implements railway.sim.Player {
     	
     	
     	// Sort the heatmap difference
-    	@SuppressWarnings("unused")
-		List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<>(mapDiff.entrySet());
+		List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<Map.Entry<Integer, Double>>(mapDiff.entrySet());
     	Collections.sort(sortedDiff, Collections.reverseOrder((x, y) -> {
     		if (allLinks.get(x.getKey()).owner == null)
     			return 1;
@@ -547,20 +593,37 @@ public class Player implements railway.sim.Player {
     		return Double.compare(x.getValue(), y.getValue());
     	}));
     	
+		Bid makeBid = new Bid();
     	for (Map.Entry<Integer, Double> link : sortedDiff) {
-    		if (link.getKey() != null)
+			if (link.getKey() != null)
     			continue;
-    		
     		if (ourMap.get(link.getKey()) < lastRoundMaxBid.amount)
+    			continue;
+			// Make a bid
+			double historyMax = -1.0D;
+	    	for (Bid b: currentBids) {
+            		if ((b.id1 == link.getKey()) || (b.id2 == link.getKey()))
+            			historyMax = Double.max(historyMax, b.amount);
+            }
+
+			makeBid.id1 = link.getKey();
+			makeBid.amount = Double.max(ourMap.get(link.getKey()), historyMax + 10000.0D);
+    		
+    		if (link.getValue() < 0)
     			return null;
     	}
-    	*/
+    	
+        if (budgets.get(name) - makeBid.amount < 0) {
+            return null;
+        }
+    	
+    	return makeBid;
     	 
     	
     	
     	
     	
-    	
+    	/*
         double amount = -1;
         int id = -1;
         double maxamount = amount;
@@ -652,6 +715,7 @@ public class Player implements railway.sim.Player {
         }
         
         return bid;
+        */
     }
 
     public void updateBudget(Bid bid) {
