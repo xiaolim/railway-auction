@@ -48,7 +48,9 @@ public class Player implements railway.sim.Player {
     
     private Map<String, Double> budgets = new HashMap<String, Double>();
 	private Object Pair;
-	private int num_players;
+
+    private double penalty = 150;
+    private int yenK = 10;
 
     // Use sour_dest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
     // This can be done in O(n).If you want the paths to contain to links(etc. (a,b), (c,d)), you can just
@@ -58,6 +60,8 @@ public class Player implements railway.sim.Player {
     private Map<Pair, List<List<Integer>>> sour_dest_paths; //paths start from Pair.i1 and end in Pair.i2
     private Map<Pair, List<List<Integer>>> contain_paths; 
     //paths that contains link (Pair.i1, Pair.i2)
+
+    private Map<Pair, List<List<Integer>>> k_shortest_paths = new HashMap<>();
 
     public final class Pair implements Serializable, Comparable<Pair>{
 		private static final long serialVersionUID = 3520054221183875559L;
@@ -112,7 +116,7 @@ public class Player implements railway.sim.Player {
     }
 
     //return links along ksp
-    private List<List<Integer>> yenKSPaths(int source, int sink, int k) {
+    private List<List<Integer>> yenKSPaths(int source, int sink) {
         WeightedGraph g = new WeightedGraph(geo.size());
         for (int i=0; i<infra.size(); ++i) {
             for (int j=0; j<infra.get(i).size(); ++j) {
@@ -129,11 +133,11 @@ public class Player implements railway.sim.Player {
             return allP;
         }
 
-        if (kpaths.size() < k) {
+        if (kpaths.size() < yenK) {
             List<List<Integer>> potential = new ArrayList<>();
             //rest of Yen's algo
             int i = kpaths.size();
-            while(i <= k) {
+            while(i <= yenK) {
                 //System.out.println("I: "+i);
                 for(int j = 0;j<=kpaths.get(i-1).size()-2;j++) { //size of path = 5, (1,2)
                     WeightedGraph gtemp = new WeightedGraph(geo.size());
@@ -145,7 +149,7 @@ public class Player implements railway.sim.Player {
 
                     //get spur node
                     int spur = kpaths.get(i-1).get(j);
-                    System.out.println("spur node:"+spur);
+                    //System.out.println("spur node:"+spur);
                     List<Integer> rootpath = new ArrayList<Integer>();
                     for(int a=0;a<=j;a++) {
                         rootpath.add(kpaths.get(i-1).get(a));
@@ -241,26 +245,17 @@ public class Player implements railway.sim.Player {
 
 
 
-    private void yenKSP(int k) {
-        // a list of integers is a path, list of a list of integers 
-
+    private void yenKSP() {
         System.out.println("YENKSP");
-        WeightedGraph g = new WeightedGraph(geo.size());
-        for (int i=0; i<infra.size(); ++i) {
-            for (int j=0; j<infra.get(i).size(); ++j) {
-                g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
-            }
-        }
         for (int i=0;i<transit.length;i++) {
             for (int j=0;j<transit[i].length;j++) { //int j=0;j<transit[i].length;j++
                 if(transit[i][j]==0) {
                     continue;
                 }
-                yenKSPaths(i,j,k);
+                k_shortest_paths.put(new Pair(i,j),yenKSPaths(i,j));
             }
             //break;
         }
-
     }
 
     /**
@@ -346,11 +341,10 @@ public class Player implements railway.sim.Player {
         		System.out.print((s==null));
         	System.out.println();
         }*/
-        num_players = 3;
-        heatmap = createHeatMap();
-
-        //yenKSP(10);
-
+        
+        yenKSP();
+        System.out.println(k_shortest_paths.size());
+        //heatmap = createHeatMap();
     }
 
     
@@ -424,11 +418,22 @@ public class Player implements railway.sim.Player {
                 double totaltransit = transit[i][j];
                 //int[][] prev = Dijkstra.dijkstra(g, i);
                 //List<List<Integer>> allP = Dijkstra.getPaths(g,prev,j);
-                List<List<Integer>> allP = yenKSPaths(i,j,10);
+                List<List<Integer>> allP = yenKSPaths(i,j);
                 sour_dest_paths.put(new Pair(i,j), allP);
                 int pathnum = allP.size();
-                double transitpp = totaltransit / pathnum; 
                 System.out.println("path num: "+pathnum);
+                //calculate distance for each path, map index in allP (refers to a path) to its weight
+                Map<Integer, Double> weights = new HashMap<Integer, Double>();
+                double sumdistance = 0.0;
+                for(int a=0;a<allP.size();a++) {
+                    double temp = pathDistance(allP.get(a));
+                    sumdistance += temp;
+                    weights.put(a,temp);
+                    System.out.println("index: " + a + " distance: "+temp);
+                }
+                //System.out.println("totaldistance: "+sumdistance);
+                double transitpp = totaltransit / pathnum; 
+            
 
                 for(int a=0;a<allP.size();a++) {
                     for(int b=0;b<allP.get(a).size();b++) {
@@ -465,11 +470,12 @@ public class Player implements railway.sim.Player {
                                     }
                                 }
                             }
-                            heatmap.put(link,heatmap.get(link)+transitpp/num_players);
+                            heatmap.put(link,heatmap.get(link)+transitpp);
                         }
                     }
                 }
             }
+            break;
         }
         for (Pair p:heatmap.keySet()) {
             System.out.println("t1: "+p.i1+", t2: "+p.i2+", traffic: "+heatmap.get(p));
