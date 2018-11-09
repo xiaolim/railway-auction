@@ -41,6 +41,7 @@ public class Player implements railway.sim.Player {
 
     Map<Pair, Double> heatmap;
     Map<Integer, Double> convertedHeatMap;
+    HashMap<Pair, List<Integer>> linkMapping;
     List<BidInfo> ourlinks = new ArrayList<BidInfo>();
     
     // Keep track of player owned links. It maps a link infra.get(i).get(j), denoted by an integer 
@@ -68,8 +69,14 @@ public class Player implements railway.sim.Player {
 		int i1;
     	int i2;
     	Pair(int i1, int i2){
-    		this.i1 = i1;
-    		this.i2 = i2;
+    		if (i1 < i2) {
+    			this.i1 = i2;
+    			this.i2 = i1;
+    		}
+    		else {
+    			this.i1 = i1;
+    			this.i2 = i2;
+    		}
     	}
     	
     	//implement compareTo to make sure the hashmap can work well because JAVA are Object-Orientied
@@ -510,7 +517,7 @@ public class Player implements railway.sim.Player {
     }
 
     private void convertHeatMap() {
-    	HashMap<Pair, List<Integer>> linkMapping = new HashMap<Pair, List<Integer>>();
+    	linkMapping = new HashMap<Pair, List<Integer>>();
     	for (BidInfo link : allLinks) {
     		Pair p = new Pair(map.get(link.town1), map.get(link.town2));
     		linkMapping.putIfAbsent(p, new LinkedList<Integer>());
@@ -544,7 +551,28 @@ public class Player implements railway.sim.Player {
         for(BidInfo b: allBids){
             if (b.owner!=null){
             	List<List<Integer>> paths = contain_paths.get(new Pair(map.get(b.town1), map.get(b.town2)));
-            	//for (List<Integer> path : paths)
+            	for (List<Integer> path : paths) {
+            		Pair link1 = null, link2 = null;
+            		for (int i = 0; i<path.size();i++) {
+            			if(path.get(i) == map.get(b.town1) || path.get(i)== map.get(b.town2)) {
+            				link1 = new Pair(path.get(i), i-1>=0 ? path.get(i-1) : -1);
+            				link2 = new Pair(i+2 < path.size() ? path.get(i + 2) : -1, path.get(i + 1));
+            				break;
+            			}
+            		}
+            		
+            		if (link1.i1 != -1) {
+            			List<Integer> prevIDs = linkMapping.get(link1);
+            			boolean flagLink1 = false;
+            			for (int prevID : prevIDs) {
+            				if (allLinks.get(prevID).owner == b.owner)
+            					flagLink1 = true;
+            			}
+            		}
+            		
+            		
+            		
+            	}
             		
             		
                 for(String p : budgets.keySet()){
