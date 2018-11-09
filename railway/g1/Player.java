@@ -316,13 +316,21 @@ public class Player implements railway.sim.Player {
         return revenue;
     }
 
-
+    public double[] softmaxDistance(double[] distances) {
+    	double expSum = 0.0D;
+    	double[] softmax = new double[distances.length];
+    	for (int i = 0; i < distances.length; i++)
+    		expSum += (softmax[i] = Math.exp(distances[i]));
+    	for (int i = 0; i < distances.length; i++)
+    		softmax[i] /= expSum;
+    	return softmax;
+    }
+    
     public Player() {
         rand = new Random();
         /*try {
 			TimeUnit.SECONDS.sleep(10);
 		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}*/
     }
