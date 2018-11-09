@@ -527,7 +527,7 @@ public class Player implements railway.sim.Player {
             }
             //break;
         }
-        for (Pair p:heatmap.keySet()) {
+        for (Pair p : heatmap.keySet()) {
             System.out.println("t1: "+p.i1+", t2: "+p.i2+", traffic: "+heatmap.get(p));
         }
     	  return heatmap;
@@ -556,20 +556,10 @@ public class Player implements railway.sim.Player {
     	
     }
     
-    public Map<Integer, Double> predictHeatMap(List<BidInfo> hypotheticalState, String player) {
-        // map for each bid info an expected traffic
-        Map<Integer, Double> newmap = new HashMap<Integer, Double>();
-        
-        return newmap;
-    }
+
     
     public void updateHeatMap(List<BidInfo> lastRoundBids) {
-    	
-    }
-
-    public Map<String, Map<Integer, Double>> predictHeatMaps(List<BidInfo> allBids){
-        Map<String, Map<Integer, Double>> predictHeatMaps = new HashMap<String, Map<Integer, Double>>();
-        for(BidInfo b: allBids){
+        for(BidInfo b: lastRoundBids){
             if (b.owner!=null){
             	List<List<Integer>> paths = contain_paths.get(new Pair(map.get(b.town1), map.get(b.town2)));
             	for (List<Integer> path : paths) {
@@ -607,23 +597,59 @@ public class Player implements railway.sim.Player {
             		path_distance.put(path, distance);
             	}
             }
-            else {
-                for(String p : budgets.keySet()){
-                    Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(p) ? predictHeatMaps.get(p) : convertedHeatMap;
-                    // Assume the player owns b
+        }
+    }
+
+    public Map<Integer, Double> predictHeatMap(String player){
+    	Map<List<Integer>, Double> player_path_distance = new HashMap<List<Integer>, Double>(path_distance);
+        for(BidInfo b: allLinks){
+            if (b.owner == null) {
+            	//Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(player) ? predictHeatMaps.get(player) : convertedHeatMap;
                     
-                    if(b.owner!=p){   //may need modification later
-                    	
-                    }
+                // Assume the player owns b
+                List<List<Integer>> paths = contain_paths.get(new Pair(map.get(b.town1), map.get(b.town2)));
+                for (List<Integer> path : paths) {
+                	Pair link1 = null, link2 = null;
+                	for (int i = 0; i<path.size();i++) {
+                		if(path.get(i) == map.get(b.town1) || path.get(i)== map.get(b.town2)) {
+                			link1 = new Pair(path.get(i), i-1>=0 ? path.get(i-1) : -1);
+                			link2 = new Pair(i+2 < path.size() ? path.get(i + 2) : -1, path.get(i + 1));
+                			break;
+                		}
+                	}
+                		
+                boolean flagLink = false;
+                		
+                //TODO is list hashable?
+                double distance = path_distance.get(path);
+            			
+                if (link1.i1 != -1) {
+                	List<Integer> prevIDs = linkMapping.get(link1);
+                	for (int prevID : prevIDs) {
+                		if (allLinks.get(prevID).owner == player)
+                			flagLink = true; 
+                	}
+                	distance = distance - penalty + (flagLink ? 0 : 200);
                 }
+                		
+                if (link2.i1 != -1) {
+                	List<Integer> prevIDs = linkMapping.get(link2);
+                	for (int prevID : prevIDs) {
+                		if (allLinks.get(prevID).owner == player)
+                			flagLink = true; 
+                		}
+                	distance = distance - penalty + (flagLink ? 0 : 200);
+               	}
+               	player_path_distance.put(path, distance);
             }
         }
+    }
         
         // create heat map, TODO Wanlin
         for (Map.Entry<Pair, List<List<Integer>>> entry : k_shortest_paths.entrySet()) {
         	List<Double> distances = new ArrayList<Double>();
         	for (List<Integer> path : entry.getValue()) {
-        		distances.add(path_distance.get(path));
+        		distances.add(player_path_distance.get(path));
         	}
         	for (List<Integer> path : entry.getValue()) {
         		// TODO
@@ -656,12 +682,12 @@ public class Player implements railway.sim.Player {
     	
     	
     	
-    	Map<Integer, Double> ourMap = predictHeatMap(null, name);
+    	Map<Integer, Double> ourMap = predictHeatMap(name);
     	
     	List<Map<Integer, Double>> heatmaps = new ArrayList<Map<Integer, Double>>();
     	for (String p : budgets.keySet())
     		if (p != name)
-    			heatmaps.add(predictHeatMap(null, p));
+    			heatmaps.add(predictHeatMap(p));
     	
     	// Runtime O(cn)
     	// Find the difference between our expected traffic and maximum traffic of other players
