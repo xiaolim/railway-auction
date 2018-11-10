@@ -33,6 +33,7 @@ public class Player implements railway.sim.Player {
     private double[][] revenue; // price to travel along paths
     private int[] connections; // number of connections for links
 
+    private int[] ourConnections; // number of connections out of each town that we own
     private boolean[][] ownership; // which links we own
     private List<G3Bid> availableBids = new ArrayList<G3Bid>();
 
@@ -70,6 +71,7 @@ public class Player implements railway.sim.Player {
         this.transit = transit;
         this.revenue = getRevenue();
         this.connections = getConnections();
+        this.ourConnections = new int[connections.length];
         this.bidsThisRound = 0;
 
         // create all single link bids
@@ -362,13 +364,43 @@ public class Player implements railway.sim.Player {
         if (bid != null) {
             budget -= bid.amount;
 
+            System.out.println("We won.");
+
+            System.out.print("ID1: ");
+            System.out.println(bid.id1);
+
+            System.out.print("ID2: ");
+            System.out.println(bid.id2);
+
             // remove all owned links from possible bids
             List<G3Bid> copy = new ArrayList<G3Bid>(availableBids.size());
             for (G3Bid b: availableBids) {
 	    		if(!sameLink(b, this.best) && !sameTowns(b, this.best)) {
 	    			copy.add(b);
 	    		}
+                // This bid is what we just won
+                else {
+                    // Current bid is a single link and the one we just won is single
+                    if (b.id2 == -1 && bid.id2 == -1) {
+                        ourConnections[b.town_id1] +=1;
+                        ourConnections[b.town_id2] +=1;
+                    }
+                    // Current bid is a double link and what we just won is double
+                    else if (b.id2 == bid.id2 && b.id1==bid.id1) {
+                        ourConnections[b.town_id1] += 1;
+                        ourConnections[b.town_id2] += 2;
+                        ourConnections[b.town_id3] +=1;
+                        
+                    }
+                    
+                }
 	    	}
+
+            for (int i = 0; i < ourConnections.length; i++) {
+                System.out.println(ourConnections[i]);
+            }
+
+            System.out.println(ourConnections);
 	    	availableBids = copy;
 
         } else {
