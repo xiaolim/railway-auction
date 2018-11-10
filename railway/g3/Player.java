@@ -295,10 +295,28 @@ public class Player implements railway.sim.Player {
     private void evaluateBid(G3Bid bid) {
     	// really basic right now -- just computes profit from direct traffic
     	double revenue = 0;
+
+        double c1=0.2, c2=0.3, c3=0.5;
+
+
     	if (bid.id2 == -1) {
     		// single link
     		revenue += this.revenue[bid.town_id1][bid.town_id2];
     		revenue += this.revenue[bid.town_id2][bid.town_id1];
+
+            int t1_totalC = connections[bid.town_id1];
+            int t2_totalC = connections[bid.town_id2];
+            int t1_ourC = ourConnections[bid.town_id1];
+            int t2_ourC = ourConnections[bid.town_id2];
+            int t1_ownedC = ownedConnections[bid.town_id1];
+            int t2_ownedC = ownedConnections[bid.town_id2];
+
+            double hScore_1 = 0, hScore_2 = 0, hScore_total = 0;
+            hScore_1 = c1*t1_totalC - c2*t1_ownedC + c3*t1_ourC;
+            hScore_2 = c1*t2_totalC - c2*t2_ownedC + c3*t2_ourC;
+
+            hScore_total = hScore_1 + hScore_2 - Math.abs(hScore_1-hScore_2);
+
     	} else {
     		// pair link
     		revenue += this.revenue[bid.town_id1][bid.town_id2];
@@ -307,9 +325,28 @@ public class Player implements railway.sim.Player {
     		revenue += this.revenue[bid.town_id3][bid.town_id2];
     		//revenue += this.revenue[bid.town_id1][bid.town_id3];
     		//revenue += this.revenue[bid.town_id3][bid.town_id1];
+
+            int t1_totalC = connections[bid.town_id1];
+            int t2_totalC = connections[bid.town_id2];
+            int t3_totalC = connections[bid.town_id3];
+            int t1_ourC = ourConnections[bid.town_id1];
+            int t2_ourC = ourConnections[bid.town_id2];
+            int t3_ourC = ourConnections[bid.town_id3];
+            int t1_ownedC = ownedConnections[bid.town_id1];
+            int t2_ownedC = ownedConnections[bid.town_id2];
+            int t3_ownedC = ownedConnections[bid.town_id3];
+
+            double hScore_1 = 0, hScore_2 = 0, hScore_3 = 0, hScore_total = 0;
+            hScore_1 = c1*t1_totalC - c2*t1_ownedC + c3*t1_ourC;
+            hScore_2 = c1*t2_totalC - c2*t2_ownedC + c3*t2_ourC;
+            hScore_3 = c1*t3_totalC - c2*t3_ownedC + c3*t3_ourC;
+
+            hScore_total = hScore_1 + hScore_2 - Math.abs(hScore_1-hScore_2) + hScore_2 + hScore_3 - Math.abs(hScore_2-hScore_3);
+
+            
     	}
 
-    	bid.score = revenue - bid.amount;
+    	bid.score = revenue - bid.amount + avg*hScore_total;
     }
 
     private G3Bid getBestAffordableBid(List<G3Bid> availableBids) {
