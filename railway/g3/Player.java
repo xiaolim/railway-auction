@@ -42,9 +42,10 @@ public class Player implements railway.sim.Player {
 
     private List<BidInfo> allBids;
     private boolean needsUpdate = false;
-    //private Bid maxBid;
     private G3Bid best;
     private int bidsThisRound;
+
+    private double avgRevenuePerLink;
 
     public Player() {
         //rand = new Random();
@@ -76,16 +77,19 @@ public class Player implements railway.sim.Player {
         this.connections = getConnections();
         this.ourConnections = new int[connections.length];
         this.bidsThisRound = 0;
-        this.ownedConnections = new int[townLookup.size()];
-        Arrays.fill(ownedConnections, 0);
+        this.ownedConnections = new int[connections.length];
 
         // create all single link bids
+        double revenueSum = 0;
         for(BidInfo bi: allBids) {
         	int town_id1 = townLookup.indexOf(bi.town1);
         	int town_id2 = townLookup.indexOf(bi.town2);
         	G3Bid bid = new G3Bid(town_id1, town_id2, bi.id, bi.amount);
         	availableBids.add(bid);
+        	revenueSum += revenue[town_id1][town_id2];
+        	revenueSum += revenue[town_id2][town_id1];
         }
+        this.avgRevenuePerLink = revenueSum/availableBids.size();
 
         // create all double link bids
         List<G3Bid> pairs = new ArrayList<G3Bid>();
@@ -232,12 +236,6 @@ public class Player implements railway.sim.Player {
     	} else {
     		maxBid = null;
     		maxBidAmt = 0;
-    	}
-
-    	if(maxBid==null) {
-    		System.err.println("no max bid");
-    	} else {
-
     	}
 
     	if(maxBid==null) {
@@ -453,26 +451,6 @@ public class Player implements railway.sim.Player {
 
         bidsThisRound = 0;
     }
-
-    // private List<G3Bid> removeOwned(List<G3Bid> available, Bid latest) {
-    // 	List<G3Bid> ret = new ArrayList<G3Bid>(available.size());
-
-    // 	if(latest != null) {
-	   //  	for (G3Bid bid: available) {
-	   //  		if(!sameLink(bid, latest) && !sameTowns(bid, this.best)) {
-	   //  			ret.add(bid);
-	   //  		}
-	   //  	}
-    // 	} else {
-    // 		for (G3Bid bid: available) {
-	   //  		if(!sameLink(bid, maxBid)) {
-	   //  			ret.add(bid);
-	   //  		}
-	   //  	}
-    // 	}
-
-    // 	return ret;
-    // }
 
     private boolean sameLink(Bid bid, Bid owned) {
     	int b1l1, b1l2, b2l1, b2l2;
