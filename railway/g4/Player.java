@@ -20,7 +20,6 @@ public class Player implements railway.sim.Player
     private List<String> townLookup;
     private List<List<Integer>> infra;
     private int [][] transit;
-    private double [][] flow;
     private String [][] owner;
     private int total_profit = 0; 
     private double total_budget = 0;
@@ -50,8 +49,11 @@ public class Player implements railway.sim.Player
         this.total_budget = budget;
         this.NUM_STATIONS = geo.size();
         this.players = new ArrayList<String>();
+        // players contain all players
         this.players.add(this.name);
         this.players.add("null");
+
+        System.out.println("number of stations: "+String.valueOf(NUM_STATIONS));
         // Build a Naive List Containing all paths.
         // 1- Use DFS
         
@@ -66,12 +68,13 @@ public class Player implements railway.sim.Player
         this.owner = new String[NUM_STATIONS][NUM_STATIONS];
         for (int i=0;i<NUM_STATIONS;++i){
             for (int j=0;j<NUM_STATIONS;++j){
-                this.owner[i][j] = "gov";
+                this.owner[i][j] = "null";
             }
         }
 
     }
 
+    // helper function to print owner
     public void print_owner(){
         for (int i=0;i<NUM_STATIONS;++i){
             for (int j=0;j<NUM_STATIONS;++j){
@@ -79,6 +82,8 @@ public class Player implements railway.sim.Player
             }
         }
     }
+
+    // this now compute the marginal flow and update the values in the Revenue array
 
     public void update_flow(List<BidInfo> availableBids){
         final int n = geo.size();
@@ -98,7 +103,6 @@ public class Player implements railway.sim.Player
         //g.print();
 
         // Compute the revenue between any two nodes.
-        flow = new double[n][n];
         double[][] revenue = new double[n][n];
 
         for (int i=0; i<n; ++i) {
@@ -106,36 +110,68 @@ public class Player implements railway.sim.Player
             for (int j=i+1; j<n; ++j) {
                 List<List<Integer>> allPaths = Dijkstra.getPaths(g, prev, j);
                 double cost = 0;
-                for (int k=0; k<allPaths.get(0).size()-1; ++k) {
-                    cost += getDistance(allPaths.get(0).get(k), allPaths.get(0).get(k+1));
-                }
-                revenue[i][j] = cost * transit[i][j] * 10;
-                for (int c = 0; c<allPaths.size();c++){
-                    for (int k=0; k<allPaths.get(c).size()-1; ++k) {
-                        flow[allPaths.get(c).get(k)][allPaths.get(c).get(k+1)] += transit[i][j]/allPaths.size();
-                        flow[allPaths.get(c).get(k+1)][allPaths.get(c).get(k)] += transit[i][j]/allPaths.size();
+                for (int p=0; p<allPaths.size();++p){
+                    for (int k=0; k<allPaths.get(0).size()-1; ++k) {
+                        cost += getDistance(allPaths.get(0).get(k), allPaths.get(0).get(k+1));
+                        if (Revenue.containsKey(hash(allPaths.get(0).get(k), allPaths.get(0).get(k+1)))){
+                            Revenue.put(hash(allPaths.get(0).get(k), allPaths.get(0).get(k+1)), Revenue.get(hash(allPaths.get(0).get(k), allPaths.get(0).get(k+1))) + transit[i][j]/allPaths.size());
+                        }
+                        else{
+                            Revenue.put(hash(allPaths.get(0).get(k), allPaths.get(0).get(k+1)), transit[i][j]/allPaths.size());
+                        }
                     }
+                    revenue[i][j] = cost * transit[i][j] * 10;
                 }
             }
         }
-        getProfits(revenue, availableBids);
+        if (NUM_STATIONS < 80){
+            getAllProfits(revenue, availableBids);
+        }
+    }
+
+    private int hash(int from, int to){
+        if (from > to){
+            int temp = from;
+            from = to;
+            to = temp;
+        }
+        return to*NUM_STATIONS+from;
+    }
+
+    private int hash(String from, String to){
+        int f = townLookup.indexOf(from);
+        int t = townLookup.indexOf(to);
+        
+        if (f == -1){
+            System.out.printf("Town %s not found",from);
+        } 
+        if (t ==-1){
+            System.out.printf("Town %s not found",to);
+        }
+        return hash(f,t);
     }
 
 
+    // these are helper function to determine distance between stations
     private double getDistance(Coordinates a, Coordinates b)
     {
         return Math.pow(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2), 0.5);
     }
 
 
+    // these are helper function to determine distance between stations
     private double getDistance(int a, int b)
     {
         return Math.pow(Math.pow(geo.get(a).x - geo.get(b).x, 2) + Math.pow(geo.get(a).y - geo.get(b).y, 2), 0.5);
     }
 
+    // these are helper function to determine distance between stations
     private double getDistance(String t1, String t2) {
-        if (townLookup.indexOf(t1) == -1 ||  townLookup.indexOf(t2)==-1){
-            System.out.println("Town not found");
+        if (townLookup.indexOf(t1) == -1){
+            System.out.printf("Town %s not found",t1);
+        } 
+        if (townLookup.indexOf(t2)==-1){
+            System.out.printf("Town %s not found",t2);
         }
         return getDistance(townLookup.indexOf(t1), townLookup.indexOf(t2));
     }
@@ -144,10 +180,9 @@ public class Player implements railway.sim.Player
     public Bid getBid(List<Bid> currentBids, List<BidInfo> availableBids, Bid lastRoundMaxBid) 
     {
         List<BidInfo> avail_Bids = new ArrayList<BidInfo>();
-        List<Integer> amounts = new ArrayList<Integer>();
+        List<Double> amounts = new ArrayList<Double>();
         BidInfo bi;
-        // this update the flow every iteration
-
+        // update the owner of paths
         if (lastRoundMaxBid != null){        
             if (lastRoundMaxBid.id1 != -1){
                 bi = availableBids.get(lastRoundMaxBid.id1);
@@ -179,36 +214,36 @@ public class Player implements railway.sim.Player
             }
         }
 
-
+        // find out the minimum amounts we need to bid for each paths
+        // -1 if already owned
         for (int i=0; i<availableBids.size();i++)
         {
             bi = availableBids.get(i);
             if (bi.owner == null) 
             {
-                avail_Bids.add(bi);
-                amounts.add((int)(bi.amount+10000.1));
-                // 
                 int from = townLookup.indexOf(bi.town1);
                 int to = townLookup.indexOf(bi.town2);   
+                if (owner[from][to] == "null"){
+                    avail_Bids.add(bi);
+                    amounts.add(bi.amount+10000.1);
+                }
             }
             else
             {
-                amounts.add(-1);
+                amounts.add(-1.0);
             }
         }
-
-
-        update_flow(availableBids);
         if (avail_Bids.size() == 0) 
         {
             return null;
         }
-        
+        // this finds out the Revenue for each paths
+        update_flow(availableBids);
         double maxb = 0;
         Coordinates s = new Coordinates(0,0);
         Coordinates d = new Coordinates(0,0);
         String maxbn = "";
-        // Check if another player has made a bid for this link.
+        // Check if another player has made a bid for this link and up the bid by 10000
         for (int i=0; i<currentBids.size();i++)
         {
             Bid b = currentBids.get(i);
@@ -229,9 +264,9 @@ public class Player implements railway.sim.Player
                    maxb = b.amount / dist;
                    maxbn = b.bidder;
                 }
-                if ((int)b.amount + 10000 > amounts.get(b.id1))
+                if (b.amount + 10000.1 > amounts.get(b.id1))
                 {
-                    amounts.set(b.id1,(int)b.amount + 10000);
+                    amounts.set(b.id1,b.amount + 10000.1);
                 }
             }
             else
@@ -254,17 +289,16 @@ public class Player implements railway.sim.Player
                    maxbn = b.bidder;
                 }
 
-                if ((int)(dist1/dist*b.amount + 10000) > amounts.get(b.id1))
+                if ((dist1/dist*b.amount + 10000.1) > amounts.get(b.id1))
                 {
-                    amounts.set(b.id1,(int)(dist1/dist*b.amount) + 10000);
+                    amounts.set(b.id1,(dist1/dist*b.amount) + 10000.1);
                 }
-                if ((int)(dist2/dist*b.amount + 10000) > amounts.get(b.id2))
+                if ((dist2/dist*b.amount + 10000.1) > amounts.get(b.id2))
                 {
-                    amounts.set(b.id2,(int)(dist2/dist*b.amount) + 10000);
+                    amounts.set(b.id2,(dist2/dist*b.amount) + 10000.1);
                 }
             }
         }
-        
         if (maxbn.equals(name))
         {
             return null;
@@ -272,7 +306,7 @@ public class Player implements railway.sim.Player
 
         double profit = 0;
         Bid b = new Bid();
-        
+
         for (int i=0; i<availableBids.size();i++)
         {
             bi = availableBids.get(i);
@@ -290,7 +324,7 @@ public class Player implements railway.sim.Player
             }
             double win_bid = (double)(maxb*getDistance(geo.get(from),geo.get(to))+1);
             double winning_price = Math.max(amounts.get(i),win_bid);
-            int revenue = Revenue.get(i);
+            int revenue = Revenue.get(hash(bi.town1, bi.town2));
             // System.out.printf("from %d to %d revenue: %d\n",from, to, revenue);
             // System.out.printf("price: %f budget: %f\n",winning_price, this.budget);
 
@@ -322,55 +356,47 @@ public class Player implements railway.sim.Player
     }
 
     
-
-    private void getProfits(double[][] revenue, List<BidInfo> allBids) {
+    // this function calculates the marginal profits by getting a link, results
+    // are stored in Revenue
+    private void getAllProfits(double[][] revenue, List<BidInfo> allBids) {
         // The graph now has nodes replicated for each player and a start and end node.
         int playerRev =  0;
         int newRev = 0;
+
         WeightedGraph g = new WeightedGraph(NUM_STATIONS*(players.size() + 2));
         for (int i=0; i<geo.size(); ++i) {
-            g.setLabel(townLookup.get(i) + "-s");
-            g.setLabel(townLookup.get(i) + "-e");
+            g.setLabel(townLookup.get(i) + "#s");
+            g.setLabel(townLookup.get(i) + "#e");
             for (int j=0; j<players.size(); ++j) {
-                g.setLabel(townLookup.get(i) + "-" + players.get(j));
+                g.setLabel(townLookup.get(i) + "#" + players.get(j));
             }
         }
 
         for (BidInfo bi : allBids) {
-
-            if (bi.owner == null){
-                //System.out.printf("%s to %s with distance %f\n",bi.town1 + "-s",bi.town2 + "-e",getDistance(bi.town1, bi.town2));
-                g.addEdge(bi.town1 + "-"+bi.owner, bi.town2 + "-"+bi.owner, getDistance(bi.town1, bi.town2));
-                g.addDirectedEdge(bi.town1 + "-s", bi.town1 + "-" + bi.owner, 0);
-                g.addDirectedEdge(bi.town2 + "-s", bi.town2 + "-" + bi.owner, 0);
-                g.addDirectedEdge(bi.town1 + "-" + bi.owner, bi.town1 + "-e", 0);
-                g.addDirectedEdge(bi.town2 + "-" + bi.owner, bi.town2 + "-e", 0);
-            }
-            else{
-                g.addEdge(bi.town1 + "-"+bi.owner, bi.town2 + "-"+bi.owner, getDistance(bi.town1, bi.town2));
-                g.addDirectedEdge(bi.town1 + "-s", bi.town1 + "-" + bi.owner, 0);
-                g.addDirectedEdge(bi.town2 + "-s", bi.town2 + "-" + bi.owner, 0);
-                g.addDirectedEdge(bi.town1 + "-" + bi.owner, bi.town1 + "-e", 0);
-                g.addDirectedEdge(bi.town2 + "-" + bi.owner, bi.town2 + "-e", 0);
-
-            }
+            g.addEdge(bi.town1 + "#"+bi.owner, bi.town2 + "#"+bi.owner, getDistance(bi.town1, bi.town2));
+            g.addDirectedEdge(bi.town1 + "#s", bi.town1 + "#" + bi.owner, 0);
+            g.addDirectedEdge(bi.town2 + "#s", bi.town2 + "#" + bi.owner, 0);
+            g.addDirectedEdge(bi.town1 + "#" + bi.owner, bi.town1 + "#e", 0);
+            g.addDirectedEdge(bi.town2 + "#" + bi.owner, bi.town2 + "#e", 0);
         }
+        
         for (int i=0; i<geo.size(); ++i) {
             for (int j=0; j<players.size(); ++j) {
                 for (int k=j+1; k<players.size(); ++k) {
-                    g.addEdge(townLookup.get(i) + "-" + players.get(j), townLookup.get(i) + "-" + players.get(k), 200);
+                    g.addEdge(townLookup.get(i) + "#" + players.get(j), townLookup.get(i) + "#" + players.get(k), 200);
                 }
             }
         }
 
-
         for (int i=0; i<geo.size(); ++i) {
-            int[][] prev = Dijkstra.dijkstra(g, g.getVertex(townLookup.get(i) + "-s"));
+            int[][] prev = Dijkstra.dijkstra(g, g.getVertex(townLookup.get(i) + "#s"));
             for (int j=i+1; j<geo.size(); ++j) {
-                List<List<Integer>> allPaths = Dijkstra.getPaths(g, prev, g.getVertex(townLookup.get(j) + "-e"));
+                if (transit[i][j]==0){
+                    continue;
+                }
+                List<List<Integer>> allPaths = Dijkstra.getPaths(g, prev, g.getVertex(townLookup.get(j) + "#e"));
                 // Cost per path.
                 double cost = revenue[i][j] / allPaths.size();
-
                 for (int p=0; p<allPaths.size(); ++p) {
                     double trueDist = 0.0;
                     Map<String, Double> playerDist = new HashMap<>();
@@ -383,10 +409,10 @@ public class Player implements railway.sim.Player
                         String a = g.getLabel(allPaths.get(p).get(k));
                         String b = g.getLabel(allPaths.get(p).get(k+1));
 
-                        if (a.split("-")[1].equals(b.split("-")[1])) {
-                            trueDist += getDistance(a.split("-")[0], b.split("-")[0]);
-                            // System.out.printf("True Dist: %f Player Dist: %f\n",trueDist,getDistance(a.split("-")[0], b.split("-")[0]));
-                            playerDist.put(a.split("-")[1], playerDist.get(a.split("-")[1]) + getDistance(a.split("-")[0], b.split("-")[0]));
+                        if (a.split("#")[1].equals(b.split("#")[1])) {
+                            trueDist += getDistance(a.split("#")[0], b.split("#")[0]);
+                            // System.out.printf("True Dist: %f Player Dist: %f\n",trueDist,getDistance(a.split("#")[0], b.split("#")[0]));
+                            playerDist.put(a.split("#")[1], playerDist.get(a.split("#")[1]) + getDistance(a.split("#")[0], b.split("#")[0]));
                             
                         }
                     }
@@ -403,20 +429,24 @@ public class Player implements railway.sim.Player
             BidInfo bi = allBids.get(x);
             newRev = 0;
             if (bi.owner == null){
-                // System.out.printf("%s %s\n",bi.town1, bi.town2);
-                g.removeEdge(g.getVertex(bi.town1 + "-null"), g.getVertex(bi.town2+"-null"));
-                g.addEdge(bi.town1 + "-" + this.name, bi.town2 + "-" + this.name,  getDistance(bi.town1, bi.town2));
-                g.addDirectedEdge(bi.town1 + "-s", bi.town1 + "-" + this.name, 0);
-                g.addDirectedEdge(bi.town2 + "-s", bi.town2 + "-" + this.name, 0);
-                g.addDirectedEdge(bi.town1 + "-" + this.name, bi.town1 + "-e", 0);
-                g.addDirectedEdge(bi.town2 + "-" + this.name, bi.town2 + "-e", 0);
+                g.removeEdge(g.getVertex(bi.town1 + "#null"), g.getVertex(bi.town2+"#null"));
+                g.addEdge(bi.town1 + "#" + this.name, bi.town2 + "#" + this.name,  getDistance(bi.town1, bi.town2));
+                g.addDirectedEdge(bi.town1 + "#s", bi.town1 + "#" + this.name, 0);
+                g.addDirectedEdge(bi.town2 + "#s", bi.town2 + "#" + this.name, 0);
+                g.addDirectedEdge(bi.town1 + "#" + this.name, bi.town1 + "#e", 0);
+                g.addDirectedEdge(bi.town2 + "#" + this.name, bi.town2 + "#e", 0);
+
                 for (int i=0; i<geo.size(); ++i) {
-                    int[][] prev = Dijkstra.dijkstra(g, g.getVertex(townLookup.get(i) + "-s"));
+                    int[][] prev = Dijkstra.dijkstra(g, g.getVertex(townLookup.get(i) + "#s"));
                     for (int j=i+1; j<geo.size(); ++j) {
-                        List<List<Integer>> allPaths = Dijkstra.getPaths(g, prev, g.getVertex(townLookup.get(j) + "-e"));
+                        if (transit[i][j]==0){
+                            continue;
+                        }
+                        List<List<Integer>> allPaths = Dijkstra.getPaths(g, prev, g.getVertex(townLookup.get(j) + "#e"));
                         // Cost per path.
                         double cost = revenue[i][j] / allPaths.size();
-                                    
+                        
+
                         for (int p=0; p<allPaths.size(); ++p) {
                             double trueDist = 0.0;
                             Map<String, Double> playerDist = new HashMap<>();
@@ -430,12 +460,12 @@ public class Player implements railway.sim.Player
                                 String a = g.getLabel(allPaths.get(p).get(k));
                                 String b = g.getLabel(allPaths.get(p).get(k+1));
 
-                                if (a.split("-")[1].equals(b.split("-")[1])) {
-                                    trueDist += getDistance(a.split("-")[0], b.split("-")[0]);
-                                    playerDist.put(a.split("-")[1], playerDist.get(a.split("-")[1]) + getDistance(a.split("-")[0], b.split("-")[0]));
+                                if (a.split("#")[1].equals(b.split("#")[1])) {
+                                    trueDist += getDistance(a.split("#")[0], b.split("#")[0]);
+                                    playerDist.put(a.split("#")[1], playerDist.get(a.split("#")[1]) + getDistance(a.split("#")[0], b.split("#")[0]));
                                 }
                                 else{
-                                    trueDist += getDistance(a.split("-")[0], b.split("-")[0]);
+                                    trueDist += getDistance(a.split("#")[0], b.split("#")[0]);
                                 }
                                 //System.out.printf("%s to %s generate %s %f\n",a,b,a.split("-")[1], getDistance(a.split("-")[0], b.split("-")[0]));
                             }
@@ -449,17 +479,17 @@ public class Player implements railway.sim.Player
                         }
                     }
                 }
-                g.removeEdge(g.getVertex(bi.town1 + "-" + this.name), g.getVertex(bi.town2 + "-" + this.name));
-                g.removeEdge(g.getVertex(bi.town2 + "-" + this.name), g.getVertex(bi.town1 + "-" + this.name));
-                g.removeEdge(g.getVertex(bi.town1 + "-s"), g.getVertex(bi.town1 + "-" + this.name));
-                g.removeEdge(g.getVertex(bi.town2 + "-s"), g.getVertex(bi.town1 + "-" + this.name));
-                g.removeEdge(g.getVertex(bi.town1 + "-" + this.name), g.getVertex(bi.town1 + "-e"));
-                g.removeEdge(g.getVertex(bi.town2 + "-" + this.name), g.getVertex(bi.town2 + "-e"));
-                g.addEdge(g.getVertex(bi.town1 + "-null"), g.getVertex(bi.town2+"-null"), getDistance(bi.town1,bi.town2));
-                // System.out.printf(" %s to %s generate revenue %d\n",bi.town1, bi.town2, newRev-playerRev);
-                Revenue.put(x, newRev - playerRev);
+                g.removeEdge(g.getVertex(bi.town1 + "#" + this.name), g.getVertex(bi.town2 + "#" + this.name));
+                g.removeEdge(g.getVertex(bi.town2 + "#" + this.name), g.getVertex(bi.town1 + "#" + this.name));
+                g.removeEdge(g.getVertex(bi.town1 + "#s"), g.getVertex(bi.town1 + "#" + this.name));
+                g.removeEdge(g.getVertex(bi.town2 + "#s"), g.getVertex(bi.town1 + "#" + this.name));
+                g.removeEdge(g.getVertex(bi.town1 + "#" + this.name), g.getVertex(bi.town1 + "#e"));
+                g.removeEdge(g.getVertex(bi.town2 + "#" + this.name), g.getVertex(bi.town2 + "#e"));
+                g.addEdge(g.getVertex(bi.town1 + "#null"), g.getVertex(bi.town2+"#null"), getDistance(bi.town1,bi.town2));
+                //System.out.printf(" %s to %s generate revenue %d\n",bi.town1, bi.town2, newRev-playerRev);
+                Revenue.put(hash(bi.town1, bi.town2), newRev - playerRev);
             }
-        }           
+        } 
     }
 
     private static int minVertex (double[] dist, boolean[] v) {
@@ -469,6 +499,11 @@ public class Player implements railway.sim.Player
             if (!v[i] && dist[i]<x) {y=i; x=dist[i];}
         }
         return y;
+    }
+
+
+    private double getProfit(int from, int to){
+        return Revenue.get(hash(from, to));
     }
 
 
