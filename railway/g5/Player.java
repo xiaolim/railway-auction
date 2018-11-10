@@ -33,10 +33,10 @@ public class Player implements railway.sim.Player{
     private int bestLink;
     private double bestValue;
 
-
+    private List<Integer> ownedRails = new ArrayList<>();
     private List<String> ownedCities = new ArrayList<>();
     final static double margin = 1;
-    
+    private List<Integer> adjacentRails = new ArrayList<>();    
     private Map<Integer, List<String>> railCities = new HashMap<Integer, List<String>>(); // Stores cities corresponding to specific rail
     private Map<String, List<Integer>> connectedRails = new HashMap<String, List<Integer>>(); //stores rail ids connected to each city
     private Map<Integer, Double> railValues = new HashMap<Integer, Double>(); //this is the traffic/rails in metric, for min bid use minamounts
@@ -237,6 +237,21 @@ public class Player implements railway.sim.Player{
 	      if (!ownedCities.contains(newCities.get(1))) {
 	      	ownedCities.add(newCities.get(1));
 	      }
+
+	      // Consider newly aquired rails/cities
+	      ownedRails.add(lastRoundMaxBid.id1);
+	      for (String city : ownedCities) {
+	        List<Integer> cityRails = connectedRails.get(city);
+	        for ( int rail : cityRails ) {
+	          if (!adjacentRails.contains(rail)) {
+		    System.out.println(rail);
+		    adjacentRails.add(rail);
+	          }
+	        }
+	      }	
+	      ownedCities.clear();
+	
+
 	      System.out.println(ownedCities);
 	    } 
 	    updatedRoundBudget = true;
@@ -266,22 +281,7 @@ public class Player implements railway.sim.Player{
 	    
 	}
         // Find the most valuable link for us
-       	List<Integer> updatedRails = new ArrayList<>();
-	// Consider newly aquired rails/cities 
-	for (String city : ownedCities) {
-	  List<Integer> adjacentRails = connectedRails.get(city);
-	  for ( int rail : adjacentRails ) {
-	    if (!updatedRails.contains(rail)) {
-		System.out.println(rail);
-		updatedRails.add(rail);
-	    	// Increase valuation of rail now that it is connected
-		// Multiply current valuation of rail by 1.2 or so
-	    }
-	  }
-	}	
-	ownedCities.clear();
-	
-        this.bestLink = -1;
+       	this.bestLink = -1;
         this.bestValue = 0;
         for (int linkId : availableLinks){
 	  System.out.printf("link: %s-%s, min bid: %f, our value: %f\n", railCities.get(linkId).get(0), railCities.get(linkId).get(1), minAmounts.get(linkId), railValues.get(linkId));
@@ -356,7 +356,8 @@ public class Player implements railway.sim.Player{
     }
 
     public void updateBudget(Bid bid) {
- 	System.out.println("=========== " + ownedCities);	
+ 	System.out.println("Rails in our potential network =========== " + adjacentRails);
+	System.out.println("We own ======" + ownedRails);	
 	updatedRoundBudget = false;
         if (bid != null) {
             budget -= bid.amount;
