@@ -31,6 +31,8 @@ public class Player implements railway.sim.Player
 
     // Keep track of what Group 4 owns...
     private List<Pair> my_trains = new ArrayList<Pair>();
+    private int [] degree; //0 is station 0, etc.
+    private List<List<Integer>> undirected_infra;
 
     public Player() 
     {
@@ -51,6 +53,7 @@ public class Player implements railway.sim.Player
         this.geo = geo;
         this.budget = budget;
         this.infra = infra;
+	this.undirected_infra = infra;
         this.transit = transit;
         this.total_budget = budget;
         this.NUM_STATIONS = geo.size();
@@ -58,8 +61,9 @@ public class Player implements railway.sim.Player
         // players contain all players
         this.players.add(this.name);
         this.players.add("null");
+        //degree = new int[NUM_STATIONS];
 
-        System.out.println("number of stations: " + String.valueOf(NUM_STATIONS));
+        // System.out.println("number of stations: " + String.valueOf(NUM_STATIONS));
         // Build a Naive List Containing all paths.
         // 1- Use DFS
         
@@ -615,42 +619,75 @@ public class Player implements railway.sim.Player
      */
     public Pair start()
     {
+        degree = new int[NUM_STATIONS];
         int to = 0;
         int from = 0;
         HashMap<Integer, Integer> station_degree = new HashMap<Integer, Integer>();
-        int [] in_degree = new int[NUM_STATIONS]; //0 is station 0, etc.
+    
         // Compute in-degree use O(V + E) and Array of size V to store answer
         for (int i = 0; i < NUM_STATIONS; i++)
         {
             List<Integer> vertex = infra.get(i);
+	    // Build undirected adjacency list as well.
             for (int j = 0; j < vertex.size(); j++)
             {
-                ++in_degree[vertex.get(j)];
+                ++degree[vertex.get(j)];
+		//undirected_infra.get(i).add(vertex.get(j));
             }
         }
-
+	// Append the out-degree of the stations
         for (int i = 0; i < NUM_STATIONS; i++)
         {
-            // This is undirected graph, so I need both IN and OUT Degree to sum!
-            station_degree.put(i, infra.get(i).size() + in_degree[i]);
+            degree[i] += infra.get(i).size();   
+        }
+
+	// Put into HashMap
+        for (int i = 0; i < NUM_STATIONS; i++)
+        {
+            station_degree.put(i, degree[i]);
             //System.out.println("Station " + i + " has degree of: " + infra.get(i).size());
         }
-        // Sort by Degree
+
+	// Test undirected adjacency list
+        /*
+    	for(int i = 0; i < undirected_infra.size();i++)
+    	{
+            List<Integer> temp = undirected_infra.get(i);
+            System.out.println("Station: " + townLookup.get(i));
+            for(int j = 0; j < temp.size();j++)	
+            {
+                System.out.println("Connected to: " + townLookup.get(temp.get(j)));
+            }
+            System.out.println(" ");
+    	}
+        */
+
+        // Sort by Degree, Highest comes first
         Map<Integer, Integer> sorted = sortByComparator(station_degree, false);
         Integer [] keys = sorted.keySet().toArray(new Integer[sorted.size()]);
         Integer [] values = sorted.values().toArray(new Integer[sorted.size()]);
         
+	// Verify Results
         for(int i = 0; i < NUM_STATIONS;i++)
         {
             System.out.println("Station: "+ townLookup.get(keys[i]) + " has degree of: " + values[i]);
         }
 
-        // The station with highest degree is
+        // Start with station with lowest degree (If a tail exists, great I can monopolize it now!)
+	// Find the highest degree neighbor! Use the computed array to a helper function
         
+        // I believe I need to make sure the order matters,
+        from = keys[keys.length - 1];
+        to = max_degree_neighbor(undirected_infra.get(from));
         // Neighbors have degree of...get minimum
         return new Pair(to, from);
     }
 
+    public int max_degree_neighbor(List<Integer> neighbors)
+    {
+        int destination = -1;
+        return destination;
+    }
 	
     /*
      * This method is to sort a HashMap by its values
