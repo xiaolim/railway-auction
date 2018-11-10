@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Random;
 import railway.sim.Simulator;
 import java.util.HashSet;
+import java.util.Arrays;
 
 // To access data classes.
 import railway.sim.utils.*;
@@ -32,6 +33,8 @@ public class Player implements railway.sim.Player {
 
     private double[][] revenue; // price to travel along paths
     private int[] connections; // number of connections for links
+    private int[] ownedConnections; // number of connections owned--updated throughout the game
+    private ArrayList<G3Bid> wonBids = new ArrayList<G3Bid>();
 
     private boolean[][] ownership; // which links we own
     private List<G3Bid> availableBids = new ArrayList<G3Bid>();
@@ -71,6 +74,8 @@ public class Player implements railway.sim.Player {
         this.revenue = getRevenue();
         this.connections = getConnections();
         this.bidsThisRound = 0;
+        this.ownedConnections = new int[townLookup.size()];
+        Arrays.fill(ownedConnections, 0);
 
         // create all single link bids
         for(BidInfo bi: allBids) {
@@ -158,14 +163,46 @@ public class Player implements railway.sim.Player {
 
         // remove links now owned by opponent
         if(needsUpdate) {
-        	List<G3Bid> copy = new ArrayList<G3Bid>(availableBids.size());
+        	wonBids = new ArrayList<G3Bid>();
+            List<G3Bid> copy = new ArrayList<G3Bid>(availableBids.size());
         	for (G3Bid b: availableBids) {
 	    		if(!sameLink(b, lastRoundMaxBid)) {
 	    			copy.add(b);
-	    		}
+	    		} else {
+                    wonBids.add(b);
+                }
 	    	}
 	    	availableBids = copy;
 	    	needsUpdate = false;
+
+            G3Bid wonBid = null;
+    
+            for (G3Bid b : wonBids) {
+                if ((lastRoundMaxBid.id2 > -1) && (b.id2 > -1)) {
+                    if ((lastRoundMaxBid.id1 == b.id1) && (lastRoundMaxBid.id2 == b.id2)) {
+                        wonBid = b;
+                        break;
+                    }
+                } else if ((lastRoundMaxBid.id2 < 0) && (b.id2 < 0)) {
+                    if (lastRoundMaxBid.id1 == b.id1) {
+                        wonBid = b;
+                        break;
+                    }
+                }
+            }
+            
+            ownedConnections[wonBid.town_id1] += 1;
+            //System.out.println("ownedConnections[wonBid.town_id1] = " + ownedConnections[wonBid.town_id1]);
+            ownedConnections[wonBid.town_id2] += 1;
+            //System.out.println("ownedConnections[wonBid.town_id2] = " + ownedConnections[wonBid.town_id2]);
+            if (wonBid.town_id3 > -1) {
+                ownedConnections[wonBid.town_id3] += 1;
+                //System.out.println("ownedConnections[wonBid.town_id3] = " + ownedConnections[wonBid.town_id3]);
+            }
+            //
+            //for (int i=0; i<ownedConnections.length; i++) {
+            //    System.out.println("town " + townLookup.get(i) + " has " + ownedConnections[i] + " connections");
+            //}
         }
 
         // update possible bids according to max bids
