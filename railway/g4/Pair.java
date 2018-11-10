@@ -20,4 +20,11 @@ public class Pair implements Serializable
         String x = String.valueOf(from) + " -> " + String.valueOf(to);
         return x;
     }
+
+    public void flip()
+    {
+        int temp = this.to;
+        this.to = from;
+        this.from = temp;
+    }
 }

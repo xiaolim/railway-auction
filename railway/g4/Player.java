@@ -64,7 +64,7 @@ public class Player implements railway.sim.Player
     		{
 			undirected_infra[i].add(row.get(j));
     		}
-		System.out.println(Arrays.toString(undirected_infra[i].toArray()));
+		//System.out.println(Arrays.toString(undirected_infra[i].toArray()));
         }
         this.transit = transit;
         this.total_budget = budget;
@@ -72,7 +72,6 @@ public class Player implements railway.sim.Player
         // players contain all players
         this.players.add(this.name);
         this.players.add("null");
-        //degree = new int[NUM_STATIONS];
 
         // System.out.println("number of stations: " + String.valueOf(NUM_STATIONS));
         // Build a Naive List Containing all paths.
@@ -94,7 +93,8 @@ public class Player implements railway.sim.Player
                 this.owner[i][j] = "null";
             }
         }
-        start();
+        Pair h = start();
+        System.out.println(h.toString());
     }
 
     // helper function to print owner
@@ -157,13 +157,16 @@ public class Player implements railway.sim.Player
                 }
             }
         }
-        if (NUM_STATIONS < 80){
+        if (NUM_STATIONS < 80)
+        {
             getAllProfits(revenue, availableBids);
         }
     }
 
-    private int hash(int from, int to){
-        if (from > to){
+    private int hash(int from, int to)
+    {
+        if (from > to)
+        {
             int temp = from;
             from = to;
             to = temp;
@@ -661,7 +664,7 @@ public class Player implements railway.sim.Player
         }
 
 	// Test undirected adjacency list
-        
+        /*
     	for(int i = 0; i < undirected_infra.length;i++)
     	{
             List<Integer> temp = undirected_infra[i];
@@ -672,41 +675,82 @@ public class Player implements railway.sim.Player
             }
             System.out.println(" ");
     	}
-        
+        */
+
         // Sort by Degree, Highest comes first
         Map<Integer, Integer> sorted = sortByComparator(station_degree, false);
         Integer [] keys = sorted.keySet().toArray(new Integer[sorted.size()]);
         Integer [] values = sorted.values().toArray(new Integer[sorted.size()]);
         
 	// Verify Results
+        /*
         for(int i = 0; i < NUM_STATIONS;i++)
         {
             System.out.println("Station: "+ townLookup.get(keys[i]) + " has degree of: " + values[i]);
         }
+        */
 
         // Start with station with lowest degree (If a tail exists, great I can monopolize it now!)
 	// Here I have a Lowest Degree Vertex!
         to = keys[keys.length - 1];
-        List<Integer> targets = infra.get(from);
-        if(!targets.isEmpty())
+        // Neighbors have degree of...get minimum
+        from = max_degree_neighbor(undirected_infra[to]);        
+        Pair home = new Pair(to, from);
+        
+        // check if from -> to exists in infra!
+        // Might be issue so flip if needed!
+        if(is_neighbor(from, to))
         {
-            from = max_degree_neighbor(targets);
+            System.out.println("Found in infra: " + home.toString());
+            return home;
         }
         else
         {
-            // re-write from
-            from = to;
-            // Find out which nodes are the "from"
-            to = max_degree_neighbor(null);
+            System.out.println("NOT FOUND IN INFRA!");
+            //home.flip();
+            /*
+            int temp = to;
+            home.to = from;
+            home.from = temp;
+            System.out.println(home.toString());
+            return home;
+            */
+            return new Pair(to, from);
         }
-        // Neighbors have degree of...get minimum
-        return new Pair(to, from);
     }
 
+    // Return the neighbor that has highest degree
+    // TODO: Get the list of them?
     public int max_degree_neighbor(List<Integer> neighbors)
     {
-        int destination = -1;
-        return destination;
+        int destination = 0;
+        int max_degree = degree[neighbors.get(0)];
+        for(int i = 0; i < neighbors.size();i++)
+        {
+            if(degree[neighbors.get(i)] > max_degree)
+            {
+                max_degree = degree[neighbors.get(i)];
+                destination = i;
+            }
+        }
+        return neighbors.get(destination);
+    }
+
+    public boolean is_neighbor(Integer from, Integer to)
+    {
+        List<Integer> test = infra.get(from);
+        if(test.isEmpty())
+        {
+            return false;
+        }
+        for (int i = 0; i < test.size();i++)
+        {
+            if(test.get(i) == to)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 	
     /*
