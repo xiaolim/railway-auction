@@ -790,15 +790,17 @@ public class Player implements railway.sim.Player {
 			
     		//System.err.println(link.getKey() + " " + link.getValue());
 			if (allLinks.get(link.getKey()).owner != null) {
-				//System.err.println("NULL KEY!");
+				System.err.println("NULL KEY!");
     			continue;
 			}
+
 			double price = normalizeHeatMap(new Pair(map.get(bidInfo.town1), map.get(bidInfo.town2)), ourMap.get(link.getKey()));
     		/*if (link.getValue() < 0)
     			return null;*/
     		if (price * 10.0D * dist < maxAmount) {
     			//System.err.println("Below max!");
     			//System.err.println(ourMap.get(link.getKey()) * softmaxNormalize * dist + " " + maxAmount);
+
     			continue;
     		}
 			// Make a bid
