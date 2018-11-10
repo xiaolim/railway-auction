@@ -145,11 +145,11 @@ public class Player implements railway.sim.Player{
 		//		System.out.printf("%f, %f and %f, %f\n", p1.x, p1.y, p2.x, p1.y);
 		double dist = Math.sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
        		value = value*dist*10;
-       		//if( value < originalMins.get(id)){
+       		if( value < originalMins.get(id)){
 		    railValues.put(id, originalMins.get(id)+10);
-		    //} else {
-		    //railValues.put(id, value);
-		    //}
+		} else {
+		    railValues.put(id, value);
+		}
 		railDistance.put(id, dist);
 		id++;
 	    }
@@ -258,10 +258,18 @@ public class Player implements railway.sim.Player{
 	  
         }
 
+	for (int i=availableLinks.size()-1; i>=0; i--){
+	    int linkId = availableLinks.get(i);
+	    if (originalMins.get(linkId) > this.budget){
+		availableLinks.remove(i);
+	    }
+	    
+	}
         // Find the most valuable link for us
         this.bestLink = -1;
         this.bestValue = 0;
         for (int linkId : availableLinks){
+	  System.out.printf("link: %s-%s, min bid: %f, our value: %f\n", railCities.get(linkId).get(0), railCities.get(linkId).get(1), minAmounts.get(linkId), railValues.get(linkId));
           double unitValue = railValues.get(linkId) / railDistance.get(linkId);
           if (unitValue > this.bestValue){
             this.bestLink = linkId;
@@ -280,7 +288,7 @@ public class Player implements railway.sim.Player{
 
       for(Bid pastBid : currentBids){
         // Update minimum bid amounts
-        if (pastBid.amount >= minAmounts.get(pastBid.id1)){
+	  if (pastBid.amount >= minAmounts.get(pastBid.id1) && !(pastBid.id2 >= 0)){
 	    minAmounts.put(pastBid.id1, pastBid.amount+10000);
 	}
 
@@ -301,12 +309,8 @@ public class Player implements railway.sim.Player{
         }
       }
 
-      System.out.printf("budget left: %f\n", this.budget);
-      System.out.printf("rails left: %d\n", availableLinks.size()); 
-      
-      //System.out.println("The current max bidder is:" + curMax.bidder);
       // If we have the winning bid, return null
-      if (curMax.bidder.equals("g5")){
+      if (curMax.bidder.equals("g5") || bestLink == -1){
         return null;
       }
       else{ // If we aren't winning, increment the bid on our most valuable link
@@ -315,10 +319,7 @@ public class Player implements railway.sim.Player{
         if (maxUnit > unitPrice){
           double amount = unitPrice * railDistance.get(this.bestLink) + 1;
           if(amount < minAmounts.get(this.bestLink)){
-	      //are we checking that we only make this bid if its less than our maxAmount??
             amount = minAmounts.get(this.bestLink); //increment
-	    //also, if this link has not been bid on this round wouldn't this bid 10000 over the minimum bid?
-	    //do we have a way to make the minimum bid if a rail hasn't been bid on?
           }
           if (amount < this.budget && amount <= maxAmount){
             Bid ourBid = new Bid();
@@ -333,6 +334,7 @@ public class Player implements railway.sim.Player{
             return null;
           }
         }
+	System.out.printf("maxUnit: %f, unitPrice: %f\n", maxUnit, unitPrice);
       }
       // If we don't want to increment, drop out
       return null;
