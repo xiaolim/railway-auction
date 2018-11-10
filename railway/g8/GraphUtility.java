@@ -9,10 +9,10 @@ import java.util.List;
 
 public class GraphUtility {
 
-    private List<Coordinates> geo;
-    private List<List<Integer>> infra;
-    private int[][] transit;
-    private List<String> townLookup;
+    public List<Coordinates> geo;
+    public List<List<Integer>> infra;
+    public int[][] transit;
+    public List<String> townLookup;
 
     public double[][] adj; //adjacency matrix: direct connection between towns and their distance
     public double[][] dist; //shortest distance between all pairs
@@ -176,13 +176,15 @@ public class GraphUtility {
         return new SwitchRoute(sr1.startSeg, sr2.endSeg, sc + 1);
     }
 
-    public void update(BidInfo newBid) {
+    public void update(List<BidInfo> allBids) {
         //update edgeWeight and eval
         //use gu.eval[][] after call this function
 
         //update colorMap
-        segmentColorMap.put(new Coordinates(lookUpTown.get(newBid.town1), lookUpTown.get(newBid.town2)), newBid);
-        segmentColorMap.put(new Coordinates(lookUpTown.get(newBid.town2), lookUpTown.get(newBid.town1)), newBid);
+        for(BidInfo bidInfo: allBids){
+            segmentColorMap.put(new Coordinates(lookUpTown.get(bidInfo.town1), lookUpTown.get(bidInfo.town2)), bidInfo);
+            segmentColorMap.put(new Coordinates(lookUpTown.get(bidInfo.town2), lookUpTown.get(bidInfo.town1)), bidInfo);
+        }
 
         floydWarshall();
         initEdgeWeight();

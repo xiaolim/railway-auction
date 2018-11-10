@@ -48,6 +48,8 @@ public class Player implements railway.sim.Player {
     //Hahsmap for edgeweights
     private HashMap<Integer, Integer> bidIdEdgeWeight = new HashMap<Integer, Integer>();
 
+    private GraphUtility gu;
+
 
     private int totalTraffic = 0;
 
@@ -68,7 +70,7 @@ public class Player implements railway.sim.Player {
         this.budget = budget;
         this.transit = transit;
         this.infra = infra;
-        GraphUtility gu = new GraphUtility(geo, infra, transit, townLookup);
+        gu = new GraphUtility(geo, infra, transit, townLookup);
         lastBid = -1;
         // System.out.println("DEBUGGGGG ////////");
         // System.out.println(townLookup.get(0));
@@ -229,6 +231,9 @@ public class Player implements railway.sim.Player {
         }
         */
         //adding all available bids and adding to hashmap of bid id to minimum bid
+        gu.update(allBids);
+        buildEdgeHashMap(gu.edgeWeight, gu.geo);
+        buildHashMap();
         for (BidInfo bi : allBids) {
             if (bi.owner == null) {
                 availableBids.add(bi);
