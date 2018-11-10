@@ -213,15 +213,31 @@ public class Player implements railway.sim.Player{
           }
           // Restore original minimum prices
           this.minAmounts = this.originalMins;
-
+	  
           // Update playerBudgets to reflect last winner
-          if(playerBudgets.containsKey(lastRoundMaxBid.bidder) && !updatedRoundBudget){
+          if(!playerBudgets.containsKey(lastRoundMaxBid.bidder) ) {
+	    playerBudgets.put(lastRoundMaxBid.bidder, initBudget);
+	  }
+
+          if(!updatedRoundBudget){
             double oppBudget = playerBudgets.get(lastRoundMaxBid.bidder);
             playerBudgets.put(lastRoundMaxBid.bidder, oppBudget - lastRoundMaxBid.amount);
-
-	
+	    System.out.println("===================== " + lastRoundMaxBid.id1 + " " + lastRoundMaxBid.bidder);
+	    
+	    if (lastRoundMaxBid.bidder.equals("g5")) {
+	      List<String> newCities = railCities.get(lastRoundMaxBid.id1);
+	      System.out.println(newCities);
+	      if (!ownedCities.contains(newCities.get(0))) {
+	      	ownedCities.add(newCities.get(0));
+	      }
+	      if (!ownedCities.contains(newCities.get(1))) {
+	      	ownedCities.add(newCities.get(1));
+	      }
+	      System.out.println(ownedCities);
+	    } 
 	    updatedRoundBudget = true;
           }
+	  
 
 	  if(lastWinner.bidder.equals("g5")){
               for(List<Integer> pair : duplicateRails){
@@ -313,7 +329,7 @@ public class Player implements railway.sim.Player{
     }
 
     public void updateBudget(Bid bid) {
-
+ 	System.out.println("=========== " + ownedCities);	
 	updatedRoundBudget = false;
         if (bid != null) {
             budget -= bid.amount;
