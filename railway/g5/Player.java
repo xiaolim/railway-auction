@@ -266,6 +266,21 @@ public class Player implements railway.sim.Player{
 	    
 	}
         // Find the most valuable link for us
+       	List<Integer> updatedRails = new ArrayList<>();
+	// Consider newly aquired rails/cities 
+	for (String city : ownedCities) {
+	  List<Integer> adjacentRails = connectedRails.get(city);
+	  for ( int rail : adjacentRails ) {
+	    if (!updatedRails.contains(rail)) {
+		System.out.println(rail);
+		updatedRails.add(rail);
+	    	// Increase valuation of rail now that it is connected
+		// Multiply current valuation of rail by 1.2 or so
+	    }
+	  }
+	}	
+	ownedCities.clear();
+	
         this.bestLink = -1;
         this.bestValue = 0;
         for (int linkId : availableLinks){
@@ -341,7 +356,7 @@ public class Player implements railway.sim.Player{
     }
 
     public void updateBudget(Bid bid) {
- 	//System.out.println("=========== " + ownedCities);	
+ 	System.out.println("=========== " + ownedCities);	
 	updatedRoundBudget = false;
         if (bid != null) {
             budget -= bid.amount;
