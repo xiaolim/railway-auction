@@ -296,7 +296,7 @@ public class Player implements railway.sim.Player {
     	// really basic right now -- just computes profit from direct traffic
     	double revenue = 0;
 
-        double c1=0.2, c2=0.3, c3=0.5;
+        double c1=0.15, c2=0.25, c3=0.6;
 
         double hScore_total = 0;
 
@@ -312,10 +312,12 @@ public class Player implements railway.sim.Player {
             int t2_ourC = ourConnections[bid.town_id2];
             int t1_ownedC = ownedConnections[bid.town_id1];
             int t2_ownedC = ownedConnections[bid.town_id2];
+            int t1_remaining = t1_totalC - t1_ourC - t1_ownedC;
+            int t2_remaining = t2_totalC - t2_ourC - t2_ownedC;
 
             double hScore_1 = 0, hScore_2 = 0;
-            hScore_1 = c1*t1_totalC - c2*t1_ownedC + c3*t1_ourC;
-            hScore_2 = c1*t2_totalC - c2*t2_ownedC + c3*t2_ourC;
+            hScore_1 = c1*t1_remaining - c2*t1_ownedC + c3*t1_ourC;
+            hScore_2 = c1*t2_remaining - c2*t2_ownedC + c3*t2_ourC;
 
             hScore_total = hScore_1 + hScore_2 - Math.abs(hScore_1-hScore_2);
 
@@ -338,17 +340,27 @@ public class Player implements railway.sim.Player {
             int t2_ownedC = ownedConnections[bid.town_id2];
             int t3_ownedC = ownedConnections[bid.town_id3];
 
+
+            int t1_remaining = t1_totalC - t1_ourC - t1_ownedC;
+            int t2_remaining = t2_totalC - t2_ourC - t2_ownedC;
+            int t3_remaining = t3_totalC - t3_ourC - t3_ownedC;
+
             double hScore_1 = 0, hScore_2 = 0, hScore_3 = 0;
-            hScore_1 = c1*t1_totalC - c2*t1_ownedC + c3*t1_ourC;
-            hScore_2 = c1*t2_totalC - c2*t2_ownedC + c3*t2_ourC;
-            hScore_3 = c1*t3_totalC - c2*t3_ownedC + c3*t3_ourC;
+            hScore_1 = c1*t1_remaining - c2*t1_ownedC + c3*t1_ourC;
+            hScore_2 = c1*t2_remaining - c2*t2_ownedC + c3*t2_ourC;
+            hScore_3 = c1*t3_remaining - c2*t3_ownedC + c3*t3_ourC;
 
             hScore_total = hScore_1 + hScore_2 - Math.abs(hScore_1-hScore_2) + hScore_2 + hScore_3 - Math.abs(hScore_2-hScore_3);
 
             
     	}
 
-    	bid.score = revenue - bid.amount + avgRevenuePerLink*hScore_total;
+        if (revenue - bid.amount >= 0){
+            bid.score = (0.7)*(revenue-bid.amount) + (0.3)*avgRevenuePerLink*hScore_total;
+        }
+        else {
+            bid.score = (0.95)*(revenue-bid.amount) + (0.05)*avgRevenuePerLink*hScore_total;
+        }
     }
 
     private G3Bid getBestAffordableBid(List<G3Bid> availableBids) {
