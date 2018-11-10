@@ -240,19 +240,24 @@ public class Player implements railway.sim.Player{
 
 	      // Consider newly aquired rails/cities
 	      ownedRails.add(lastRoundMaxBid.id1);
+
+	      // Remove newly aquired adjacent rail from list of available adjacent rails
+	      if ( adjacentRails.contains(lastRoundMaxBid.id1) ) {
+		adjacentRails.remove(Integer.valueOf(lastRoundMaxBid.id1));
+	      }
+	      
+	      // Add new adjacent rails to list based on our newly aquired rail
 	      for (String city : ownedCities) {
 	        List<Integer> cityRails = connectedRails.get(city);
 	        for ( int rail : cityRails ) {
-	          if (!adjacentRails.contains(rail)) {
-		    System.out.println(rail);
+	          if (!adjacentRails.contains(rail) && !ownedRails.contains(rail)) {
 		    adjacentRails.add(rail);
 	          }
 	        }
 	      }	
+	      // Remove processed cities from ownedCities list
 	      ownedCities.clear();
 	
-
-	      System.out.println(ownedCities);
 	    } 
 	    updatedRoundBudget = true;
           }
