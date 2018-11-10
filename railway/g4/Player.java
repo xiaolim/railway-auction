@@ -59,7 +59,7 @@ public class Player implements railway.sim.Player
         this.players.add(this.name);
         this.players.add("null");
 
-        System.out.println("number of stations: "+String.valueOf(NUM_STATIONS));
+        System.out.println("number of stations: " + String.valueOf(NUM_STATIONS));
         // Build a Naive List Containing all paths.
         // 1- Use DFS
         
@@ -72,37 +72,44 @@ public class Player implements railway.sim.Player
         
         // Init Adjacency List
         this.owner = new String[NUM_STATIONS][NUM_STATIONS];
-        for (int i=0;i<NUM_STATIONS;++i){
-            for (int j=0;j<NUM_STATIONS;++j){
+        for (int i=0;i<NUM_STATIONS;++i)
+        {
+            for (int j=0;j<NUM_STATIONS;++j)
+            {
                 this.owner[i][j] = "null";
             }
         }
-
+        start();
     }
 
     // helper function to print owner
-    public void print_owner(){
-        for (int i=0;i<NUM_STATIONS;++i){
-            for (int j=0;j<NUM_STATIONS;++j){
+    public void print_owner()
+    {
+        for (int i=0;i<NUM_STATIONS;++i)
+        {
+            for (int j=0;j<NUM_STATIONS;++j)
+            {
                 System.out.printf("%d to %d owned by %s\n",i,j,owner[i][j]);
             }
         }
     }
 
     // this now compute the marginal flow and update the values in the Revenue array
-
-    public void update_flow(List<BidInfo> availableBids){
+    public void update_flow(List<BidInfo> availableBids)
+    {
         final int n = geo.size();
-
         // Create the graph.
         WeightedGraph g = new WeightedGraph(n);
 
-        for (int i=0; i<n; ++i) {
+        for (int i=0; i<n; ++i) 
+        {
             g.setLabel(townLookup.get(i));
         }
 
-        for (int i=0; i<infra.size(); ++i) {
-            for (int j=0; j<infra.get(i).size(); ++j) {
+        for (int i=0; i<infra.size(); ++i) 
+        {
+            for (int j=0; j<infra.get(i).size(); ++j) 
+            {
                 g.addEdge(i, infra.get(i).get(j), getDistance(i, infra.get(i).get(j)));
             }
         }
@@ -111,18 +118,23 @@ public class Player implements railway.sim.Player
         // Compute the revenue between any two nodes.
         double[][] revenue = new double[n][n];
 
-        for (int i=0; i<n; ++i) {
+        for (int i=0; i<n; ++i) 
+        {
             int[][] prev = Dijkstra.dijkstra(g, i);
-            for (int j=i+1; j<n; ++j) {
+            for (int j=i+1; j<n; ++j) 
+            {
                 List<List<Integer>> allPaths = Dijkstra.getPaths(g, prev, j);
                 double cost = 0;
-                for (int p=0; p<allPaths.size();++p){
-                    for (int k=0; k<allPaths.get(0).size()-1; ++k) {
+                for (int p=0; p<allPaths.size();++p)
+                {
+                    for (int k=0; k<allPaths.get(0).size()-1; ++k) 
+                    {
                         cost += getDistance(allPaths.get(0).get(k), allPaths.get(0).get(k+1));
                         if (Revenue.containsKey(hash(allPaths.get(0).get(k), allPaths.get(0).get(k+1)))){
                             Revenue.put(hash(allPaths.get(0).get(k), allPaths.get(0).get(k+1)), Revenue.get(hash(allPaths.get(0).get(k), allPaths.get(0).get(k+1))) + transit[i][j]/allPaths.size());
                         }
-                        else{
+                        else
+                        {
                             Revenue.put(hash(allPaths.get(0).get(k), allPaths.get(0).get(k+1)), transit[i][j]/allPaths.size());
                         }
                     }
@@ -601,23 +613,42 @@ public class Player implements railway.sim.Player
      *
      *  From highest degree vertex, get the link to lowest number of edges?
      */
-    public List<Pair> start()
+    public Pair start()
     {
-        ArrayList<Pair> start_pair = new ArrayList<Pair>();
+        int to = 0;
+        int from = 0;
         HashMap<Integer, Integer> station_degree = new HashMap<Integer, Integer>();
+        int [] in_degree = new int[NUM_STATIONS]; //0 is station 0, etc.
+        // Compute in-degree use O(V + E) and Array of size V to store answer
         for (int i = 0; i < NUM_STATIONS; i++)
         {
-            // This is undirected graph, so out degree is ok
-            station_degree.put(i, infra.get(i).size());
-            System.out.println("Station " + i + " has degree of: " + infra.get(i).size());
+            List<Integer> vertex = infra.get(i);
+            for (int j = 0; j < vertex.size(); j++)
+            {
+                ++in_degree[vertex.get(j)];
+            }
+        }
+
+        for (int i = 0; i < NUM_STATIONS; i++)
+        {
+            // This is undirected graph, so I need both IN and OUT Degree to sum!
+            station_degree.put(i, infra.get(i).size() + in_degree[i]);
+            //System.out.println("Station " + i + " has degree of: " + infra.get(i).size());
         }
         // Sort by Degree
-        Map<Integer, Integer> sorted = sortByComparator(station_degree,false);
+        Map<Integer, Integer> sorted = sortByComparator(station_degree, false);
+        Integer [] keys = sorted.keySet().toArray(new Integer[sorted.size()]);
+        Integer [] values = sorted.values().toArray(new Integer[sorted.size()]);
+        
+        for(int i = 0; i < NUM_STATIONS;i++)
+        {
+            System.out.println("Station: "+ townLookup.get(keys[i]) + " has degree of: " + values[i]);
+        }
 
         // The station with highest degree is
         
         // Neighbors have degree of...get minimum
-        return start_pair;
+        return new Pair(to, from);
     }
 
 	
@@ -633,6 +664,8 @@ public class Player implements railway.sim.Player
             new LinkedList<Entry<Integer, Integer>>(unsortMap.entrySet());
 
         // Sorting the list based on values
+        // Collections.sort(list);
+        
         Collections.sort(list, new Comparator<Entry<Integer, Integer>>()
                 {
                     public int compare(Entry<Integer, Integer> o1,
@@ -648,6 +681,7 @@ public class Player implements railway.sim.Player
                         }
                     }
                 });
+        
         // Maintaining insertion order with the help of LinkedList
         Map<Integer, Integer> sortedMap = new LinkedHashMap<Integer, Integer>();
         for (Entry<Integer, Integer> entry : list)
