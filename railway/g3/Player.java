@@ -37,7 +37,8 @@ public class Player implements railway.sim.Player {
     private List<G3Bid> availableBids = new ArrayList<G3Bid>();
 
     private List<BidInfo> allBids;
-    private Bid maxBid;
+    private boolean needsUpdate = false;
+    //private Bid maxBid;
     private G3Bid best;
     private int bidsThisRound;
 
@@ -153,6 +154,19 @@ public class Player implements railway.sim.Player {
     //   i.e. the results of previous rounds.
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
         this.allBids = allBids;
+        //System.err.println(availableBids.size());
+
+        // remove links now owned by opponent
+        if(needsUpdate) {
+        	List<G3Bid> copy = new ArrayList<G3Bid>(availableBids.size());
+        	for (G3Bid b: availableBids) {
+	    		if(!sameLink(b, lastRoundMaxBid)) {
+	    			copy.add(b);
+	    		}
+	    	}
+	    	availableBids = copy;
+	    	needsUpdate = false;
+        }
 
         // update possible bids according to max bids
         for (int i = 0; i < currentBids.size()-bidsThisRound; ++i) {
@@ -170,6 +184,7 @@ public class Player implements railway.sim.Player {
         bidsThisRound = currentBids.size();
 
     	// get the price-per-distance of the maximum bid so far in this round
+    	Bid maxBid;
     	double maxBidAmt;
     	if (currentBids.size() > 0) {
     		maxBid = Simulator.getMaxBid(currentBids, allBids);
@@ -178,6 +193,12 @@ public class Player implements railway.sim.Player {
     	} else {
     		maxBid = null;
     		maxBidAmt = 0;
+    	}
+
+    	if(maxBid==null) {
+    		System.err.println("no max bid");
+    	} else {
+
     	}
 
     	if(maxBid==null) {
@@ -192,7 +213,7 @@ public class Player implements railway.sim.Player {
     		G3Bid ret = getBestAffordableBid(availableBids);
     		if(ret!=null && ret.score >= 0) {
     			best = ret;
-    			return ret;
+    			return new G3Bid(ret);
     		}
     		return null;
     	}
@@ -222,7 +243,7 @@ public class Player implements railway.sim.Player {
 		G3Bid ret = getBestAffordableBid(availableBids);
 		if(ret!=null && ret.score >= 0) {
 			best = ret;
-			return ret;
+			return new G3Bid(ret);
 		}
 		return null;
     }
@@ -247,8 +268,8 @@ public class Player implements railway.sim.Player {
     		revenue += this.revenue[bid.town_id2][bid.town_id1];
     		revenue += this.revenue[bid.town_id2][bid.town_id3];
     		revenue += this.revenue[bid.town_id3][bid.town_id2];
-    		revenue += this.revenue[bid.town_id1][bid.town_id3];
-    		revenue += this.revenue[bid.town_id3][bid.town_id1];
+    		//revenue += this.revenue[bid.town_id1][bid.town_id3];
+    		//revenue += this.revenue[bid.town_id3][bid.town_id1];
     	}
 
     	bid.score = revenue - bid.amount;
@@ -338,11 +359,21 @@ public class Player implements railway.sim.Player {
     // Indicates to the player whether they have won the previous bid of link/pair of links.
     // A null bid indicates that they did not win their bid.
     public void updateBudget(Bid bid) {
-
-    	availableBids = removeOwned(availableBids, bid);
-
         if (bid != null) {
             budget -= bid.amount;
+
+            // remove all owned links from possible bids
+            List<G3Bid> copy = new ArrayList<G3Bid>(availableBids.size());
+            for (G3Bid b: availableBids) {
+	    		if(!sameLink(b, this.best) && !sameTowns(b, this.best)) {
+	    			copy.add(b);
+	    		}
+	    	}
+	    	availableBids = copy;
+
+        } else {
+        	// must wait to see another player's owned bid and update the possible bids
+        	needsUpdate = true;
         }
 
         // reset all the bids at the end of the round
@@ -354,27 +385,27 @@ public class Player implements railway.sim.Player {
         bidsThisRound = 0;
     }
 
-    private List<G3Bid> removeOwned(List<G3Bid> available, Bid latest) {
-    	List<G3Bid> ret = new ArrayList<G3Bid>(available.size());
+    // private List<G3Bid> removeOwned(List<G3Bid> available, Bid latest) {
+    // 	List<G3Bid> ret = new ArrayList<G3Bid>(available.size());
 
-    	if(latest != null) {
-	    	for (G3Bid bid: available) {
-	    		if(!sameLink(bid, latest) && !sameTowns(bid, this.best)) {
-	    			ret.add(bid);
-	    		}
-	    	}
-    	} else {
-    		for (G3Bid bid: available) {
-	    		if(!sameLink(bid, maxBid)) {
-	    			ret.add(bid);
-	    		}
-	    	}
-    	}
+    // 	if(latest != null) {
+	   //  	for (G3Bid bid: available) {
+	   //  		if(!sameLink(bid, latest) && !sameTowns(bid, this.best)) {
+	   //  			ret.add(bid);
+	   //  		}
+	   //  	}
+    // 	} else {
+    // 		for (G3Bid bid: available) {
+	   //  		if(!sameLink(bid, maxBid)) {
+	   //  			ret.add(bid);
+	   //  		}
+	   //  	}
+    // 	}
 
-    	return ret;
-    }
+    // 	return ret;
+    // }
 
-    private boolean sameLink(G3Bid bid, Bid owned) {
+    private boolean sameLink(Bid bid, Bid owned) {
     	int b1l1, b1l2, b2l1, b2l2;
     	b1l1 = bid.id1;
     	b1l2 = bid.id2;
@@ -401,7 +432,7 @@ public class Player implements railway.sim.Player {
     	b2t2 = owned.town_id2;
     	b2t3 = owned.town_id3;
 
-    	if(b1t1==b2t1 && b1t2==b2t2 || b1t2==b2t1 && b1t2==b2t1) {
+    	if(b1t1==b2t1 && b1t2==b2t2 || b1t2==b2t1 && b1t1==b2t2) {
     		return true;
     	}
 
