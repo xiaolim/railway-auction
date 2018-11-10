@@ -32,7 +32,7 @@ public class Player implements railway.sim.Player
     // Keep track of what Group 4 owns...
     private List<Pair> my_trains = new ArrayList<Pair>();
     private int [] degree; //0 is station 0, etc.
-    private List<List<Integer>> undirected_infra;
+    private ArrayList [] undirected_infra;
 
     public Player() 
     {
@@ -48,15 +48,26 @@ public class Player implements railway.sim.Player
         List<String> townLookup,
         List<BidInfo> allBids) 
     {
+        this.NUM_STATIONS = geo.size();
         this.name = name;
         this.townLookup = townLookup;
         this.geo = geo;
         this.budget = budget;
         this.infra = infra;
-	this.undirected_infra = infra;
+	// Make a deep copy for undirected infra
+        undirected_infra = new ArrayList[NUM_STATIONS];
+        for (int i = 0; i < NUM_STATIONS;i++)
+        {
+		undirected_infra[i] = new ArrayList<>();
+      		List<Integer> row = infra.get(i);
+    		for(int j = 0; j < row.size();j++)
+    		{
+			undirected_infra[i].add(row.get(j));
+    		}
+		System.out.println(Arrays.toString(undirected_infra[i].toArray()));
+        }
         this.transit = transit;
         this.total_budget = budget;
-        this.NUM_STATIONS = geo.size();
         this.players = new ArrayList<String>();
         // players contain all players
         this.players.add(this.name);
@@ -631,8 +642,9 @@ public class Player implements railway.sim.Player
 	    // Build undirected adjacency list as well.
             for (int j = 0; j < vertex.size(); j++)
             {
+                // DEGREE WORKS. NOT APPENDING IN STATIONS. WILL DO LATER TONIGHT
                 ++degree[vertex.get(j)];
-		//undirected_infra.get(i).add(vertex.get(j));
+                undirected_infra[vertex.get(j)].add(i);
             }
         }
 	// Append the out-degree of the stations
@@ -649,10 +661,10 @@ public class Player implements railway.sim.Player
         }
 
 	// Test undirected adjacency list
-        /*
-    	for(int i = 0; i < undirected_infra.size();i++)
+        
+    	for(int i = 0; i < undirected_infra.length;i++)
     	{
-            List<Integer> temp = undirected_infra.get(i);
+            List<Integer> temp = undirected_infra[i];
             System.out.println("Station: " + townLookup.get(i));
             for(int j = 0; j < temp.size();j++)	
             {
@@ -660,8 +672,7 @@ public class Player implements railway.sim.Player
             }
             System.out.println(" ");
     	}
-        */
-
+        
         // Sort by Degree, Highest comes first
         Map<Integer, Integer> sorted = sortByComparator(station_degree, false);
         Integer [] keys = sorted.keySet().toArray(new Integer[sorted.size()]);
@@ -674,11 +685,20 @@ public class Player implements railway.sim.Player
         }
 
         // Start with station with lowest degree (If a tail exists, great I can monopolize it now!)
-	// Find the highest degree neighbor! Use the computed array to a helper function
-        
-        // I believe I need to make sure the order matters,
-        from = keys[keys.length - 1];
-        to = max_degree_neighbor(undirected_infra.get(from));
+	// Here I have a Lowest Degree Vertex!
+        to = keys[keys.length - 1];
+        List<Integer> targets = infra.get(from);
+        if(!targets.isEmpty())
+        {
+            from = max_degree_neighbor(targets);
+        }
+        else
+        {
+            // re-write from
+            from = to;
+            // Find out which nodes are the "from"
+            to = max_degree_neighbor(null);
+        }
         // Neighbors have degree of...get minimum
         return new Pair(to, from);
     }
