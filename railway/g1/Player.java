@@ -51,9 +51,9 @@ public class Player implements railway.sim.Player {
     
     private Map<String, Double> budgets = new HashMap<String, Double>();
 
-    private final static double penalty = 180.0D;
+    private final static double penalty = 190.0D;
     private final static int yenK = 10;
-    private double softmaxNormalize = 0.05D;
+    private double softmaxNormalize = 0.04D;
 
     // Use k_shortest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
     // This can be done in O(n).If you want the paths to contain to links(etc. (a,b), (c,d)), you can just
@@ -746,7 +746,7 @@ public class Player implements railway.sim.Player {
     		if (b.amount > bidMax.amount)
     			bidMax = b;
     	}
-    	System.err.println(bidMax.bidder + bidMax.amount);
+    	//System.err.println(bidMax.bidder + bidMax.amount);
     	if (bidMax.bidder != null && bidMax.bidder.equals(name))
     		return null;
     	
@@ -790,7 +790,7 @@ public class Player implements railway.sim.Player {
 			
     		//System.err.println(link.getKey() + " " + link.getValue());
 			if (allLinks.get(link.getKey()).owner != null) {
-				System.err.println("NULL KEY!");
+				//System.err.println("NULL KEY!");
     			continue;
 			}
 
@@ -806,8 +806,8 @@ public class Player implements railway.sim.Player {
 			// Make a bid
 			double historyMax = -1.0D;
 	    	for (Bid b: currentBids) {
-            		if ((b.id1 == link.getKey()) || (b.id2 == link.getKey()))
-            			historyMax = Double.max(historyMax, b.amount);
+            	if ((b.id1 == link.getKey()) || (b.id2 == link.getKey()))
+            		historyMax = Double.max(historyMax, b.amount);
             }
 	    	
 			makeBid.id1 = link.getKey();
