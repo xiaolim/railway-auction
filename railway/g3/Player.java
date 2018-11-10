@@ -297,7 +297,6 @@ public class Player implements railway.sim.Player {
     	double revenue = 0;
 
         double c1=0.15, c2=0.25, c3=0.6;
-
         double hScore_total = 0;
 
 
