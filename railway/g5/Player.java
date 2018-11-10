@@ -35,7 +35,7 @@ public class Player implements railway.sim.Player{
 
 
     private List<String> ownedCities = new ArrayList<>();
-    final static double margin = 0.8;
+    final static double margin = 1;
     
     private Map<Integer, List<String>> railCities = new HashMap<Integer, List<String>>(); // Stores cities corresponding to specific rail
     private Map<String, List<Integer>> connectedRails = new HashMap<String, List<Integer>>(); //stores rail ids connected to each city
@@ -145,11 +145,11 @@ public class Player implements railway.sim.Player{
 		//		System.out.printf("%f, %f and %f, %f\n", p1.x, p1.y, p2.x, p1.y);
 		double dist = Math.sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
        		value = value*dist*10;
-		if( value < originalMins.get(id)){
-		    railValues.put(id, originalMins.get(id));
-		} else {
-		    railValues.put(id, value);
-		}
+       		//if( value < originalMins.get(id)){
+		    railValues.put(id, originalMins.get(id)+10);
+		    //} else {
+		    //railValues.put(id, value);
+		    //}
 		railDistance.put(id, dist);
 		id++;
 	    }
@@ -186,12 +186,12 @@ public class Player implements railway.sim.Player{
     }
 
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid){
-      
+	
       // BOOK KEEPING AND ROUND CHANGES //
       	
       // Initialize all player budgets at the very start of the Auction
       if ( lastRoundMaxBid == null && !playerBudgets.containsKey("g5") ) {
-       	for (int i = 1; i < 9; i++) {
+       for (int i = 1; i < 9; i++) {
 	  String player = "g" + Integer.toString(i);
 	  playerBudgets.put(player, initBudget);
 	} 
@@ -204,6 +204,8 @@ public class Player implements railway.sim.Player{
         this.lastWinner = lastRoundMaxBid;
 
         if(lastWinner != null){
+
+	    //	  System.out.printf("last bid was %f for distance %f + %f\n", lastRoundMaxBid.amount, railDistance.get(lastRoundMaxBid.id1), railDistance.get(lastRoundMaxBid.id2));
           // Remove purchased link
           if (availableLinks.contains(lastWinner.id1)) {
             availableLinks.remove(Integer.valueOf(lastWinner.id1));
@@ -212,8 +214,10 @@ public class Player implements railway.sim.Player{
             availableLinks.remove(Integer.valueOf(lastWinner.id2));
           }
           // Restore original minimum prices
-          this.minAmounts = this.originalMins;
-	  
+	  // THIS IS NOT A DEEP COPY AND WILL ONLY WORK ONCE          this.minAmounts = this.originalMins;
+	  for( Integer k : minAmounts.keySet() ){
+	      minAmounts.put(k, originalMins.get(k));
+	  }
           // Update playerBudgets to reflect last winner
           if(!playerBudgets.containsKey(lastRoundMaxBid.bidder) ) {
 	    playerBudgets.put(lastRoundMaxBid.bidder, initBudget);
@@ -222,7 +226,7 @@ public class Player implements railway.sim.Player{
           if(!updatedRoundBudget){
             double oppBudget = playerBudgets.get(lastRoundMaxBid.bidder);
             playerBudgets.put(lastRoundMaxBid.bidder, oppBudget - lastRoundMaxBid.amount);
-	    System.out.println("===================== " + lastRoundMaxBid.id1 + " " + lastRoundMaxBid.bidder);
+	    //System.out.println("===================== " + lastRoundMaxBid.id1 + " " + lastRoundMaxBid.bidder);
 	    
 	    if (lastRoundMaxBid.bidder.equals("g5")) {
 	      List<String> newCities = railCities.get(lastRoundMaxBid.id1);
@@ -276,9 +280,9 @@ public class Player implements railway.sim.Player{
 
       for(Bid pastBid : currentBids){
         // Update minimum bid amounts
-        if (pastBid.amount > minAmounts.get(pastBid.id1)){
-          minAmounts.put(pastBid.id1, pastBid.amount);
-        }
+        if (pastBid.amount >= minAmounts.get(pastBid.id1)){
+	    minAmounts.put(pastBid.id1, pastBid.amount+10000);
+	}
 
         double bidPrice = pastBid.amount / railDistance.get(pastBid.id1);
         if (pastBid.id2 != -1){
@@ -297,6 +301,9 @@ public class Player implements railway.sim.Player{
         }
       }
 
+      System.out.printf("budget left: %f\n", this.budget);
+      System.out.printf("rails left: %d\n", availableLinks.size()); 
+      
       //System.out.println("The current max bidder is:" + curMax.bidder);
       // If we have the winning bid, return null
       if (curMax.bidder.equals("g5")){
@@ -307,17 +314,20 @@ public class Player implements railway.sim.Player{
         double maxUnit = maxAmount / railDistance.get(this.bestLink);
         if (maxUnit > unitPrice){
           double amount = unitPrice * railDistance.get(this.bestLink) + 1;
-          if(amount < minAmounts.get(this.bestLink) + 10000){
+          if(amount < minAmounts.get(this.bestLink)){
 	      //are we checking that we only make this bid if its less than our maxAmount??
-            amount = minAmounts.get(this.bestLink) + 10000; //increment
+            amount = minAmounts.get(this.bestLink); //increment
 	    //also, if this link has not been bid on this round wouldn't this bid 10000 over the minimum bid?
 	    //do we have a way to make the minimum bid if a rail hasn't been bid on?
           }
-          if (amount < this.budget){
+          if (amount < this.budget && amount <= maxAmount){
             Bid ourBid = new Bid();
             ourBid.id1 = this.bestLink;
             ourBid.amount = amount;
-            return ourBid;
+	    System.out.printf("\nMin bid %f for %d\n", originalMins.get(ourBid.id1), ourBid.id1);
+	    System.out.printf("Our value: %f\n", railValues.get(ourBid.id1));
+	    System.out.printf("Our bid: %f for distance %f\n\n", ourBid.amount, railDistance.get(ourBid.id1));
+	    return ourBid;
           }
           else{
             return null;
@@ -329,7 +339,7 @@ public class Player implements railway.sim.Player{
     }
 
     public void updateBudget(Bid bid) {
- 	System.out.println("=========== " + ownedCities);	
+ 	//System.out.println("=========== " + ownedCities);	
 	updatedRoundBudget = false;
         if (bid != null) {
             budget -= bid.amount;
