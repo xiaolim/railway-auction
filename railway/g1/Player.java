@@ -603,7 +603,7 @@ public class Player implements railway.sim.Player {
     public Map<Integer, Double> predictHeatMap(String player){
     	Map<List<Integer>, Double> player_path_distance = new HashMap<List<Integer>, Double>(path_distance);
         for(BidInfo b: allLinks){
-            if (b.owner == null) {
+                if (b.owner == null) {
             	//Map<Integer, Double> currentHeatMap = predictHeatMaps.containsKey(player) ? predictHeatMaps.get(player) : convertedHeatMap;
                     
                 // Assume the player owns b
@@ -618,43 +618,79 @@ public class Player implements railway.sim.Player {
                 		}
                 	}
                 		
-                boolean flagLink = false;
-                		
-                //TODO is list hashable?
-                double distance = path_distance.get(path);
-            			
-                if (link1.i1 != -1) {
-                	List<Integer> prevIDs = linkMapping.get(link1);
-                	for (int prevID : prevIDs) {
-                		if (allLinks.get(prevID).owner == player)
-                			flagLink = true; 
-                	}
-                	distance = distance - penalty + (flagLink ? 0 : 200);
+                    boolean flagLink = false;
+                    		
+                    //TODO is list hashable?
+                    double distance = path_distance.get(path);
+                			
+                    if (link1.i1 != -1) {
+                    	List<Integer> prevIDs = linkMapping.get(link1);
+                    	for (int prevID : prevIDs) {
+                    		if (allLinks.get(prevID).owner == player)
+                    			flagLink = true; 
+                    	}
+                    	distance = distance - penalty + (flagLink ? 0 : 200);
+                    }
+                    		
+                    if (link2.i1 != -1) {
+                    	List<Integer> prevIDs = linkMapping.get(link2);
+                    	for (int prevID : prevIDs) {
+                    		if (allLinks.get(prevID).owner == player)
+                    			flagLink = true; 
+                    	}
+                    	distance = distance - penalty + (flagLink ? 0 : 200);
+                   	}
+                   	player_path_distance.put(path, distance);
                 }
-                		
-                if (link2.i1 != -1) {
-                	List<Integer> prevIDs = linkMapping.get(link2);
-                	for (int prevID : prevIDs) {
-                		if (allLinks.get(prevID).owner == player)
-                			flagLink = true; 
-                		}
-                	distance = distance - penalty + (flagLink ? 0 : 200);
-               	}
-               	player_path_distance.put(path, distance);
             }
         }
-    }
         
         // create heat map, TODO Wanlin
-        for (Map.Entry<Pair, List<List<Integer>>> entry : k_shortest_paths.entrySet()) {
-        	List<Double> distances = new ArrayList<Double>();
-        	for (List<Integer> path : entry.getValue()) {
-        		distances.add(player_path_distance.get(path));
-        	}
-        	for (List<Integer> path : entry.getValue()) {
-        		// TODO
-        	}
+        Map<Pair, Double> newmap = new HashMap<Pair, Double>();
+        for(int i=0;i<infra.size();i++) {
+            for(int j=0;j<infra.get(i).size();j++) {
+                newmap.put(new Pair(i,infra.get(i).get(j)),0.0);
+            }
         }
+
+        for (int i=0;i<transit.length;i++) {
+            for (int j=0;j<transit[i].length;j++) { //int j=0;j<transit[i].length;j++
+                if(transit[i][j]==0) {
+                    continue;
+                }
+                List<List<Integer>> allP = k_shortest_paths.get(new Pair(i,j));
+
+                Map<Integer, Double> weights = new HashMap<Integer, Double>();
+                Map<Integer, Double> distances = new HashMap<Integer, Double>();
+
+                Double maxdistance = -1.0D;
+                for(int a=0;a<allP.size();a++) {
+                    Double temp = player_path_distance.get(allP.get(a));
+                    distances.put(a,temp);
+                    if(temp > maxdistance) {
+                        maxdistance = temp;
+                    }
+                }
+
+                for(Integer a:distances.keySet()) {
+                    weights.put(a,distances.get(a)/maxdistance); //scale so everything is under 1
+                }
+                Map<Integer, Double> softmaxWeights = softmaxDistance(weights);
+
+                for(int a=0;a<allP.size();a++) {
+                    for(int b=0;b<allP.get(a).size();b++) {
+                        if(b>0) {
+                            int t1 = allP.get(a).get(b-1); 
+                            int t2 = allP.get(a).get(b); 
+
+                            Pair link = new Pair(t1,t2);
+                            newmap.put(link,newmap.get(link)+distances.get(a)*softmaxWeights.get(a));
+                        }
+                    }
+                }
+            }
+        }
+
         return null;
     }
 
