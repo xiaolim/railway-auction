@@ -298,6 +298,8 @@ public class Player implements railway.sim.Player {
 
         double c1=0.2, c2=0.3, c3=0.5;
 
+        double hScore_total = 0;
+
 
     	if (bid.id2 == -1) {
     		// single link
@@ -311,7 +313,7 @@ public class Player implements railway.sim.Player {
             int t1_ownedC = ownedConnections[bid.town_id1];
             int t2_ownedC = ownedConnections[bid.town_id2];
 
-            double hScore_1 = 0, hScore_2 = 0, hScore_total = 0;
+            double hScore_1 = 0, hScore_2 = 0;
             hScore_1 = c1*t1_totalC - c2*t1_ownedC + c3*t1_ourC;
             hScore_2 = c1*t2_totalC - c2*t2_ownedC + c3*t2_ourC;
 
@@ -336,7 +338,7 @@ public class Player implements railway.sim.Player {
             int t2_ownedC = ownedConnections[bid.town_id2];
             int t3_ownedC = ownedConnections[bid.town_id3];
 
-            double hScore_1 = 0, hScore_2 = 0, hScore_3 = 0, hScore_total = 0;
+            double hScore_1 = 0, hScore_2 = 0, hScore_3 = 0;
             hScore_1 = c1*t1_totalC - c2*t1_ownedC + c3*t1_ourC;
             hScore_2 = c1*t2_totalC - c2*t2_ownedC + c3*t2_ourC;
             hScore_3 = c1*t3_totalC - c2*t3_ownedC + c3*t3_ourC;
@@ -346,7 +348,7 @@ public class Player implements railway.sim.Player {
             
     	}
 
-    	bid.score = revenue - bid.amount + avg*hScore_total;
+    	bid.score = revenue - bid.amount + avgRevenuePerLink*hScore_total;
     }
 
     private G3Bid getBestAffordableBid(List<G3Bid> availableBids) {
