@@ -392,10 +392,12 @@ public class Player implements railway.sim.Player {
     		budgets.put(lastRoundMaxBid.bidder, budget - lastRoundMaxBid.amount);
     		b1.owner = lastRoundMaxBid.bidder;
     		b1.amount = lastRoundMaxBid.amount;
+    		updateHeatMap(b1);
     		if (lastRoundMaxBid.id2 != -1) {
     			BidInfo b2 = allLinks.get(lastRoundMaxBid.id2);
         		b2.owner = lastRoundMaxBid.bidder;
         		b2.amount = lastRoundMaxBid.amount;
+        		updateHeatMap(b2);
     		}
     	}
     	/*
@@ -449,7 +451,7 @@ public class Player implements railway.sim.Player {
                 if(transit[i][j]==0) {
                     continue;
                 }
-                double totaltransit = transit[i][j];
+                //double totaltransit = transit[i][j];
                 //int[][] prev = Dijkstra.dijkstra(g, i);
                 //List<List<Integer>> allP = Dijkstra.getPaths(g,prev,j);
                 //List<List<Integer>> allP = yenKSPaths(i,j);
@@ -558,46 +560,44 @@ public class Player implements railway.sim.Player {
     
 
     
-    public void updateHeatMap(List<BidInfo> lastRoundBids) {
-        for(BidInfo b: lastRoundBids){
-            if (b.owner!=null){
-            	List<List<Integer>> paths = contain_paths.get(new Pair(map.get(b.town1), map.get(b.town2)));
-            	for (List<Integer> path : paths) {
-            		Pair link1 = null, link2 = null;
-            		for (int i = 0; i<path.size();i++) {
-            			if(path.get(i) == map.get(b.town1) || path.get(i)== map.get(b.town2)) {
-            				link1 = new Pair(path.get(i), i-1>=0 ? path.get(i-1) : -1);
-            				link2 = new Pair(i+2 < path.size() ? path.get(i + 2) : -1, path.get(i + 1));
-            				break;
-            			}
-            		}
-            		
-            		boolean flagLink = false;
-            		
-            		//TODO is list hashable?
-            		double distance = path_distance.get(path);
-        			
-            		if (link1.i1 != -1) {
-            			List<Integer> prevIDs = linkMapping.get(link1);
-            			for (int prevID : prevIDs) {
-            				if (allLinks.get(prevID).owner == b.owner)
-            					flagLink = true; 
-            			}
-            			distance = distance - penalty + (flagLink ? 0 : 200);
-            		}
-            		
-            		if (link2.i1 != -1) {
-            			List<Integer> prevIDs = linkMapping.get(link2);
-            			for (int prevID : prevIDs) {
-            				if (allLinks.get(prevID).owner == b.owner)
-            					flagLink = true; 
-            			}
-            			distance = distance - penalty + (flagLink ? 0 : 200);
-            		}
-            		path_distance.put(path, distance);
-            	}
-            }
-        }
+    public void updateHeatMap(BidInfo lastPurchase) {
+         if (lastPurchase.owner!=null){
+        	 List<List<Integer>> paths = contain_paths.get(
+        			 		new Pair(map.get(lastPurchase.town1), map.get(lastPurchase.town2)));
+        	 for (List<Integer> path : paths) {
+        		 Pair link1 = null, link2 = null;
+        		 for (int i = 0; i<path.size();i++) {
+        			 if(path.get(i) == map.get(lastPurchase.town1) || path.get(i)== map.get(lastPurchase.town2)) {
+        				 link1 = new Pair(path.get(i), i-1>=0 ? path.get(i-1) : -1);
+        				 link2 = new Pair(i+2 < path.size() ? path.get(i + 2) : -1, path.get(i + 1));
+        				 break;
+        			 }
+        		 }
+        		 
+        		 boolean flagLink = false;
+        		 
+        		 double distance = path_distance.get(path);
+        		 
+        		 if (link1.i1 != -1) {
+        			 List<Integer> prevIDs = linkMapping.get(link1);
+        			 for (int prevID : prevIDs) {
+        				 if (allLinks.get(prevID).owner == lastPurchase.owner)
+        					 flagLink = true; 
+        			 }
+        			 distance = distance - penalty + (flagLink ? 0 : 200);
+        		 }
+        		 
+        		 if (link2.i1 != -1) {
+        			 List<Integer> prevIDs = linkMapping.get(link2);
+        			 for (int prevID : prevIDs) {
+        				 if (allLinks.get(prevID).owner == lastPurchase.owner)
+        					 flagLink = true; 
+        			 }	
+        			 distance = distance - penalty + (flagLink ? 0 : 200);
+        		 }
+        		 path_distance.put(path, distance);
+        	 }
+         }
     }
 
     public Map<Integer, Double> predictHeatMap(String player){
@@ -670,8 +670,6 @@ public class Player implements railway.sim.Player {
     }
     
     public Bid getBid(List<Bid> currentBids, List<BidInfo> allBids, Bid lastRoundMaxBid) {
-    	// TODO Find a way such that we bid on a link that gives us 0 benefit externally (?)
-    	// while giving other links that we owned higher traffics. I am not sure how to do this right now.
     	
 
     	// Update status & heat map
@@ -839,9 +837,7 @@ public class Player implements railway.sim.Player {
     }
 
     public void updateBudget(Bid bid) {
-    	// TODO
         if (bid != null) {
-        	
         	ourlinks.add(allLinks.get(bid.id1));
         	if (bid.id2 != -1)
         		ourlinks.add(allLinks.get(bid.id2));
