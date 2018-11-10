@@ -51,9 +51,9 @@ public class Player implements railway.sim.Player {
     
     private Map<String, Double> budgets = new HashMap<String, Double>();
 
-    private final static double penalty = 150.0D;
+    private final static double penalty = 180.0D;
     private final static int yenK = 10;
-    private final static double softmaxNormalize = 2.5D;
+    private double softmaxNormalize = 0.05D;
 
     // Use k_shortest_paths.get(i,j).retainAll(contain_paths.get(a,b)) to get paths satisfying both conditions.
     // This can be done in O(n).If you want the paths to contain to links(etc. (a,b), (c,d)), you can just
@@ -560,6 +560,10 @@ public class Player implements railway.sim.Player {
     		list.add(link.id);
     	}
     }
+    
+    private double normalizeHeatMap(Pair pair, double indirect) {
+    	return indirect * softmaxNormalize + transit[pair.i1][pair.i2] * (1 - softmaxNormalize);
+    }
 
     private Map<Integer, Double> convertHeatMap(Map<Pair, Double> rawMap) {
     	Map<Integer, Double> convertedHeatMap = new HashMap<Integer, Double>();
@@ -742,11 +746,11 @@ public class Player implements railway.sim.Player {
     		if (b.amount > bidMax.amount)
     			bidMax = b;
     	}
+    	System.err.println(bidMax.bidder + bidMax.amount);
+    	if (bidMax.bidder != null && bidMax.bidder.equals(name))
+    		return null;
     	
     	double maxAmount = (bidMax == null) ? 0.0D : bidMax.amount;
-    	
-    	if (bidMax.bidder == name)
-    		return null;
     	
     	Map<Integer, Double> ourMap = predictHeatMap(name);
     	
@@ -768,33 +772,35 @@ public class Player implements railway.sim.Player {
     		mapDiff.put(Integer.valueOf(i), ourMap.get(Integer.valueOf(i)) - max);
     	}
     	
-
-    	
-    	
     	// Sort the heatmap difference
 		List<Map.Entry<Integer, Double>> sortedDiff = new ArrayList<Map.Entry<Integer, Double>>(mapDiff.entrySet());
     	Collections.sort(sortedDiff, Collections.reverseOrder((x, y) -> {
-    		if (allLinks.get(x.getKey()).owner == null)
+    		/*if (allLinks.get(x.getKey()).owner == null)
     			return 1;
     		if (allLinks.get(y.getKey()).owner == null)
-    			return -1;
+    			return -1;*/
     		return Double.compare(x.getValue(), y.getValue());
     	}));
     	
     	
 		Bid makeBid = new Bid();
     	for (Map.Entry<Integer, Double> link : sortedDiff) {
+			BidInfo bidInfo = allLinks.get(link.getKey());
+			double dist = getDistance(map.get(bidInfo.town1), map.get(bidInfo.town2));
+			
+    		//System.err.println(link.getKey() + " " + link.getValue());
 			if (allLinks.get(link.getKey()).owner != null) {
 				//System.err.println("NULL KEY!");
     			continue;
 			}
-    		if (ourMap.get(link.getKey()) < maxAmount) {
+			double price = normalizeHeatMap(new Pair(map.get(bidInfo.town1), map.get(bidInfo.town2)), ourMap.get(link.getKey()));
+    		/*if (link.getValue() < 0)
+    			return null;*/
+    		if (price * 10.0D * dist < maxAmount) {
     			//System.err.println("Below max!");
-    			//System.err.println(ourMap.get(link.getKey()) + " " + maxAmount);
+    			//System.err.println(ourMap.get(link.getKey()) * softmaxNormalize * dist + " " + maxAmount);
     			continue;
     		}
-    		if (link.getValue() < 0)
-    			return null;
 			// Make a bid
 			double historyMax = -1.0D;
 	    	for (Bid b: currentBids) {
@@ -803,17 +809,18 @@ public class Player implements railway.sim.Player {
             }
 	    	
 			makeBid.id1 = link.getKey();
-			BidInfo bidInfo = allLinks.get(link.getKey());
-			double dist = getDistance(map.get(bidInfo.town1), map.get(bidInfo.town2));
-			System.err.println(ourMap.get(link.getKey()));
-			makeBid.amount = Double.max(ourMap.get(link.getKey()) * 2.0D * dist, historyMax + 10000.0D);
+			//System.err.println(ourMap.get(link.getKey()));
+			makeBid.amount = Double.max(price * 10.0D * dist, historyMax + 10000.0D);
+			makeBid.amount = Double.max(makeBid.amount, bidInfo.amount);
 			break;
     	}
     	
         if (budgets.get(name) - makeBid.amount < 0) {
             return null;
         }
-    	System.err.println("bid:" + makeBid.id1 + " " + makeBid.id2);
+        if (makeBid.id1 == -1)
+        	return null;
+    	//System.err.println("bid:" + makeBid.id1 + " " + makeBid.id2);
     	return makeBid;
     	 
     	
