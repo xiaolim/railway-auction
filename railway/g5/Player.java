@@ -34,11 +34,12 @@ public class Player implements railway.sim.Player {
  private double bestValue;
  private int bestAdj;
  private double bestAdjValue;
+ private double railCount = 0;
 
  private double auctionProgress = 1;
  private List < Integer > ownedRails = new ArrayList < > ();
  private List < String > ownedCities = new ArrayList < > ();
- final static double margin = 1;
+ final static double margin = 0.9;
  private List < Integer > adjacentRails = new ArrayList < > ();
  private Map < Integer, List < String >> railCities = new HashMap < Integer, List < String >> (); // Stores cities corresponding to specific rail
  private Map < String, List < Integer >> connectedRails = new HashMap < String, List < Integer >> (); //stores rail ids connected to each city
@@ -147,7 +148,8 @@ public class Player implements railway.sim.Player {
     Coordinates p2 = geo.get(infra.get(i).get(j));
     //		System.out.printf("%f, %f and %f, %f\n", p1.x, p1.y, p2.x, p1.y);
     double dist = Math.sqrt((p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y));
-    value = value * dist * 10;
+    value = value * dist * 10 * margin;
+    this.railCount += 1;
     if (value < originalMins.get(id)) {
      railValues.put(id, originalMins.get(id) + 10);
     } else {
@@ -156,6 +158,13 @@ public class Player implements railway.sim.Player {
     railDistance.put(id, dist);
     id++;
    }
+  }
+  int numPlayers = 8;
+  if(railCount > numPlayers * 4){
+    for(int linkId : railValues.keySet()){
+      double restored = originalMins.get(linkId) + 10;
+      railValues.put(linkId, restored);
+    }
   }
  }
 
@@ -241,7 +250,7 @@ public class Player implements railway.sim.Player {
 
      if (lastRoundMaxBid.bidder.equals("g5")) {
       List < String > newCities = railCities.get(lastRoundMaxBid.id1);
-      System.out.println(newCities);
+      //System.out.println(newCities);
       if (!ownedCities.contains(newCities.get(0))) {
        ownedCities.add(newCities.get(0));
       }
@@ -362,7 +371,7 @@ public class Player implements railway.sim.Player {
 
   // First look at adjacentRails
   if (bestAdj != -1){
-    double maxAmount = railValues.get(this.bestAdj) * margin;
+    double maxAmount = railValues.get(this.bestAdj);
     double maxUnit = maxAmount / railDistance.get(this.bestLink);
     if (maxUnit > unitPrice) {
      double amount = unitPrice * railDistance.get(this.bestLink) + 1;
@@ -373,13 +382,13 @@ public class Player implements railway.sim.Player {
       Bid ourBid = new Bid();
       ourBid.id1 = this.bestLink;
       ourBid.amount = amount;
-      System.out.println("Bidding on adjacent rail");
+      //System.out.println("Bidding on adjacent rail");
       return ourBid;
      }
     }
   }
 
-   double maxAmount = railValues.get(this.bestLink) * margin;
+   double maxAmount = railValues.get(this.bestLink);
    double maxUnit = maxAmount / railDistance.get(this.bestLink);
    if (maxUnit > unitPrice) {
     double amount = unitPrice * railDistance.get(this.bestLink) + 1;
