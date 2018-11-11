@@ -146,7 +146,7 @@ public class Player implements railway.sim.Player{
 		double dist = Math.sqrt((p1.x-p2.x)*(p1.x-p2.x) + (p1.y-p2.y)*(p1.y-p2.y));
        		value = value*dist*10;
        		if( value < originalMins.get(id)){
-		    railValues.put(id, originalMins.get(id)+10);
+		    railValues.put(id, originalMins.get(id));
 		} else {
 		    railValues.put(id, value);
 		}
@@ -284,7 +284,7 @@ public class Player implements railway.sim.Player{
         this.bestLink = -1;
         this.bestValue = 0;
         for (int linkId : availableLinks){
-	  System.out.printf("link: %s-%s, min bid: %f, our value: %f\n", railCities.get(linkId).get(0), railCities.get(linkId).get(1), minAmounts.get(linkId), railValues.get(linkId));
+	    //System.out.printf("link: %s-%s, min bid: %f, our value: %f\n", railCities.get(linkId).get(0), railCities.get(linkId).get(1), minAmounts.get(linkId), railValues.get(linkId));
           double unitValue = railValues.get(linkId) / railDistance.get(linkId);
           if (unitValue > this.bestValue){
             this.bestLink = linkId;
@@ -340,23 +340,23 @@ public class Player implements railway.sim.Player{
             Bid ourBid = new Bid();
             ourBid.id1 = this.bestLink;
             ourBid.amount = amount;
-	    System.out.printf("\nMin bid %f for %d\n", originalMins.get(ourBid.id1), ourBid.id1);
-	    System.out.printf("Our value: %f\n", railValues.get(ourBid.id1));
-	    System.out.printf("Our bid: %f for distance %f\n\n", ourBid.amount, railDistance.get(ourBid.id1));
+	    //	    System.out.printf("\nMin bid %f for %d\n", originalMins.get(ourBid.id1), ourBid.id1);
+	    //System.out.printf("Our value: %f\n", railValues.get(ourBid.id1));
+	    //System.out.printf("Our bid: %f for distance %f\n\n", ourBid.amount, railDistance.get(ourBid.id1));
 	    return ourBid;
           }
           else{
             return null;
           }
         }
-	System.out.printf("maxUnit: %f, unitPrice: %f\n", maxUnit, unitPrice);
+	//	System.out.printf("maxUnit: %f, unitPrice: %f\n", maxUnit, unitPrice);
       }
       // If we don't want to increment, drop out
       return null;
     }
 
     public void updateBudget(Bid bid) {
- 	System.out.println("=========== " + ownedCities);	
+ 	//System.out.println("=========== " + ownedCities);	
 	updatedRoundBudget = false;
         if (bid != null) {
             budget -= bid.amount;
