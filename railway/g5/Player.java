@@ -35,6 +35,7 @@ public class Player implements railway.sim.Player {
  private int bestAdj;
  private double bestAdjValue;
 
+ private double auctionProgress = 1;
  private List < Integer > ownedRails = new ArrayList < > ();
  private List < String > ownedCities = new ArrayList < > ();
  final static double margin = 1;
@@ -196,7 +197,6 @@ public class Player implements railway.sim.Player {
     String player = "g" + Integer.toString(i);
     playerBudgets.put(player, initBudget);
    }
-   playerBudgets.put("random", initBudget);
   }
 
   if (!bidEquals(lastWinner, lastRoundMaxBid)) {
@@ -228,6 +228,16 @@ public class Player implements railway.sim.Player {
      double oppBudget = playerBudgets.get(lastRoundMaxBid.bidder);
      playerBudgets.put(lastRoundMaxBid.bidder, oppBudget - lastRoundMaxBid.amount);
      //System.out.println("===================== " + lastRoundMaxBid.id1 + " " + lastRoundMaxBid.bidder);
+	 
+     // Update current progress of auction (average current budget / init budget)
+     double totalBudget = 0;
+     for (int i = 1; i < 9; i++) {
+       String player = "g" + Integer.toString(i);
+       totalBudget += playerBudgets.get(player);
+     }
+     double avgBudget = totalBudget / 8;
+     auctionProgress = avgBudget / initBudget;
+     // System.out.println("================== " + auctionProgress);     
 
      if (lastRoundMaxBid.bidder.equals("g5")) {
       List < String > newCities = railCities.get(lastRoundMaxBid.id1);
