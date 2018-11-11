@@ -15,7 +15,6 @@ import railway.sim.utils.*;
 
 public class Player implements railway.sim.Player 
 {
-
     private double budget;
     private HashMap<Integer, Integer> Revenue = new HashMap<Integer, Integer>();
     private List<Coordinates> geo;
@@ -94,7 +93,7 @@ public class Player implements railway.sim.Player
             }
         }
         Pair h = start();
-        System.out.println(h.toString());
+        // System.out.println(h.toString());
     }
 
     // helper function to print owner
@@ -104,7 +103,7 @@ public class Player implements railway.sim.Player
         {
             for (int j=0;j<NUM_STATIONS;++j)
             {
-                System.out.printf("%d to %d owned by %s\n",i,j,owner[i][j]);
+                // System.out.printf("%d to %d owned by %s\n",i,j,owner[i][j]);
             }
         }
     }
@@ -179,10 +178,10 @@ public class Player implements railway.sim.Player
         int t = townLookup.indexOf(to);
         
         if (f == -1){
-            System.out.printf("Town %s not found",from);
+            // System.out.printf("Town %s not found",from);
         } 
         if (t ==-1){
-            System.out.printf("Town %s not found",to);
+            // System.out.printf("Town %s not found",to);
         }
         return hash(f,t);
     }
@@ -206,11 +205,11 @@ public class Player implements railway.sim.Player
     {
         if (townLookup.indexOf(t1) == -1)
         {
-            System.out.printf("Town %s not found",t1);
+            // System.out.printf("Town %s not found",t1);
         } 
         if (townLookup.indexOf(t2)==-1)
         {
-            System.out.printf("Town %s not found",t2);
+            // System.out.printf("Town %s not found",t2);
         }
         return getDistance(townLookup.indexOf(t1), townLookup.indexOf(t2));
     }
@@ -231,7 +230,7 @@ public class Player implements railway.sim.Player
                 int to = townLookup.indexOf(bi.town2);
                 if (from == -1 || to == -1)
                 {
-                    System.out.println("TOWN NOT FOUND");
+                    // System.out.println("TOWN NOT FOUND");
                 }
                 else
                 {
@@ -253,7 +252,7 @@ public class Player implements railway.sim.Player
                 int to = townLookup.indexOf(bi.town2);   
                 if (from == -1 || to == -1)
                 {        
-                    System.out.println("TOWN NOT FOUND");
+                    // System.out.println("TOWN NOT FOUND");
                 }
                 else
                 {
@@ -333,7 +332,7 @@ public class Player implements railway.sim.Player
                         || townLookup.indexOf(availableBids.get(b.id1).town2)==-1 
                         || townLookup.indexOf(availableBids.get(b.id2).town1)==-1 
                         || townLookup.indexOf(availableBids.get(b.id1).town2) == -1){
-                   System.out.println("Town not found");
+                   // System.out.println("Town not found");
                    continue;
                 }
                 s = geo.get(townLookup.indexOf(availableBids.get(b.id1).town1));
@@ -374,7 +373,7 @@ public class Player implements railway.sim.Player
 
             if (townLookup.indexOf(bi.town1) == -1 || townLookup.indexOf(bi.town2) == -1)
             {
-               System.out.println("Town not found");
+               // System.out.println("Town not found");
                continue;
             }
             int from = townLookup.indexOf(bi.town1);
@@ -394,7 +393,7 @@ public class Player implements railway.sim.Player
             {
                 if (profit < revenue - winning_price)
                 {
-                    if (winning_price > budget)
+                    if (winning_price > budget || 8*(revenue-winning_price) * this.total_budget < total_profit * winning_price || winning_price > 0.25*this.total_budget)
                     {
                         continue;
                     }
@@ -851,7 +850,7 @@ public class Player implements railway.sim.Player
         }
 
         // Make sure this edge exists in regular infra
-        if(is_neighbor(next_edge.from, next_edge.to))
+        if(is_neighbor(from, to))
         {
             next_edge = new Pair(from, to);
         }
