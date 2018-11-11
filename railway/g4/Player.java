@@ -94,10 +94,13 @@ public class Player implements railway.sim.Player
         }
 
         // Andrew's testing
+        /*
         Pair h = start();
-        //my_trains.add(new Pair(0, 1));// A -> B in basic map
-        //Pair n = get_next_link();
-        //System.out.println(n.toString()); 
+        my_trains.add(new Pair(0, 1));// A -> B in basic map
+	owner[0][1]="g4";
+        Pair n = get_next_link();
+        System.out.println(n.toString()); 
+        */
     }
 
     // helper function to print owner
@@ -654,7 +657,6 @@ public class Player implements railway.sim.Player
 	    // Build undirected adjacency list as well.
             for (int j = 0; j < vertex.size(); j++)
             {
-                // DEGREE WORKS. NOT APPENDING IN STATIONS. WILL DO LATER TONIGHT
                 ++degree[vertex.get(j)];
                 undirected_infra[vertex.get(j)].add(i);
             }
@@ -834,16 +836,35 @@ public class Player implements railway.sim.Player
                 new_buy.add(new Pair(x.from, neighbors_of_from.get(k)));
             }
         }
+
+        // Print it, Stage 1
+	System.out.println("non-filtered");
+        for(int i = 0; i < new_buy.size();i++)
+        {
+            //System.out.println(new_buy.get(i).toString());
+	    System.out.println(townLookup.get(new_buy.get(i).from) + " -> " + townLookup.get(new_buy.get(i).to));
+        }
         
         // Filter out everything except owned by government
         for(int i = 0; i < new_buy.size();i++)
         {
             from = new_buy.get(i).from;
             to = new_buy.get(i).to;
+            if(owner[from][to].equals("null"))
+            {
+                continue;
+            }
             if(!owner[from][to].equals("gov"))
             {
                 new_buy.remove(i);
             }
+        }
+	
+	System.out.println("only government owned");
+        for(int i = 0; i < new_buy.size();i++)
+        {
+            //System.out.println(new_buy.get(i).toString());
+	    System.out.println(townLookup.get(new_buy.get(i).from) + " -> " + townLookup.get(new_buy.get(i).to));
         }
 
         // Now which is the most profitable?
