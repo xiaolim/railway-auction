@@ -92,8 +92,12 @@ public class Player implements railway.sim.Player
                 this.owner[i][j] = "null";
             }
         }
+
+        // Andrew's testing
         Pair h = start();
-        // System.out.println(h.toString());
+        //my_trains.add(new Pair(0, 1));// A -> B in basic map
+        //Pair n = get_next_link();
+        //System.out.println(n.toString()); 
     }
 
     // helper function to print owner
@@ -688,7 +692,7 @@ public class Player implements railway.sim.Player
         Integer [] values = sorted.values().toArray(new Integer[sorted.size()]);
         
 	// Verify Results
-        /*
+        /* 
         for(int i = 0; i < NUM_STATIONS;i++)
         {
             System.out.println("Station: "+ townLookup.get(keys[i]) + " has degree of: " + values[i]);
@@ -697,10 +701,18 @@ public class Player implements railway.sim.Player
 
         // Start with station with lowest degree (If a tail exists, great I can monopolize it now!)
 	// From - Lowest Degree Vertex Found
-        to = keys[keys.length - 1];
+        int index = keys.length - 1;
+        to = keys[index];
+        // Just in case there is a map with a degree 0 (Group 1 might have that in station Nishi-Kasai...
+        while(degree[to] == 0)
+        {
+            --index;
+            to = keys[index];
+        }
+
         // To - Neighbor of lowest degree vertex with highest degree
         from = max_degree_neighbor(undirected_infra[to]);
-       
+        
         //System.out.println(townLookup.get(from) + " -> " + townLookup.get(to));
         
         // check if from -> to exists in infra!
@@ -721,7 +733,6 @@ public class Player implements railway.sim.Player
     }
 
     // Return the neighbor that has highest degree
-    // TODO: Get the list of them?
     public int max_degree_neighbor(List<Integer> neighbors)
     {
         int destination = 0;
