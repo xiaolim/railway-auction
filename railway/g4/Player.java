@@ -600,6 +600,11 @@ public class Player implements railway.sim.Player
         return Revenue.get(hash(from, to));
     }
 
+    private double getProfit(Pair edge)
+    {
+        return Revenue.get(hash(edge.from, edge.to));
+    }
+
 
     public void updateBudget(Bid bid) 
     {
@@ -634,6 +639,7 @@ public class Player implements railway.sim.Player
     public Pair start()
     {
         degree = new int[NUM_STATIONS];
+        Pair home;
         int to = 0;
         int from = 0;
         HashMap<Integer, Integer> station_degree = new HashMap<Integer, Integer>();
@@ -691,31 +697,27 @@ public class Player implements railway.sim.Player
         */
 
         // Start with station with lowest degree (If a tail exists, great I can monopolize it now!)
-	// Here I have a Lowest Degree Vertex!
+	// From - Lowest Degree Vertex Found
         to = keys[keys.length - 1];
-        // Neighbors have degree of...get minimum
-        from = max_degree_neighbor(undirected_infra[to]);        
-        Pair home = new Pair(to, from);
+        // To - Neighbor of lowest degree vertex with highest degree
+        from = max_degree_neighbor(undirected_infra[to]);
+       
+        //System.out.println(townLookup.get(from) + " -> " + townLookup.get(to));
         
         // check if from -> to exists in infra!
         // Might be issue so flip if needed!
         if(is_neighbor(from, to))
         {
-            System.out.println("Found in infra: " + home.toString());
+            home = new Pair(from, to);
+            //System.out.println("Found in infra: " + home.toString());
             return home;
         }
         else
         {
-            System.out.println("NOT FOUND IN INFRA!");
-            //home.flip();
-            /*
-            int temp = to;
-            home.to = from;
-            home.from = temp;
-            System.out.println(home.toString());
+            //System.out.println("NOT FOUND IN INFRA!");
+            home = new Pair(to, from);
+            //System.out.println(home.toString());
             return home;
-            */
-            return new Pair(to, from);
         }
     }
 
@@ -741,12 +743,14 @@ public class Player implements railway.sim.Player
         List<Integer> test = infra.get(from);
         if(test.isEmpty())
         {
+            //System.out.println("empty list!");
             return false;
         }
         for (int i = 0; i < test.size();i++)
         {
-            if(test.get(i) == to)
+            if(test.get(i).intValue() == to.intValue())
             {
+                //System.out.println("true at: " + i);
                 return true;
             }
         }
@@ -796,20 +800,65 @@ public class Player implements railway.sim.Player
      * Purpose: Given a list of links we own, get the list of all other links.
      * Ideally we should get the most profitable one
      */
-    public List<Pair> get_next_link()
+    public Pair get_next_link()
     {
+        Pair next_edge;
         ArrayList<Pair> new_buy = new ArrayList<Pair>();
+        // Build an Edge List <from, to> based on my_trains...
         // old_to -> new node
         // old_from -> new node
-        /*
-        for(;;)
+        int from = -1;
+        int to = -1;
+
+        for(int i = 0; i < my_trains.size(); i++)
         {
-            if(owner[from][to].equals("gov"))
+            Pair x = my_trains.get(i);
+            List<Integer> neighbors_of_to = undirected_infra[x.to];
+            List<Integer> neighbors_of_from = undirected_infra[x.from];
+            for (int j = 0; j < neighbors_of_to.size(); j++)
             {
-                new_buy.add(new Pair(0, 0));
+                new_buy.add(new Pair(neighbors_of_to.get(j), x.to));
+            }
+            for(int k = 0; k < neighbors_of_from.size();k++)
+            {
+                new_buy.add(new Pair(x.from, neighbors_of_from.get(k)));
             }
         }
-        */
-        return new_buy;
+        
+        // Filter out everything except owned by government
+        for(int i = 0; i < new_buy.size();i++)
+        {
+            from = new_buy.get(i).from;
+            to = new_buy.get(i).to;
+            if(!owner[from][to].equals("gov"))
+            {
+                new_buy.remove(i);
+            }
+        }
+
+        // Now which is the most profitable?
+        double max_profit = getProfit(new_buy.get(0));
+        to = new_buy.get(0).to;
+        from = new_buy.get(0).from;
+        for (int i = 1; i < new_buy.size();i++)
+        {
+            if(max_profit < getProfit(new_buy.get(i)))
+            {
+                max_profit = getProfit(new_buy.get(i));
+                to = new_buy.get(i).to;
+                from = new_buy.get(i).from;
+            }
+        }
+
+        // Make sure this edge exists in regular infra
+        if(is_neighbor(next_edge.from, next_edge.to))
+        {
+            next_edge = new Pair(from, to);
+        }
+        else
+        {
+            next_edge = new Pair(to, from);
+        }
+        return next_edge;
     }
 }

@@ -9,22 +9,15 @@ public class Pair implements Serializable
 
     public Pair() {}
 
-    public Pair(int x, int y) 
+    public Pair(int _from, int _to) 
     {
-        this.from = x;
-        this.to = y;
+        this.from = _from;
+        this.to = _to;
     }
 
     public String toString()
     {
         String x = String.valueOf(from) + " -> " + String.valueOf(to);
         return x;
-    }
-
-    public void flip()
-    {
-        int temp = this.to;
-        this.to = from;
-        this.from = temp;
     }
 }
