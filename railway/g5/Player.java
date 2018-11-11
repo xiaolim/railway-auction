@@ -259,6 +259,10 @@ public class Player implements railway.sim.Player {
       // Remove processed cities from ownedCities list
       ownedCities.clear();
 
+     } else {
+	if (adjacentRails.contains(lastRoundMaxBid.id1)) {
+	  adjacentRails.remove(Integer.valueOf(lastRoundMaxBid.id1));
+	}
      }
      updatedRoundBudget = true;
     }
